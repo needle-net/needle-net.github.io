@@ -807,3 +807,73 @@ body.l-app #mini{position:fixed;bottom:96px}
 .rx button.on{background:var(--fg);color:var(--inv)}
 .rxpick{flex-wrap:nowrap}
 .rxpick button{width:34px;height:34px;font-size:20px;flex:none}
+
+/* ===== v10: вид как в Telegram ===== */
+html[data-theme=tg]{--bg:#0e1621;--fg:#f5f5f5;--mid:#708499;--dim:#2b3a4a;--line:rgba(255,255,255,.07);--line2:rgba(255,255,255,.16);
+  --glass:rgba(23,33,43,.97);--panel:#17212b;--hover:rgba(255,255,255,.05);--inv:#17212b;--bgc:#6ab3f3;--acc:#6ab3f3;--mono:var(--sans);color-scheme:dark}
+html[data-theme=tgl]{--bg:#ffffff;--fg:#000000;--mid:#707579;--dim:#dfe1e5;--line:rgba(0,0,0,.08);--line2:rgba(0,0,0,.18);
+  --glass:rgba(255,255,255,.98);--panel:#ffffff;--hover:#f4f4f5;--inv:#fff;--bgc:#3390ec;--acc:#3390ec;--mono:var(--sans);color-scheme:light}
+html[data-theme=tg] body{background:#0e1621}
+html[data-theme=tgl] body{background:#fff}
+html[data-theme^=tg] .chat{background:var(--chatbg)}
+html[data-theme=tg]{--chatbg:#0e1621;--peer:#182533;--own:#2b5278;--ownfg:#fff}
+html[data-theme=tgl]{--chatbg:#8fb98b linear-gradient(160deg,#c6dfb8,#88b884 60%,#a7c99a);--peer:#fff;--own:#effdde;--ownfg:#000}
+html[data-theme^=tg] .bb{background:var(--peer);border-color:transparent;border-radius:14px 14px 14px 4px;box-shadow:0 1px 1px rgba(0,0,0,.12)}
+html[data-theme^=tg] .m.me .bb{background:var(--own);color:var(--ownfg);border-color:transparent;border-radius:14px 14px 4px 14px}
+html[data-theme^=tg] .m.me .rq{border-left-color:var(--acc);background:rgba(106,179,243,.12)}
+html[data-theme=tgl] .m.me .rq{border-left-color:#4fae4e;background:rgba(79,174,78,.12)}
+html[data-theme=tgl] .m.me .rq b,html[data-theme=tgl] .m.me .tk.rd{color:#4fae4e}
+html[data-theme=tg] .m.me .tk.rd{color:#6ab3f3}
+html[data-theme^=tg] .ft{color:var(--mid);opacity:1}
+html[data-theme^=tg] .m.me .ft{color:color-mix(in srgb,var(--ownfg) 55%,transparent)}
+html[data-theme^=tg] .btn{background:var(--acc);color:#fff;border-color:transparent;border-radius:10px;font-family:var(--sans);letter-spacing:0}
+html[data-theme^=tg] .btn.ghost{background:transparent;color:var(--acc);border:1px solid var(--line2)}
+html[data-theme^=tg] .seg button.on{background:var(--acc);color:#fff}
+html[data-theme^=tg] .badge{background:var(--acc);color:#fff}
+html[data-theme^=tg] .badge.mu{background:var(--mid);color:var(--panel)}
+html[data-theme^=tg] .win[data-id=chats] .row.on{background:var(--acc);color:#fff}
+html[data-theme^=tg] .win[data-id=chats] .row.on .p,html[data-theme^=tg] .win[data-id=chats] .row.on .m{color:rgba(255,255,255,.85)}
+html[data-theme^=tg] .comp .box{border-radius:20px;background:var(--panel)}
+html[data-theme^=tg] .send{background:var(--acc);color:#fff;border-radius:50%}
+html[data-theme^=tg] .sys{background:rgba(0,0,0,.25);color:#fff;border:0;border-radius:12px}
+html[data-theme^=tg] .wh{background:var(--panel)}
+html[data-theme^=tg] .k{letter-spacing:.02em}
+.badge.mu{background:var(--mid)}
+.mut{font-size:11px;opacity:.7}
+/* скрываем верхние вкладки: всё в меню ☰ */
+body .ttabs{display:none}
+body .desk{top:52px}
+.burger{margin-right:6px}
+.drawer-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:2000;opacity:0;transition:opacity .25s}
+.drawer-bg.on{opacity:1}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:min(300px,84vw);background:var(--panel);z-index:2001;transform:translateX(-102%);transition:transform .25s var(--ease);display:flex;flex-direction:column;box-shadow:4px 0 24px rgba(0,0,0,.3)}
+.drawer.on{transform:none}
+.drawer .dh{padding:22px 20px 14px;display:flex;flex-direction:column;gap:4px;cursor:pointer;border-bottom:1px solid var(--line)}
+.drawer .dh .av{width:56px;height:56px;font-size:20px;margin-bottom:8px}
+.drawer .dh small{color:var(--mid)}
+.drawer nav{flex:1;overflow:auto;padding:6px 0}
+.drawer nav button{display:flex;align-items:center;gap:18px;width:100%;padding:11px 20px;font:500 15px var(--sans);color:var(--fg);text-align:left;background:none;border:0;cursor:pointer}
+.drawer nav button:hover{background:var(--hover)}
+.drawer nav svg,.drawer nav .ic{width:22px;height:22px;flex:none;color:var(--mid);font-size:18px;display:grid;place-items:center}
+.drawer nav .sw{margin-left:auto;pointer-events:none}
+.drawer .dv{padding:12px 20px;color:var(--mid);font-size:12px}
+.row.arch .av.ar{display:inline-grid;place-items:center;background:var(--mid);color:#fff;border-color:transparent}
+.mmh{font-size:16px;margin-bottom:6px}
+.mgal{max-height:58vh;overflow:auto;margin-top:10px}
+.mgal.m{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.mgal.m img,.mgal.m .fl img{width:100%;aspect-ratio:1;object-fit:cover;cursor:pointer;display:block;border-radius:4px}
+.mgal.f .mf{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.mgal.f .mf small{color:var(--mid);flex:none}
+.ppl.blk{margin:0}
+/* смайлы */
+img.emj{width:1.25em;height:1.25em;vertical-align:-.28em;display:inline-block;margin:0 .03em;object-fit:contain}
+.rxpick img.emj{width:26px;height:26px;vertical-align:middle}
+.rx img.emj{width:16px;height:16px;vertical-align:-3px}
+html[data-theme^=tg] .ftabs i,html[data-theme^=tg] .ttabs i{background:var(--acc);color:#fff;font-family:var(--sans)}
+html[data-theme^=tg] .rx button.on{background:var(--acc);color:#fff}
+html[data-theme^=tg] .m.me .rx button{background:rgba(255,255,255,.14)}
+html[data-theme=tgl] .m.me .rx button{background:rgba(79,174,78,.16)}
+html[data-theme=tgl] .m.me .rx button.on{background:#4fae4e;color:#fff}
+.drawer nav svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.mgal .empty{grid-column:1/-1;padding:30px 0;text-align:center;color:var(--mid)}
+@media(max-width:760px){body.l-app #mini{bottom:140px}}

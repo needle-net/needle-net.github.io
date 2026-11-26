@@ -48,6 +48,7 @@
     file: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'),
     palette: svg('<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5c0-4-4-7.2-9-7.2z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>'),
     globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'),
+    menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
     bell: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
     crown: svg('<path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/>'),
     check: '<span class="vf" title="Подтверждён">' + svg('<path d="M12 2l2.4 2.1 3.1-.4.9 3 2.8 1.5-1 3 1 3-2.8 1.5-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3L2.8 15.8l1-3-1-3 2.8-1.5.9-3 3.1.4z"/><path d="M8 12l3 3 5-6" stroke="var(--inv)" stroke-width="2" fill="none"/>') + "</span>",
@@ -61,6 +62,7 @@
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
   const ERR = {
+    "blocked": "Этот человек ограничил тебе сообщения", "dm closed": "Этот человек не принимает новые личные сообщения",
     "no access": "Это закрытый чат: войти можно только по ссылке-приглашению", "no chat": "Ничего не нашлось по этой ссылке",
     "too fast": "Слишком быстро, подожди пару секунд", "no links": "Ссылки и @ники писать нельзя", "limit 3": "Можно создать не больше 3 групп и каналов",
     "bad length": "Слишком длинно или пусто", "join first": "Сначала вступи", "channel owner only": "Писать в канал может только его автор",
@@ -77,6 +79,48 @@
 
   // ================= языки: русский (исходный), English, українська =================
   const DICT = [
+    ["Меню", "Menu", "Меню"],
+    ["Мой профиль", "My profile", "Мій профіль"],
+    ["Создать группу", "New group", "Створити групу"],
+    ["Создать канал", "New channel", "Створити канал"],
+    ["Люди и поиск", "People and search", "Люди і пошук"],
+    ["Ночной режим", "Night mode", "Нічний режим"],
+    ["Удалить папку", "Delete folder", "Видалити папку"],
+    ["📤 Вернуть из архива", "📤 Unarchive", "📤 Повернути з архіву"],
+    ["🗄 В архив", "🗄 Archive", "🗄 В архів"],
+    ["🔔 Включить звук", "🔔 Unmute", "🔔 Увімкнути звук"],
+    ["🔕 Без звука", "🔕 Mute", "🔕 Без звуку"],
+    ["✓ Отметить прочитанным", "✓ Mark as read", "✓ Позначити прочитаним"],
+    ["📁 Добавить в папку", "📁 Add to folder", "📁 Додати в папку"],
+    ["🗑 Очистить Избранное", "🗑 Clear Saved Messages", "🗑 Очистити Обране"],
+    ["🗑 Удалить чат", "🗑 Delete chat", "🗑 Видалити чат"],
+    ["🚪 Выйти", "🚪 Leave", "🚪 Вийти"],
+    ["Чат в архиве", "Chat archived", "Чат в архіві"],
+    ["Чат вернулся из архива", "Chat unarchived", "Чат повернувся з архіву"],
+    ["Выйти из чата?", "Leave the chat?", "Вийти з чату?"],
+    ["Добавить в папку", "Add to folder", "Додати в папку"],
+    ["новая папка", "new folder", "нова папка"],
+    ["Например: Друзья", "For example: Friends", "Наприклад: Друзі"],
+    ["Архив", "Archive", "Архів"],
+    ["назад ко всем чатам", "back to all chats", "назад до всіх чатів"],
+    ["Медиа и файлы", "Media and files", "Медіа і файли"],
+    ["Медиа", "Media", "Медіа"],
+    ["Файлы", "Files", "Файли"],
+    ["Файлов пока нет", "No files yet", "Файлів поки немає"],
+    ["Заблокировать", "Block", "Заблокувати"],
+    ["Разблокировать", "Unblock", "Розблокувати"],
+    ["Он не сможет писать тебе в личку и не увидит, когда ты в сети.", "They won't be able to message you or see when you're online.", "Він не зможе писати тобі в особисті й не побачить, коли ти в мережі."],
+    ["Разблокирован", "Unblocked", "Розблоковано"],
+    ["Заблокирован", "Blocked", "Заблоковано"],
+    ["Кто видит, когда я в сети", "Who sees when I'm online", "Хто бачить, коли я в мережі"],
+    ["Кто может написать мне первым", "Who can message me first", "Хто може написати мені першим"],
+    ["Никто", "Nobody", "Ніхто"],
+    ["Чёрный список", "Blocked users", "Чорний список"],
+    ["Тут пусто. Заблокировать можно в профиле человека.", "Empty. You can block someone from their profile.", "Тут порожньо. Заблокувати можна в профілі людини."],
+    ["был(а) недавно", "last seen recently", "був(ла) нещодавно"],
+    ["Этот человек ограничил тебе сообщения", "This person has restricted messages from you", "Ця людина обмежила тобі повідомлення"],
+    ["Этот человек не принимает новые личные сообщения", "This person doesn't accept new private messages", "Ця людина не приймає нові особисті повідомлення"],
+    ["Telegram светлая", "Telegram light", "Telegram світла"],
     ["Избранное", "Saved Messages", "Обране"],
     ["заметки для себя", "notes to self", "нотатки для себе"],
     ["печатает…", "typing…", "друкує…"],
@@ -542,19 +586,57 @@
   })();
 
   // ================= настройки «как Linux» =================
-  const DEF = { theme: "black", font: "grotesk", size: 15, radius: 12, bg: "needle", bgLevel: 35, lang: "", layout: "app", dock: "bottom", motion: "full", helper: true, sound: true, preview: true, css: "", wins: {} };
+  // ================= смайлы Fluent 3D (Microsoft, MIT) вместо системных =================
+  const Emoji = (() => {
+    const CDN = "https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets/";
+    const RE = /(?:\p{RI}\p{RI}|[#*0-9]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:\uFE0F|\p{EMod})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{EMod})?)*)/gu;
+    const PLAIN = /^[\u00a9\u00ae\u203c\u2049\u2122\u2139\u2190-\u21ff\u2714\u2716\u3030\u303d\u3297\u3299]\uFE0F?$/u;
+    const SKIP = "textarea,input,pre,code,svg,script,style,.spirit,.emj,[contenteditable],.mono.code";
+    const hex = e => [...e].map(c => c.codePointAt(0).toString(16).padStart(4, "0")).join("-");
+    const bad = new Set();
+    const tries = e => { const a = hex(e), b = hex(e.replace(/\uFE0F/g, "")); return [...new Set([a, b, [...e].length === 1 ? a + "-fe0f" : a])].filter(x => !bad.has(x)); };
+    function img(e) {
+      const t = tries(e); if (!t.length) return null;
+      const i = document.createElement("img"); i.className = "emj"; i.alt = e; i.draggable = false; i.decoding = "async"; let k = 0;
+      i.onerror = () => { bad.add(t[k]); k++; if (k < t.length) i.src = CDN + t[k] + ".webp"; else i.replaceWith(document.createTextNode(e)); };
+      i.src = CDN + t[0] + ".webp"; return i;
+    }
+    function text(n) {
+      const v = n.nodeValue; if (!v || !/[\u00a9-\u{1faff}]/u.test(v)) return;
+      const p = n.parentElement; if (!p || p.closest(SKIP)) return;
+      RE.lastIndex = 0; if (!RE.test(v)) return; RE.lastIndex = 0;
+      const f = document.createDocumentFragment(); let last = 0, m, any = false;
+      while ((m = RE.exec(v))) { if (PLAIN.test(m[0])) continue; const el = img(m[0]); if (!el) continue; any = true; if (m.index > last) f.append(v.slice(last, m.index)); f.append(el); last = m.index + m[0].length; }
+      if (!any) return; if (last < v.length) f.append(v.slice(last)); n.replaceWith(f);
+    }
+    function walk(root) {
+      if (root.nodeType === 3) return text(root); if (root.nodeType !== 1 || root.closest && root.closest(SKIP)) return;
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = []; let n; while ((n = w.nextNode())) list.push(n); list.forEach(text);
+    }
+    let q = new Set(), raf = 0, on = false;
+    const flush = () => { raf = 0; const xs = [...q]; q.clear(); xs.forEach(x => x.isConnected && walk(x)); };
+    return {
+      start() {
+        if (on) return; on = true; walk(document.body);
+        new MutationObserver(ms => { for (const m of ms) { if (m.type === "characterData") q.add(m.target); else m.addedNodes.forEach(x => q.add(x)); } if (!raf) raf = requestAnimationFrame(flush); })
+          .observe(document.body, { childList: true, subtree: true, characterData: true });
+      },
+    };
+  })();
+  const DEF = { theme: "tg", font: "system", size: 15, radius: 12, bg: "none", bgLevel: 35, lang: "", layout: "app", dock: "bottom", motion: "full", helper: true, sound: true, preview: true, css: "", wins: {} };
   const PRESET = {
     black: { font: "grotesk", radius: 14, bg: "needle", bgLevel: 35 }, dark: { font: "grotesk", radius: 6, bg: "fire", bgLevel: 55 }, light: { font: "grotesk", radius: 10, bg: "none" },
     blue: { font: "grotesk", radius: 12, bg: "stars", bgLevel: 60 }, linux: { font: "mono", radius: 0, bg: "matrix", bgLevel: 30 },
     windows: { font: "system", radius: 0, bg: "none" }, minimal: { font: "system", radius: 16, bg: "none" }, matrix: { font: "mono", radius: 2, bg: "matrix", bgLevel: 55 },
   };
-  const LIGHT = { light: "#f4f4f2", windows: "#008080", minimal: "#ffffff", blue: "#06122b" };
+  const LIGHT = { tg: "#17212b", tgl: "#ffffff", light: "#f4f4f2", windows: "#008080", minimal: "#ffffff", blue: "#06122b" };
   const hadCfg = !!store.get("needle-cfg", null);
   let CFG = Object.assign({}, DEF, store.get("needle-cfg", {}));
   if (CFG.v !== 2 && CFG.v !== 3) { if (CFG.theme === "black" && CFG.bg === "none") Object.assign(CFG, { bg: "needle", bgLevel: 35 }); }
   if (CFG.v !== 3) { if (CFG.bg === "needle" && CFG.bgLevel >= 45) CFG.bgLevel = 35; if (CFG.layout === "tiles") CFG.layout = "app"; CFG.v = 3; store.set("needle-cfg", CFG); }
   const saveCfg = () => store.set("needle-cfg", CFG);
   if (CFG.v === 3) { CFG.helper = true; CFG.v = 4; saveCfg(); }   // v7: Игла-питомец включена у всех
+  if ((CFG.v || 0) < 5) { Object.assign(CFG, { theme: "tg", font: "system", bg: "none", radius: 12, v: 5 }); saveCfg(); }   // v10: вид как в Telegram
   if (!LANGS[CFG.lang]) { const nl = navigator.language || ""; CFG.lang = hadCfg ? "ru" : /^uk/i.test(nl) ? "uk" : /^(ru|be|kk)/i.test(nl) ? "ru" : "en"; saveCfg(); }
   I18N.set(CFG.lang);
   function applyCfg() {
@@ -980,9 +1062,34 @@
   const isPhone = () => innerWidth <= 760;
   const L = () => isPhone() ? "phone" : CFG.layout;
 
+  let PREFS = { folders: [], priv_seen: "all", priv_dm: "all", blocked: [] };
+  const Menu = {
+    open() {
+      if ($(".drawer")) return this.close();
+      const dark = CFG.theme !== "tgl" && CFG.theme !== "light" && CFG.theme !== "minimal";
+      const it = (k, icon, t) => `<button data-mk="${k}">${icon}<span>${tl(t)}</span></button>`;
+      const bg = h(`<div class="drawer-bg"></div>`), d = h(`<aside class="drawer">
+        <div class="dh" data-mk="me">${av(ME, "big")}<b>${esc(ME.name || ME.username)}</b><small>@${esc(ME.username)}</small></div>
+        <nav>${it("me", I.me, "Мой профиль")}${it("group", I.chats, "Создать группу")}${it("channel", I.spark, "Создать канал")}${it("find", I.find, "Люди и поиск")}
+          ${it("saved", `<span class="ic">🔖</span>`, "Избранное")}${it("feed", I.feed, "Лента")}${it("clans", I.clan, "Кланы")}${it("cfg", I.cfg, "Настройки")}
+          <button data-mk="night"><span class="ic">🌙</span><span>${tl("Ночной режим")}</span><i class="sw${dark ? " on" : ""}"></i></button></nav>
+        <div class="dv">Needle v10 · TAN</div></aside>`);
+      document.body.append(bg, d); requestAnimationFrame(() => { bg.classList.add("on"); d.classList.add("on"); });
+      bg.onclick = () => this.close();
+      $$("[data-mk]", d).forEach(b => b.onclick = () => {
+        const k = b.dataset.mk; if (k !== "night") this.close();
+        if (k === "group" || k === "channel") { newChatDialog(); setTimeout(() => { const x = $(`.modal .seg [data-k=${k}]`); if (x) x.click(); }, 30); }
+        else if (k === "saved") openSaved();
+        else if (k === "night") { const on = !$(".sw", b).classList.contains("on"); $(".sw", b).classList.toggle("on", on); CFG.theme = on ? (CFG.darkTheme || "tg") : "tgl"; if (on) delete CFG.darkTheme; saveCfg(); applyCfg(); }
+        else open(k);
+      });
+      addEventListener("keydown", this.esc = e => { if (e.key === "Escape") this.close(); });
+    },
+    close() { const d = $(".drawer"), bg = $(".drawer-bg"); removeEventListener("keydown", this.esc); [d, bg].forEach(x => { if (!x) return; x.classList.remove("on"); setTimeout(() => x.remove(), 250); }); },
+  };
   function desk() {
     const root = $("#root");
-    root.innerHTML = `<header class="topbar">
+    root.innerHTML = `<header class="topbar"><button class="ib burger" data-menu title="${tl("Меню")}">${I.menu}</button>
         ${LOGO(false)}<div class="sp"></div>
         <span class="clk" id="clk"></span>
         <button class="ib" data-open="find" title="Поиск (Ctrl+K)">${I.find}</button>
@@ -992,6 +1099,9 @@
       <nav class="dock" id="dock">${DOCK.map(id => `<button data-dock="${id}" title="${PANELS[id].t}">${I[PANELS[id].i]}<span class="dl">${PANELS[id].t}</span></button>`).join("")}</nav>
       <button id="mini" title="Игла">${'<div class="spirit"></div>'}</button>`;
     $$("[data-open]", root).forEach(b => b.onclick = () => open(b.dataset.open));
+    $("[data-menu]", root).onclick = () => Menu.open();
+    Emoji.start();
+    rpc("nv_prefs_get").then(p => { if (p) { PREFS = p; if ($(".win[data-id=chats]")) { drawTabs(); drawChats(); } } }).catch(() => {});
     $$("[data-dock]", root).forEach(b => b.onclick = () => {
       const id = b.dataset.dock, w = $(`.win[data-id=${id}]`);
       if (L() === "windows" && w && w.classList.contains("shown") && w.classList.contains("top")) close(id); else open(id);
@@ -1110,15 +1220,58 @@
   // ================= список чатов =================
   const Chats = { list: [], q: "", timer: 0, unread: 0, kind: store.get("needle-tab", "all") };
   const TABS = [["all", "Все"], ["dm", "Личные"], ["group", "Группы"], ["channel", "Каналы"]];
-  function setKind(k) { Chats.kind = k; store.set("needle-tab", k); $$(".ftabs button").forEach(x => x.classList.toggle("on", x.dataset.k === k)); if ($(".win[data-id=chats] .list")) drawChats(); dockState(); }
+  function setKind(k) { Chats.kind = k; if (k !== "archive") store.set("needle-tab", k); $$(".ftabs button").forEach(x => x.classList.toggle("on", x.dataset.k === k)); if ($(".win[data-id=chats] .list")) drawChats(); dockState(); }
+  const inKind = (c, k) => k === "archive" ? c.archived : k[0] === "f" ? ((PREFS.folders[+k.slice(1)] || {}).c || []).includes(c.id) : !c.archived && (k === "all" || c.kind === k || (k === "dm" && c.saved));
+  function drawTabs() {
+    const nav = $(".win[data-id=chats] .ftabs"); if (!nav) return;
+    if (Chats.kind[0] === "f" && !PREFS.folders[+Chats.kind.slice(1)]) Chats.kind = "all";
+    nav.innerHTML = [...TABS, ...PREFS.folders.map((f, i) => ["f" + i, f.n])].map(([k, t]) => `<button data-k="${k}" class="${Chats.kind === k ? "on" : ""}">${k[0] === "f" ? esc(t) : t}<i></i></button>`).join("");
+    $$("button", nav).forEach(b => {
+      b.onclick = () => setKind(b.dataset.k);
+      if (b.dataset.k[0] === "f") b.oncontextmenu = async e => { e.preventDefault(); const i = +b.dataset.k.slice(1); if (!(await confirmBox(tl("Удалить папку") + " «" + PREFS.folders[i].n + "»?", tl("Удалить")))) return; const f = PREFS.folders.filter((_, j) => j !== i); try { await rpc("nv_prefs_set", { p_folders: f }); PREFS.folders = f; if (Chats.kind === "f" + i) Chats.kind = "all"; drawTabs(); drawChats(); } catch (x) { toast(errText(x)); } };
+    });
+  }
+  const ChatMenu = {
+    open(c) {
+      const items = [[c.pin ? "unpin" : "pin", c.pin ? "Открепить" : "📌 Закрепить"], [c.archived ? "unarch" : "arch", c.archived ? "📤 Вернуть из архива" : "🗄 В архив"],
+        [c.muted ? "unmute" : "mute", c.muted ? "🔔 Включить звук" : "🔕 Без звука"], +c.unread ? ["read", "✓ Отметить прочитанным"] : null, ["folder", "📁 Добавить в папку"],
+        c.kind === "dm" ? ["del", c.saved ? "🗑 Очистить Избранное" : "🗑 Удалить чат"] : c.owner ? null : ["leave", "🚪 Выйти"]].filter(Boolean);
+      modal(`<h2 class="mmh">${chatName(c)}</h2><div class="mmenu">${items.map(([k, t]) => `<button data-a="${k}">${tl(t)}</button>`).join("")}</div>`, (box, closeM) => {
+        $$("[data-a]", box).forEach(b => b.onclick = async () => {
+          closeM(); const a = b.dataset.a;
+          try {
+            if (a === "pin" || a === "unpin") { await rpc("nv_pin_chat", { p_chat: c.id, p_on: a === "pin" }); toast(a === "pin" ? tl("Чат закреплён") : tl("Чат откреплён")); }
+            else if (a === "arch" || a === "unarch") { await rpc("nv_chat_flag", { p_chat: c.id, p_key: "archived", p_on: a === "arch" }); toast(a === "arch" ? tl("Чат в архиве") : tl("Чат вернулся из архива")); }
+            else if (a === "mute" || a === "unmute") await rpc("nv_chat_flag", { p_chat: c.id, p_key: "muted", p_on: a === "mute" });
+            else if (a === "read") await rpc("nv_read_all", { p_chat: c.id });
+            else if (a === "folder") return this.folder(c);
+            else if (a === "leave") { if (!(await confirmBox(tl("Выйти из чата?"), tl("Выйти")))) return; await rpc("nv_leave", { p_chat: c.id }); if (Chat.id === c.id) close("chat"); }
+            else if (a === "del") { if (!(await confirmBox(c.saved ? "Очистить Избранное? Все заметки пропадут." : "Удалить переписку у обоих? Её нельзя вернуть.", "Удалить"))) return; await rpc("nv_delete_chat", { p_chat: c.id }); if (Chat.id === c.id) { close("chat"); Chat.leave(); } }
+            loadChats();
+          } catch (e) { toast(errText(e)); }
+        });
+      });
+    },
+    folder(c) {
+      modal(`<h2>${tl("Добавить в папку")}</h2><div class="mmenu">${PREFS.folders.map((f, i) => `<button data-f="${i}">${f.c.includes(c.id) ? "✓ " : "📁 "}${esc(f.n)}</button>`).join("")}</div>
+        ${PREFS.folders.length < 10 ? `<div class="field"><label class="k">${tl("новая папка")}</label><div class="invl"><input class="in" maxlength="20" placeholder="${tl("Например: Друзья")}"><button class="btn sm" data-nf>${tl("Создать")}</button></div></div>` : ""}
+        <div class="row2"><button class="btn ghost" data-n>${tl("Закрыть")}</button></div>`, (box, closeM) => {
+        $("[data-n]", box).onclick = closeM;
+        const save = async f => { try { await rpc("nv_prefs_set", { p_folders: f }); PREFS.folders = f; drawTabs(); drawChats(); closeM(); } catch (e) { toast(errText(e)); } };
+        $$("[data-f]", box).forEach(b => b.onclick = () => { const f = PREFS.folders.map(x => ({ n: x.n, c: [...x.c] })), x = f[+b.dataset.f]; x.c = x.c.includes(c.id) ? x.c.filter(i => i !== c.id) : [...x.c, c.id].slice(-200); save(f); });
+        const nf = $("[data-nf]", box); if (nf) nf.onclick = () => { const n = $("input", box).value.trim().slice(0, 20); if (!n) return; save([...PREFS.folders.map(x => ({ n: x.n, c: x.c })), { n, c: [c.id] }]); };
+      });
+    },
+  };
+  function drawChatsWrap() {}
   RENDER.chats = w => {
     $(".wa", w).innerHTML = `<button class="ib sv" title="${tl("Избранное")}" data-saved>🔖</button><button class="ib" title="Новый чат" data-new>${I.plus}</button>`;
     $("[data-new]", w).onclick = newChatDialog;
     $("[data-saved]", w).onclick = openSaved;
     $(".wb", w).innerHTML = `<nav class="tnav">${["chats", "feed", "find", "spark", "me", "cfg"].map(id => `<button data-go="${id}" title="${PANELS[id].t}">${PANELS[id].t}</button>`).join("")}</nav>
-      <nav class="ftabs">${TABS.map(([k, t]) => `<button data-k="${k}" class="${Chats.kind === k ? "on" : ""}">${t}<i></i></button>`).join("")}</nav>
+      <nav class="ftabs"></nav>
       <div class="srch"><input class="box" placeholder="Поиск по чатам" maxlength="40"></div><div class="list"><div class="spin"></div></div>`;
-    $$(".ftabs button", w).forEach(b => b.onclick = () => setKind(b.dataset.k));
+    drawTabs();
     $$(".tnav button", w).forEach(b => b.onclick = () => open(b.dataset.go));
     $(".srch input", w).oninput = e => { Chats.q = e.target.value.toLowerCase(); drawChats(); };
     loadChats(true);
@@ -1131,8 +1284,8 @@
         try { const f = await rpc("nv_find", { p_q: "needle" }); const off = (f.chats || []).find(c => c.kind === "channel" && c.title === "Needle"); if (off) { await rpc("nv_join", { p_chat: off.id }); return loadChats(false); } } catch {}
       }
       const before = Chats.unread;
-      Chats.list = list; Chats.unread = list.reduce((s, c) => s + (c.id === Chat.id ? 0 : +c.unread || 0), 0);
-      if (Chats.unread > before && !first) beep();
+      Chats.list = list; Chats.unread = list.reduce((s, c) => s + (c.id === Chat.id || c.muted ? 0 : +c.unread || 0), 0);
+      if (Chats.unread > before && !first) beep();   // заглушённые чаты не считаются
       document.title = (Chats.unread ? `(${Chats.unread}) ` : "") + BRAND();
       const bd = $('[data-dock=chats]'); if (bd) { let x = $(".bd", bd); if (Chats.unread) { if (!x) { x = h('<span class="bd"></span>'); bd.append(x); } x.textContent = Chats.unread > 99 ? "99+" : Chats.unread; } else if (x) x.remove(); }
       await drawChats();
@@ -1150,15 +1303,25 @@
   let drawSeq = 0;
   async function drawChats() {
     const w = $(`.win[data-id=chats]`); if (!w) return; const box = $(".list", w), seq = ++drawSeq;
-    const list = Chats.list.filter(c => Chats.kind === "all" || c.kind === Chats.kind).filter(c => !Chats.q || (c.kind === "dm" ? (c.peer && (c.peer.name || "") + " " + c.peer.username || "") : c.title || "").toLowerCase().includes(Chats.q));
-    if (!list.length) { box.innerHTML = Chats.q || Chats.kind !== "all" ? `<div class="empty">Ничего не найдено</div>` : `<div class="empty"><b>Пока пусто</b>Найди людей или каналы в поиске, или создай свою группу.<div class="fab" style="justify-content:center"><button class="btn sm" data-o="find">Поиск</button><button class="btn sm ghost" data-n>Создать</button></div></div>`;
+    const arch = Chats.list.filter(c => c.archived);
+    const list = Chats.list.filter(c => inKind(c, Chats.kind)).filter(c => !Chats.q || (c.kind === "dm" ? (c.peer && (c.peer.name || "") + " " + c.peer.username || "") : c.title || "").toLowerCase().includes(Chats.q));
+    const archRow = Chats.kind === "archive" ? `<div class="row arch" data-arch="0"><span class="av sv">←</span><div class="c"><div class="n">${tl("Архив")}</div><div class="p">${tl("назад ко всем чатам")}</div></div></div>`
+      : Chats.kind === "all" && arch.length && !Chats.q ? `<div class="row arch" data-arch="1"><span class="av ar">🗄</span><div class="c"><div class="n">${tl("Архив")}</div><div class="p">${arch.slice(0, 4).map(c => c.saved ? tl("Избранное") : esc(c.kind === "dm" ? (c.peer && (c.peer.name || c.peer.username)) || "" : c.title || "")).join(", ")}</div></div>${arch.some(c => +c.unread) ? `<div class="m"><span></span><span class="badge mu">${arch.reduce((s, c) => s + (+c.unread || 0), 0)}</span></div>` : ""}</div>` : "";
+    const wireArch = () => { const a = $("[data-arch]", box); if (a) a.onclick = () => setKind(a.dataset.arch === "1" ? "archive" : "all"); };
+    if (!list.length) { if (archRow) { box.innerHTML = archRow + `<div class="empty">${tl("Ничего не найдено")}</div>`; return wireArch(); } box.innerHTML = Chats.q || Chats.kind !== "all" ? `<div class="empty">Ничего не найдено</div>` : `<div class="empty"><b>Пока пусто</b>Найди людей или каналы в поиске, или создай свою группу.<div class="fab" style="justify-content:center"><button class="btn sm" data-o="find">Поиск</button><button class="btn sm ghost" data-n>Создать</button></div></div>`;
       $("[data-o]", box) && ($("[data-o]", box).onclick = () => open("find")); $("[data-n]", box) && ($("[data-n]", box).onclick = newChatDialog); return; }
-    const rows = await Promise.all(list.map(async c => `<div class="row${c.id === Chat.id ? " on" : ""}" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${chatName(c)}${c.kind === "dm" ? ` <span class="lock">${I.lock.replace("<svg", '<svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2"')}</span>` : ""}</div><div class="p">${await preview(c)}</div></div>
-      <div class="m"><span>${c.pin ? "📌 " : ""}${c.last ? fmtTime(c.last.created_at) : ""}</span>${c.mention && c.id !== Chat.id ? `<span class="badge at">@</span>` : ""}${+c.unread && c.id !== Chat.id ? `<span class="badge">${c.unread}</span>` : ""}</div></div>`));
+    const rows = await Promise.all(list.map(async c => `<div class="row${c.id === Chat.id ? " on" : ""}" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${chatName(c)}${c.muted ? ` <span class="mut">🔕</span>` : ""}${c.kind === "dm" && !c.saved ? ` <span class="lock">${I.lock.replace("<svg", '<svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2"')}</span>` : ""}</div><div class="p">${await preview(c)}</div></div>
+      <div class="m"><span>${c.pin ? "📌 " : ""}${c.last ? fmtTime(c.last.created_at) : ""}</span>${c.mention && c.id !== Chat.id ? `<span class="badge at">@</span>` : ""}${+c.unread && c.id !== Chat.id ? `<span class="badge${c.muted ? " mu" : ""}">${c.unread}</span>` : ""}</div></div>`));
     if (seq !== drawSeq) return;
-    box.innerHTML = rows.join("");
-    $$(".ftabs button, #ttabs button[data-k=all]").forEach(b => { const n = Chats.list.filter(c => (b.dataset.k === "all" || c.kind === b.dataset.k) && c.id !== Chat.id).reduce((s, c) => s + (+c.unread || 0), 0); $("i", b).textContent = n ? n : ""; });
-    $$(".row", box).forEach(r => r.onclick = () => Chat.open(+r.dataset.c));
+    box.innerHTML = archRow + rows.join(""); wireArch();
+    $$(".ftabs button, #ttabs button[data-k=all]").forEach(b => { const n = Chats.list.filter(c => inKind(c, b.dataset.k) && c.id !== Chat.id && !c.muted).reduce((s, c) => s + (+c.unread || 0), 0); $("i", b).textContent = n ? n : ""; });
+    $$(".row[data-c]", box).forEach(r => {
+      const c = Chats.list.find(x => x.id === +r.dataset.c);
+      r.onclick = () => { if (r._lp) { r._lp = false; return; } Chat.open(c.id); };
+      r.oncontextmenu = e => { e.preventDefault(); ChatMenu.open(c); };
+      let t = 0; r.addEventListener("touchstart", () => { t = setTimeout(() => { r._lp = true; ChatMenu.open(c); }, 520); }, { passive: true });
+      ["touchend", "touchmove", "touchcancel"].forEach(ev => r.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+    });
   }
 
   async function openSaved() { try { const id = await rpc("nv_saved"); await loadChats(); Chat.open(id); } catch (e) { toast(errText(e)); } }
@@ -1324,6 +1487,7 @@
         return;
       }
       if (c.kind === "channel" && !c.owner && !ME.is_admin) { const bar = h(`<div class="joinbar"><button class="btn ghost sm">Отписаться</button></div>`); root.append(bar); $("button", bar).onclick = () => this.leaveChat(); return; }
+      if (c.blocked) { const bar = h(`<div class="joinbar"><button class="btn ghost">${tl("Разблокировать")}</button></div>`); root.append(bar); $("button", bar).onclick = async () => { try { await rpc("nv_block", { p_user: c.peer.id, p_on: false }); this.c.blocked = false; this.composer(w); } catch (e) { toast(errText(e)); } }; return; }
       if (c.kind === "dm" && (!c.peer || !c.peer.pubkey)) { root.append(h(`<div class="joinbar"><span class="note" style="margin:0">Собеседник ещё не заходил в Needle, ключа шифрования пока нет. Написать получится, когда он зайдёт.</span></div>`)); return; }
       const f = h(`<form class="comp">
         ${c.kind !== "dm" ? `<label class="ib" title="Фото">${I.img}<input type="file" accept="image/*" hidden data-ph></label>` : ""}
@@ -1382,7 +1546,7 @@
         const r = await rpc("nv_poll", { p_chat: id, p_after: this.last, p_since: this.since });
         if (this.id === id) {
           this.since = r.now;
-          if (r.new.length) { await this.add(r.new); if (r.new.some(m => !m.mine)) beep(); }
+          if (r.new.length) { await this.add(r.new); if (r.new.some(m => !m.mine) && !(Chats.list.find(x => x.id === id) || {}).muted) beep(); }
           for (const m of r.changed) await this.swap(m);
           this.state(r);
         }
@@ -1526,10 +1690,12 @@
           ${c.kind === "dm" || c.owner || ME.is_admin ? `<button class="btn ghost sm" data-del>${c.kind === "dm" ? "Удалить переписку" : "Удалить"}</button>` : ""}
           ${c.joined ? `<button class="btn ghost sm" data-pinc>${(Chats.list.find(x => x.id === c.id) || {}).pin ? "Открепить чат" : "📌 Закрепить чат"}</button>` : ""}
           ${c.kind === "channel" ? `<button class="btn ghost sm" data-chp>Профиль канала</button>` : ""}
+          <button class="btn ghost sm" data-media>${tl("Медиа и файлы")}</button>
           ${c.kind !== "dm" && (c.owner || ME.is_admin) ? `<button class="btn ghost sm" data-ppl>${c.kind === "channel" ? tl("Подписчики") : tl("Участники")}${+c.reqs ? ` · ${tl("заявки")}: ${c.reqs}` : ""}</button>` : ""}
           <button class="btn sm" data-n>Закрыть</button></div>`, (m, closeM) => {
         $("[data-n]", m).onclick = closeM;
         $("[data-chp]", m) && ($("[data-chp]", m).onclick = () => { closeM(); Channel.open(c.id); });
+        $("[data-media]", m).onclick = () => { closeM(); Media.open(c); };
         $("[data-ppl]", m) && ($("[data-ppl]", m).onclick = () => { closeM(); People.open(c); });
         $("[data-pinc]", m) && ($("[data-pinc]", m).onclick = async () => { closeM(); const on = !(Chats.list.find(x => x.id === c.id) || {}).pin; try { await rpc("nv_pin_chat", { p_chat: c.id, p_on: on }); toast(on ? tl("Чат закреплён") : tl("Чат откреплён")); loadChats(); } catch (e) { toast(errText(e)); } });
         $("[data-lv]", m) && ($("[data-lv]", m).onclick = () => { closeM(); this.leaveChat(); });
@@ -1561,6 +1727,27 @@
   };
   const ACC = { open: "Открытый", request: "По заявке", closed: "Закрытый" };
   const ACCH = { open: "Любой найдёт по @юзернейму и вступит сразу.", request: "Человек подаёт заявку, ты принимаешь или отклоняешь.", closed: "Не виден в поиске. Попасть можно только по ссылке-приглашению." };
+  const Media = {
+    open(c) {
+      modal(`<h2>${tl("Медиа и файлы")}</h2><div class="seg" data-mt><button class="on" data-v="m">${tl("Медиа")}</button><button data-v="f">${tl("Файлы")}</button></div><div class="mgal"><div class="spin"></div></div><div class="row2"><button class="btn sm" data-n>${tl("Закрыть")}</button></div>`, async (box, closeM) => {
+        $("[data-n]", box).onclick = closeM;
+        const g = $(".mgal", box); let items = [];
+        try {
+          const list = await rpc("nv_chat_media", { p_chat: c.id });
+          for (const m of list) { const d = await Chat.decode(m); const img = m.photo && PATH_RE.test(m.photo) ? pub("nova", m.photo) : null; if (img || d.f) items.push({ m, d, img, kind: img || (d.f && /^image\//.test(d.f.type)) ? "m" : "f" }); }
+        } catch (e) { g.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; return; }
+        const draw = k => {
+          const xs = items.filter(x => x.kind === k); g.className = "mgal " + k; g.innerHTML = xs.length ? "" : `<div class="empty">${tl(k === "m" ? "Фото пока нет" : "Файлов пока нет")}</div>`;
+          for (const x of xs) {
+            if (x.img) { const im = h(`<img src="${esc(x.img)}" alt="" loading="lazy">`); im.onclick = () => lightbox(x.img); g.append(im); continue; }
+            const fe = fileEl(x.d.f); if (fe) { if (k === "f") { const w = h(`<div class="mf"><small>${ago(x.m.created_at)}</small></div>`); w.prepend(fe); g.append(w); } else g.append(fe); }
+          }
+        };
+        draw("m");
+        $$("[data-mt] button", box).forEach(b => b.onclick = () => { $$("[data-mt] button", box).forEach(y => y.classList.toggle("on", y === b)); draw(b.dataset.v); });
+      });
+    },
+  };
   const People = {
     async open(c) {
       modal(`<h2>${c.kind === "channel" ? tl("Подписчики") : tl("Участники")}</h2><div class="ppl"><div class="spin"></div></div><div class="row2"><button class="btn sm" data-n>${tl("Закрыть")}</button></div>`, async (m, closeM) => {
@@ -1721,6 +1908,7 @@
         setTitle(w, uname(p), handle(p));
         b.innerHTML = `${profileHead(p, false)}${p.banned ? `<p class="err" style="text-align:center">Аккаунт заблокирован</p>` : ""}<div class="feed" style="padding-top:0"><div class="posts"><div class="spin"></div></div></div>`;
         $("[data-dm]", b) && ($("[data-dm]", b).onclick = async () => { try { const id = await rpc("nv_open_dm", { p_user: p.id }); if (L() === "windows") close("user"); Chat.open(id); loadChats(); } catch (e) { toast(errText(e)); } });
+        $("[data-block]", b) && ($("[data-block]", b).onclick = async () => { if (!p.blocked && !(await confirmBox(tl("Заблокировать") + " " + p.username + "? " + tl("Он не сможет писать тебе в личку и не увидит, когда ты в сети."), tl("Заблокировать")))) return; try { await rpc("nv_block", { p_user: p.id, p_on: !p.blocked }); toast(p.blocked ? tl("Разблокирован") : tl("Заблокирован")); PREFS = await rpc("nv_prefs_get"); this.open(uid); } catch (e) { toast(errText(e)); } });
         $("[data-ban]", b) && ($("[data-ban]", b).onclick = async () => { if (!(await confirmBox((p.banned ? "Разбанить " : "Забанить ") + p.username + "?"))) return; try { await rpc("sn_set_ban", { p_username: p.username, p_ban: !p.banned }); this.open(uid); } catch (e) { toast(errText(e)); } });
         wireProfile(b, p, await rpc("nv_feed", { p_user: p.id }));
       } catch (e) { b.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
@@ -1775,7 +1963,7 @@
     },
   };
   const seenText = p => {
-    if (!p.seen_at) return tl("был(а) давно");
+    if (!p.seen_at) return tl("был(а) недавно");
     const m = (Date.now() - new Date(p.seen_at)) / 60000;
     if (m < 7) return "";
     if (m < 60) return `${tl("был(а)")} ${Math.floor(m)} ${tl("мин")} ${tl("назад")}`;
@@ -1788,7 +1976,7 @@
     const tile = (attr, icon, label) => `<button class="pa" ${attr}>${icon}<span>${label}</span></button>`;
     const acts = mine
       ? tile("data-edit", I.pen, "Изменить") + tile("data-share", I.at, "Поделиться") + (p.is_admin ? tile('data-open="admin"', I.crown, "Админка") : tile('data-open="cfg"', I.cfg, "Настройки"))
-      : (p.banned ? "" : tile("data-dm", I.lock, "Написать")) + tile("data-share", I.at, "Поделиться") + (ME.is_admin && !p.is_admin ? tile("data-ban", I.x, p.banned ? "Разбанить" : "Забанить") : "");
+      : (p.banned ? "" : tile("data-dm", I.lock, "Написать")) + tile("data-share", I.at, "Поделиться") + tile("data-block", I.x, p.blocked ? "Разблокировать" : "Заблокировать") + (ME.is_admin && !p.is_admin ? tile("data-ban", I.x, p.banned ? "Разбанить" : "Забанить") : "");
     const by = p.birth ? age(p.birth) : 0;
     const more = (p.usernames || []).filter(u => u !== p.username);
     return `<div class="pv pv2"><div class="ban b${+p.banner || 0}">${banTx(p.ban_text)}</div>
@@ -2156,13 +2344,13 @@
       b.innerHTML = `<div class="cfg cfgl">
         <div class="cfgme" data-go="acc">${av(ME)}<div><b>${uname(ME)}</b><small class="mono">${handle(ME)}</small></div><span class="go">›</span></div>
         ${list(CFGP)}
-        <p class="note" style="text-align:center">Needle v9 · TAN — The Anonymous Network</p></div>`;
+        <p class="note" style="text-align:center">Needle v10 · TAN — The Anonymous Network</p></div>`;
       $$("[data-go]", b).forEach(x => x.onclick = () => RENDER.cfg(w, x.dataset.go));
       return;
     }
     let body = "";
     if (cfgPage === "look") body = list(LOOKP);
-    else if (cfgPage === "look:style") body = `<div class="opt"><span>Стиль<small>одна кнопка меняет всё; дальше можно докрутить в других пунктах</small></span>${seg("theme", [["black", "Чёрная"], ["light", "Белая"], ["blue", "Синяя"], ["linux", "Linux"], ["windows", "Windows"], ["minimal", "Минимал"], ["matrix", "Матрица"], ["dark", "Огонь"]])}</div>`;
+    else if (cfgPage === "look:style") body = `<div class="opt"><span>Стиль<small>одна кнопка меняет всё; дальше можно докрутить в других пунктах</small></span>${seg("theme", [["tg", "Telegram"], ["tgl", "Telegram светлая"], ["black", "Чёрная"], ["light", "Белая"], ["blue", "Синяя"], ["linux", "Linux"], ["windows", "Windows"], ["minimal", "Минимал"], ["matrix", "Матрица"], ["dark", "Огонь"]])}</div>`;
     else if (cfgPage === "look:text") body = `
       <div class="opt"><span>Шрифт</span>${seg("font", [["grotesk", "Grotesk"], ["mono", "Mono"], ["system", "Системный"]])}</div>
       <div class="opt"><span>Размер текста<small data-o="size">${CFG.size}px</small></span>${rng("size", 12, 20)}</div>
@@ -2184,6 +2372,11 @@
       <div class="opt"><span>Звук сообщений<small>короткий сигнал, когда приходит новое сообщение</small></span>${sw("sound")}</div>
       <div class="opt"><span>Счётчик во вкладке<small>число непрочитанных в названии вкладки браузера</small></span><span class="muted mono" style="font-size:12px">всегда</span></div>`;
     else if (cfgPage === "priv") body = `
+      <h3>${tl("Конфиденциальность")}</h3>
+      <div class="opt"><span>${tl("Кто видит, когда я в сети")}</span><div class="seg" data-ps>${[["all", "Все"], ["nobody", "Никто"]].map(([k, t]) => `<button data-v="${k}" class="${PREFS.priv_seen === k ? "on" : ""}">${tl(t)}</button>`).join("")}</div></div>
+      <div class="opt"><span>${tl("Кто может написать мне первым")}</span><div class="seg" data-pd>${[["all", "Все"], ["nobody", "Никто"]].map(([k, t]) => `<button data-v="${k}" class="${PREFS.priv_dm === k ? "on" : ""}">${tl(t)}</button>`).join("")}</div></div>
+      <h3>${tl("Чёрный список")}</h3>
+      <div class="ppl blk">${PREFS.blocked.length ? PREFS.blocked.map(u => `<div class="row">${av(u, "xs")}<div class="c"><div class="n">${uname(u)}</div><div class="p">@${esc(u.username)}</div></div><button class="btn ghost sm" data-unb="${u.id}">${tl("Разблокировать")}</button></div>`).join("") : `<p class="note">${tl("Тут пусто. Заблокировать можно в профиле человека.")}</p>`}</div>
       <div class="opt"><span>Текст в списке чатов<small>показывать расшифрованное начало личных сообщений</small></span>${sw("preview")}</div>
       <h3>Шифрование личных сообщений</h3>
       <div class="kv"><span>Отпечаток ключа</span><button class="spoil code" data-fp title="Нажми, чтобы показать">••••••••••</button></div>
@@ -2220,6 +2413,8 @@
     const fp = $("[data-fp]", b); if (fp) (E2E.pub ? E2E.code(E2E.pub, E2E.pub) : Promise.resolve("нет")).then(c => fp.dataset.spoil = c.slice(0, 14));
     $$("[data-spoil]", b).forEach(x => x.onclick = () => { const on = x.classList.toggle("open"); x.textContent = on ? x.dataset.spoil : "••••••••••"; });
     on("[data-kbox]", () => keyPrompt(true));
+    $$("[data-ps] button, [data-pd] button", b).forEach(x => x.onclick = async () => { const seen = !!x.closest("[data-ps]"); try { await rpc("nv_prefs_set", seen ? { p_seen: x.dataset.v } : { p_dm: x.dataset.v }); PREFS[seen ? "priv_seen" : "priv_dm"] = x.dataset.v; $$("button", x.parentElement).forEach(y => y.classList.toggle("on", y === x)); } catch (e) { toast(errText(e)); } });
+    $$("[data-unb]", b).forEach(x => x.onclick = async () => { try { await rpc("nv_block", { p_user: x.dataset.unb, p_on: false }); PREFS.blocked = PREFS.blocked.filter(u => u.id !== x.dataset.unb); x.closest(".row").remove(); } catch (e) { toast(errText(e)); } });
     on("[data-edit]", () => { const mw = open("me"); RENDER.me(mw).then(() => editMe(mw)); });
     on("[data-pw]", changePw); on("[data-out]", logout);
     if (rc) {
