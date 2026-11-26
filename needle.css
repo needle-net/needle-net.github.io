@@ -681,3 +681,59 @@ html[data-theme=light] .nk.n16,html[data-theme=light] .nk.n19{background-image:l
 .post.big.t4{background:linear-gradient(160deg,rgba(0,201,255,.18),transparent 70%),var(--panel)}
 body.l-tiles.sec-feed .feedwrap .feed{flex:0 1 980px}
 @media (max-width:760px){.posts.mas{columns:2;column-gap:8px}.posts.mas>*{margin-bottom:8px}.posts.mas .post{padding:10px}.posts.mas .post .hd .s{display:none}.post.big .tx{font-size:16px}}
+
+/* ================= v7 ================= */
+/* 67 уровень: чёрная плашка */
+.lv.own{background:#000!important;color:#fff!important;border:1px solid #3a3a3a!important;animation:none!important}
+html[data-theme=light] .lv.own,html[data-theme=minimal] .lv.own,html[data-theme=windows] .lv.own{border-color:#000!important}
+/* скрытые почта и ключ */
+.spoil{padding:4px 8px;border-radius:6px;background:var(--hover);font-size:12px;letter-spacing:.08em;cursor:pointer}
+.spoil.open{letter-spacing:0;background:transparent;user-select:all}
+/* галочка клана */
+.cvf .vf{width:14px;height:14px;margin-left:3px}
+.cvf .vf svg{fill:#4dabf7}
+/* лента как в Instagram */
+.posts.insta,.feed.insta .posts{max-width:560px;width:100%;margin:0 auto}
+.posts.insta .gal{grid-template-columns:1fr;margin:10px -14px 0}
+.posts.insta .gal img{border-radius:0;max-height:640px}
+body.l-tiles.sec-feed .feedwrap .feed{flex:0 1 620px}
+/* канал как профиль */
+.chp .av.big.ch{font-size:40px}
+.chn{font-weight:inherit}
+/* сообщения: меню, закреп, пересланные, файлы */
+.m .bb{position:relative}
+.mm{position:absolute;top:2px;right:-30px;width:26px;height:26px;border-radius:50%;color:var(--mid);opacity:0;transition:opacity .15s;font-size:16px;line-height:1}
+.m.me .mm{right:auto;left:-30px}
+.m:hover .mm,.mm:focus{opacity:1}
+@media (hover:none){.mm{opacity:.55}}
+.mmenu{display:flex;flex-direction:column;gap:2px;min-width:220px}
+.mmenu button{text-align:left;padding:11px 12px;border-radius:var(--r);font-size:14px}
+.mmenu button:hover{background:var(--hover)}
+.pinbar{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--panel);cursor:pointer}
+.pinbar>div{flex:1;min-width:0}.pinbar small{display:block;font:600 11px var(--mono);color:var(--mid)}
+.pinbar span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.pinbar .pi{flex:none;font-size:15px}
+.m.flash .bb{box-shadow:0 0 0 2px var(--fg)}
+.fwd{font:12px var(--font);color:var(--mid);margin-bottom:4px;border-left:2px solid var(--line2);padding-left:7px}
+.ft .ed{font-style:italic;opacity:.8}
+.fl{margin:4px 0}
+.fl img.ph{max-width:100%;border-radius:calc(var(--r) - 2px);display:block;cursor:zoom-in}
+.fl audio{width:260px;max-width:100%;height:36px;display:block}
+.fl .aname{font:12px var(--mono);color:var(--mid);margin-bottom:4px}
+.fdoc{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:var(--r);text-align:left;max-width:260px}
+.fdoc b{display:block;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:190px}.fdoc small{color:var(--mid);font-size:11px}
+.fic{width:34px;height:34px;border-radius:8px;background:var(--hover);display:grid;place-items:center;flex:none}
+.fic svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fwdl{max-height:50vh;overflow:auto;margin:6px -6px}
+.fwdl .row{cursor:pointer;border-radius:var(--r)}.fwdl .row:hover{background:var(--hover)}
+/* Игла-питомец */
+#mini{touch-action:none;cursor:grab;transition:transform .2s}
+#mini.held{cursor:grabbing;transform:scale(1.08) rotate(-4deg)}
+#mini .pbub{position:absolute;bottom:calc(100% + 8px);right:0;width:max-content;max-width:220px;padding:8px 11px;border-radius:12px;background:var(--fg);color:var(--inv);font:13px/1.3 var(--font);box-shadow:0 6px 20px rgba(0,0,0,.35);animation:pop .3s var(--ease) both;pointer-events:none}
+#mini .pz{position:absolute;top:-6px;right:4px;font:600 11px var(--mono);color:var(--mid);opacity:0;pointer-events:none}
+#mini.sleep .spirit{opacity:.5}
+#mini.sleep .pz{opacity:1;animation:zz 2.4s ease-in-out infinite}
+@keyframes zz{0%{transform:translateY(0);opacity:.2}50%{opacity:1}100%{transform:translateY(-10px);opacity:0}}
+body.l-phone #mini{display:block;bottom:76px}
+body.l-phone #mini .spirit{font-size:3.4px;line-height:3.4px}
+body.l-app #mini{position:fixed;bottom:96px}

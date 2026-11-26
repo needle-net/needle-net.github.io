@@ -19,7 +19,8 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const svg = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
   const STAR = '<path class="thr" d="M30.5 13.5C20 13.5 8 18 6.5 23.5c-.5 2 .5 3.4 2 4.2" stroke-width="1.3"/><path class="ndl" fill="currentColor" stroke="none" fill-rule="evenodd" d="M12.6 37.6L26.4 6.2C27.3 4.1 29.2 3 30.6 3.6c1.4.6 1.5 2.6.4 4.7L13.2 37.8zM28.3 7.4c-.6 1.3-.7 2.5-.2 2.7.5.2 1.2-.7 1.8-2 .6-1.3.7-2.5.2-2.7-.5-.2-1.2.7-1.8 2z"/><path class="thr" d="M33.2 16.2c2.4 1.7 1.7 4.6-1.8 7.4-3.6 2.8-9.6 5-15.8 5.9" stroke-width="1.3"/>';
-  const LOGO = (big) => `<div class="logo${big ? " big" : ""}"><svg viewBox="0 0 40 40">${STAR}</svg><b class="wm">Needle</b><i>TAN</i></div>`;
+  const LOGO = (big) => `<div class="logo${big ? " big" : ""}"><svg viewBox="0 0 40 40">${STAR}</svg><b class="wm">${BRAND()}</b><i>TAN</i></div>`;
+  const BRAND = () => LANG === "en" ? "Needle" : LANG === "uk" ? "Голка" : "Игла";
   const I = {
     chats: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.8A8 8 0 1 1 21 12z"/>'),
     feed: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
@@ -43,6 +44,8 @@
     mask: svg('<path d="M3 9c3-2 6-2 9 0 3-2 6-2 9 0-.5 5-3 8-6 8-1.5 0-2-1.5-3-1.5S10.5 17 9 17c-3 0-5.5-3-6-8z"/><circle cx="8" cy="11" r="1.2"/><circle cx="16" cy="11" r="1.2"/>'),
     lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
     clan: svg('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
+    clip: svg('<path d="M20 11.5l-8.3 8.3a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"/>'),
+    file: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'),
     palette: svg('<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5c0-4-4-7.2-9-7.2z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>'),
     globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'),
     bell: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
@@ -67,12 +70,86 @@
     "clan level": "Клан можно создать с 3 уровня", "clan already": "Ты уже в клане", "clan taken": "Такое название или тег уже заняты", "clan full": "В клане уже 50 человек",
     "premium only": "Это доступно с премиумом", "limit 5": "Можно до 5 юзернеймов", "no request": "Заявка уже обработана", "request limit": "Можно подать не больше 3 заявок",
     "bad style": "Этот фон или цвет тебе не выдан", "not yours": "Нет прав", "no clan": "Клан не найден", "no user": "Пользователь не найден", "official clan": "В официальный клан доступ выдаёт создатель", "locked": "Сначала открой переписку паролем",
-    "video is admin only": "Видео может выкладывать только владелец", "dm must be encrypted": "Сообщение не зашифровалось",
+    "video is admin only": "Видео может выкладывать только владелец", "file big": "Файл больше 8 МБ", "bad file": "Файл не загрузился", "pin limit": "Можно закрепить до 5 чатов", "no key": "Собеседник ещё не заходил в Needle", "gone": "Файл удалён", "dm must be encrypted": "Сообщение не зашифровалось",
   };
   const errText = e => { const m = (e && (e.message || e.error_description || e.msg)) || String(e || ""); for (const k in ERR) if (m.includes(k)) return ERR[k]; if (/rate limit/i.test(m)) return "Слишком много попыток, подожди немного"; if (/fetch|network/i.test(m)) return "Нет связи с сервером"; return "Ошибка: " + m.slice(0, 120); };
 
   // ================= языки: русский (исходный), English, українська =================
   const DICT = [
+    ["Тема одной кнопкой", "Theme in one tap", "Тема однією кнопкою"],
+    ["Текст", "Text", "Текст"],
+    ["Шрифт, размер, углы", "Font, size, corners", "Шрифт, розмір, кути"],
+    ["Раскладка, док, анимации, Игла", "Layout, dock, animations, Needle", "Розкладка, док, анімації, Голка"],
+    ["Для тех, кто любит покопаться", "For tinkerers", "Для тих, хто любить покопатися"],
+    ["Игла-питомец", "Needle pet", "Голка-улюбленець"],
+    ["живёт на экране, её можно таскать куда угодно", "lives on screen, drag it anywhere", "живе на екрані, її можна перетягувати куди завгодно"],
+    ["Нажми, чтобы показать", "Tap to show", "Натисни, щоб показати"],
+    ["Переслать", "Forward", "Переслати"],
+    ["↪ Переслать", "↪ Forward", "↪ Переслати"],
+    ["⧉ Копировать", "⧉ Copy", "⧉ Копіювати"],
+    ["📌 Закрепить", "📌 Pin", "📌 Закріпити"],
+    ["📌 Открепить", "📌 Unpin", "📌 Відкріпити"],
+    ["✎ Изменить", "✎ Edit", "✎ Змінити"],
+    ["🗑 Удалить", "🗑 Delete", "🗑 Видалити"],
+    ["Изменить сообщение", "Edit message", "Змінити повідомлення"],
+    ["Закреплено", "Pinned", "Закріплено"],
+    ["сообщение", "message", "повідомлення"],
+    ["Сообщение закреплено", "Message pinned", "Повідомлення закріплено"],
+    ["Откреплено", "Unpinned", "Відкріплено"],
+    ["Открепить", "Unpin", "Відкріпити"],
+    ["Переслано от", "Forwarded from", "Переслано від"],
+    ["Переслано", "Forwarded", "Переслано"],
+    ["изменено", "edited", "змінено"],
+    ["Чатов пока нет", "No chats yet", "Чатів поки немає"],
+    ["Файл удалён: прошло 30 дней", "File removed: 30 days passed", "Файл видалено: минуло 30 днів"],
+    ["Файл больше 8 МБ", "File is over 8 MB", "Файл більший за 8 МБ"],
+    ["Загружаю файл…", "Uploading file…", "Завантажую файл…"],
+    ["Файл не загрузился", "File failed to upload", "Файл не завантажився"],
+    ["Можно закрепить до 5 чатов", "You can pin up to 5 chats", "Можна закріпити до 5 чатів"],
+    ["Файл удалён", "File removed", "Файл видалено"],
+    ["Файл, фото или музыка (до 8 МБ)", "File, photo or music (up to 8 MB)", "Файл, фото або музика (до 8 МБ)"],
+    ["Действия", "Actions", "Дії"],
+    ["📌 Закрепить чат", "📌 Pin chat", "📌 Закріпити чат"],
+    ["Открепить чат", "Unpin chat", "Відкріпити чат"],
+    ["Профиль канала", "Channel profile", "Профіль каналу"],
+    ["Чат закреплён", "Chat pinned", "Чат закріплено"],
+    ["Чат откреплён", "Chat unpinned", "Чат відкріплено"],
+    ["официальный канал", "official channel", "офіційний канал"],
+    ["подписчик", "subscriber", "підписник"],
+    ["подписчика", "subscribers", "підписники"],
+    ["подписчиков", "subscribers", "підписників"],
+    ["Обычный", "Regular", "Звичайний"],
+    ["Официальный", "Official", "Офіційний"],
+    ["о канале", "about", "про канал"],
+    ["автор", "author", "автор"],
+    ["постов", "posts", "постів"],
+    ["Оформление канала", "Channel style", "Оформлення каналу"],
+    ["цвет названия", "name color", "колір назви"],
+    ["Цвет названия есть только у официальных каналов.", "Name color is only for official channels.", "Колір назви є лише в офіційних каналів."],
+    ["тег клана у ника", "clan tag next to name", "тег клану біля ніка"],
+    ["✔ Дать галочку", "✔ Give checkmark", "✔ Дати галочку"],
+    ["Забрать галочку", "Remove checkmark", "Забрати галочку"],
+    ["Галочка выдана", "Checkmark given", "Галочку видано"],
+    ["Галочка забрана", "Checkmark removed", "Галочку забрано"],
+    ["Клан подтверждён", "Verified clan", "Клан підтверджено"],
+    ["латиница, цифры, _ (можно пусто)", "latin, digits, _ (can be empty)", "латиниця, цифри, _ (можна порожньо)"],
+    ["Тут уютно 🪡", "Cozy here 🪡", "Тут затишно 🪡"],
+    ["Оп, новое место!", "Ooh, a new spot!", "Оп, нове місце!"],
+    ["Уиии!", "Wheee!", "Ііі!"],
+    ["Посижу тут", "I'll sit here", "Посиджу тут"],
+    ["А? Я не сплю!", "Huh? I'm awake!", "А? Я не сплю!"],
+    ["Доброе утро! ☀️", "Good morning! ☀️", "Доброго ранку! ☀️"],
+    ["Как день проходит?", "How's your day?", "Як минає день?"],
+    ["Вечер, самое время поболтать", "Evening, time to chat", "Вечір, саме час поговорити"],
+    ["Ночь на дворе, а ты всё в Needle 🌙", "It's night and you're still on Needle 🌙", "Ніч надворі, а ти все в Needle 🌙"],
+    ["Перетащи меня куда хочешь", "Drag me anywhere", "Перетягни мене куди хочеш"],
+    ["Сообщения можно сжечь: кнопка 🔥 в чате", "Messages can burn: the 🔥 button in a chat", "Повідомлення можна спалити: кнопка 🔥 у чаті"],
+    ["Нажми на меня, и я подскажу", "Tap me for tips", "Натисни на мене, і я підкажу"],
+    ["Слышал про кланы? Загляни во вкладку «Кланы»", "Heard of clans? Check the Clans tab", "Чув про клани? Зазирни у вкладку «Клани»"],
+    ["Сообщение можно закрепить: нажми ⋯ рядом с ним", "Pin a message: tap ⋯ next to it", "Повідомлення можна закріпити: натисни ⋯ біля нього"],
+    ["Можно отправить музыку: скрепка в чате 📎", "You can send music: the 📎 in a chat", "Можна надіслати музику: скріпка в чаті 📎"],
+    ["Я просто посижу тут…", "I'll just sit here…", "Я просто посиджу тут…"],
+    ["Шью-шью 🪡", "Stitch-stitch 🪡", "Шию-шию 🪡"],
     ["Оформление", "Appearance", "Оформлення"],
     ["Уведомления", "Notifications", "Сповіщення"],
     ["Конфиденциальность", "Privacy", "Конфіденційність"],
@@ -434,7 +511,7 @@
   })();
 
   // ================= настройки «как Linux» =================
-  const DEF = { theme: "black", font: "grotesk", size: 15, radius: 12, bg: "needle", bgLevel: 35, lang: "", layout: "app", dock: "bottom", motion: "full", helper: false, sound: true, preview: true, css: "", wins: {} };
+  const DEF = { theme: "black", font: "grotesk", size: 15, radius: 12, bg: "needle", bgLevel: 35, lang: "", layout: "app", dock: "bottom", motion: "full", helper: true, sound: true, preview: true, css: "", wins: {} };
   const PRESET = {
     black: { font: "grotesk", radius: 14, bg: "needle", bgLevel: 35 }, dark: { font: "grotesk", radius: 6, bg: "fire", bgLevel: 55 }, light: { font: "grotesk", radius: 10, bg: "none" },
     blue: { font: "grotesk", radius: 12, bg: "stars", bgLevel: 60 }, linux: { font: "mono", radius: 0, bg: "matrix", bgLevel: 30 },
@@ -446,6 +523,7 @@
   if (CFG.v !== 2 && CFG.v !== 3) { if (CFG.theme === "black" && CFG.bg === "none") Object.assign(CFG, { bg: "needle", bgLevel: 35 }); }
   if (CFG.v !== 3) { if (CFG.bg === "needle" && CFG.bgLevel >= 45) CFG.bgLevel = 35; if (CFG.layout === "tiles") CFG.layout = "app"; CFG.v = 3; store.set("needle-cfg", CFG); }
   const saveCfg = () => store.set("needle-cfg", CFG);
+  if (CFG.v === 3) { CFG.helper = true; CFG.v = 4; saveCfg(); }   // v7: Игла-питомец включена у всех
   if (!LANGS[CFG.lang]) { const nl = navigator.language || ""; CFG.lang = hadCfg ? "ru" : /^uk/i.test(nl) ? "uk" : /^(ru|be|kk)/i.test(nl) ? "ru" : "en"; saveCfg(); }
   I18N.set(CFG.lang);
   function applyCfg() {
@@ -675,6 +753,51 @@
     const { error } = await sb.storage.from(bucket).upload(path, blob, { contentType: type, upsert: false, cacheControl: "31536000" });
     if (error) throw error; return path;
   }
+  // файлы в чатах: до 8 МБ, в личке шифруются отдельным ключом, который лежит внутри зашифрованного сообщения
+  const FMAX = 8 * 1024 * 1024;
+  const fsize = n => n < 1024 ? n + " B" : n < 1048576 ? (n / 1024).toFixed(0) + " KB" : (n / 1048576).toFixed(1) + " MB";
+  async function upFile(file, dm) {
+    if (!file || file.size > FMAX) throw new Error("file big");
+    let src = file, type = file.type || "application/octet-stream", name = (file.name || "file").slice(0, 120);
+    if (/^image\/(jpeg|png|webp|bmp)$/.test(type)) { try { const im = await makeImage(file, 1600); src = im.blob; type = im.type; name = name.replace(/\.[^.]+$/, "") + "." + im.ext; } catch {} }
+    if (!/^[a-z]+\/[A-Za-z0-9.+-]{1,60}$/.test(type)) type = "application/octet-stream";
+    let bytes = await src.arrayBuffer(), meta = { name, size: bytes.byteLength, type };
+    if (dm) {
+      const k = crypto.getRandomValues(new Uint8Array(32)), iv = crypto.getRandomValues(new Uint8Array(12));
+      bytes = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, await crypto.subtle.importKey("raw", k, "AES-GCM", false, ["encrypt"]), bytes);
+      Object.assign(meta, { k: b64u(k), iv: b64u(iv) });
+    }
+    meta.path = await upload("nova-files", new Blob([bytes], { type: "application/octet-stream" }), "bin", "application/octet-stream");
+    return meta;
+  }
+  const blobCache = new Map();
+  async function fileBlob(f) {
+    if (blobCache.has(f.path)) return blobCache.get(f.path);
+    const r = await fetch(pub("nova-files", f.path)); if (!r.ok) throw new Error("gone");
+    let bytes = await r.arrayBuffer();
+    if (f.k) bytes = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64u(f.iv) }, await crypto.subtle.importKey("raw", unb64u(f.k), "AES-GCM", false, ["decrypt"]), bytes);
+    const u = URL.createObjectURL(new Blob([bytes], { type: f.type || "application/octet-stream" })); blobCache.set(f.path, u); return u;
+  }
+  function fileEl(f) {
+    if (!f || !f.path || !/^[0-9a-f-]{36}\/[0-9]{10,14}\.bin$/.test(f.path)) return null;
+    const kind = /^image\//.test(f.type) ? "img" : /^audio\//.test(f.type) ? "aud" : "doc";
+    const el = h(`<div class="fl ${kind}">${kind === "doc" ? `<button class="fdoc"><span class="fic">${I.file}</span><span><b>${esc(f.name)}</b><small>${fsize(+f.size || 0)}</small></span></button>` : `<div class="spin"></div>`}</div>`);
+    const gone = () => { el.innerHTML = `<span class="muted">${tl("Файл удалён: прошло 30 дней")}</span>`; };
+    if (kind === "doc") $("button", el).onclick = async () => { try { const a = document.createElement("a"); a.href = await fileBlob(f); a.download = f.name || "file"; a.click(); } catch { gone(); } };
+    else fileBlob(f).then(u => {
+      if (kind === "img") { el.innerHTML = `<img class="ph" alt="">`; $("img", el).src = u; $("img", el).onclick = () => lightbox(u); }
+      else { el.innerHTML = `<div class="aname">♪ ${esc(f.name)}</div><audio controls preload="metadata"></audio>`; $("audio", el).src = u; }
+    }).catch(gone);
+    return el;
+  }
+  // свои файлы старше 30 дней удаляются сами (бесплатное место не бесконечное)
+  async function cleanFiles() {
+    try {
+      const { data } = await sb.storage.from("nova-files").list(ME.id, { limit: 300 }); if (!data) return;
+      const old = data.filter(x => +x.name.split(".")[0] < Date.now() - 30 * 864e5).map(x => ME.id + "/" + x.name);
+      if (old.length) await sb.storage.from("nova-files").remove(old);
+    } catch {}
+  }
   function lightbox(src) { const el = h(`<div class="lb"><img alt=""></div>`); el.firstChild.src = src; el.onclick = () => el.remove(); document.body.append(el); }
 
   // ================= аватарки и имена =================
@@ -689,8 +812,8 @@
   const lvl = xp => { xp = +xp || 0; let n = 1; while (n < 10 && xp >= LVX[n]) n++; const cur = LVX[n - 1], nx = LVX[n] ?? null; return { n, name: LVN[n - 1], xp, cur, next: nx, pct: nx ? Math.round((xp - cur) / (nx - cur) * 100) : 100 }; };
   const lvBadge = (p, full) => !p ? "" : p.is_admin ? `<i class="lv own" title="${tl("Создатель")}">67${full ? " · " + tl("Создатель") : ""}</i>` : p.xp != null ? `<i class="lv l${lvl(p.xp).n}" title="Уровень ${lvl(p.xp).n}">${lvl(p.xp).n}</i>` : "";
   const CLC = ["#9aa0aa", "#ff6b6b", "#ffa94d", "#ffd43b", "#69db7c", "#38d9a9", "#4dabf7", "#748ffc", "#9775fa", "#f783ac", "#e8e8ea", "#ff922b"];
-  const clanTag = p => p && p.clan && p.clan.tag ? `<span class="ctag${p.clan.official ? " of" : ""}" title="${p.clan.official ? "Официальный клан" : ""}" style="--cc:${CLC[+p.clan.color] || CLC[0]}">[${esc(p.clan.tag)}]</span>` : "";
-  const clanChip = (c, big) => `<span class="cchip${big ? " big" : ""}${c.official ? " of" : ""}" style="--cc:${CLC[+c.color] || CLC[0]}">${esc(c.tag)}</span>`;
+  const clanTag = p => p && p.clan && p.clan.tag ? `<span class="ctag${p.clan.official ? " of" : ""}" title="${p.clan.official ? "Официальный клан" : ""}" style="--cc:${CLC[+p.clan.color] || CLC[0]}">[${esc(p.clan.tag)}${p.clan.verified ? "✔" : ""}]</span>` : "";
+  const clanChip = (c, big) => `<span class="cchip${big ? " big" : ""}${c.official ? " of" : ""}" style="--cc:${CLC[+c.color] || CLC[0]}">${esc(c.tag)}</span>${c.verified ? `<span class="cvf" title="Клан подтверждён">${I.check}</span>` : ""}`;
   const pmBadge = p => p && p.premium && !p.is_admin ? `<i class="pm" title="Премиум">✦</i>` : "";
   const uname = (p, full) => p ? clanTag(p) + `<span class="nk${p.nick > 0 ? " n" + (+p.nick) : ""}">${esc(p.name || p.username)}</span>` + (p.verified ? I.check : "") + pmBadge(p) + lvBadge(p, full) : "удалённый";
   // надпись на фоне профиля: смайлики ложатся мелким узором вокруг аватарки, остальное крупно по центру
@@ -721,7 +844,7 @@
   const dateRu = d => new Date(d).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" });
   const age = d => { const b = new Date(d), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return a; };
   const infoRows = p => `<div class="kv"><span>Юзернейм</span><span class="mono">${handle(p)}</span></div><div class="kv"><span>ID</span><span class="mono">${p.num}</span></div>${p.birth ? `<div class="kv"><span>День рождения</span><span>${dateRu(p.birth)} · ${age(p.birth)} ${tl(plural(age(p.birth), "год", "года", "лет"))}</span></div>` : ""}<div class="kv"><span>В Needle с</span><span>${dateRu(p.created_at)}</span></div>`;
-  const chatName = c => c.kind === "dm" ? (c.peer ? uname(c.peer) : "Удалённый") : esc(c.title);
+  const chatName = c => c.kind === "dm" ? (c.peer ? uname(c.peer) : "Удалённый") : `<span class="chn"${c.official && c.color != null ? ` style="color:${CLC[+c.color] || ""}"` : ""}>${esc(c.title)}</span>${c.official ? I.check : ""}`;
   const anonName = (x, admin) => `Аноним #${x.tag}` + (admin && x.a && !x.mine ? ` · <span class="muted">${esc(x.a.username)}</span>` : "");
 
   // ================= модалки =================
@@ -842,7 +965,7 @@
       const id = b.dataset.dock, w = $(`.win[data-id=${id}]`);
       if (L() === "windows" && w && w.classList.contains("shown") && w.classList.contains("top")) close(id); else open(id);
     });
-    $("#mini").onclick = () => open("spark");
+    Pet.mount();
     $$("#ttabs button").forEach(b => b.onclick = () => {
       if (b.dataset.k !== "all") return open(b.dataset.k);
       topPick = "chat";
@@ -978,7 +1101,7 @@
       const before = Chats.unread;
       Chats.list = list; Chats.unread = list.reduce((s, c) => s + (c.id === Chat.id ? 0 : +c.unread || 0), 0);
       if (Chats.unread > before && !first) beep();
-      document.title = (Chats.unread ? `(${Chats.unread}) ` : "") + "Needle";
+      document.title = (Chats.unread ? `(${Chats.unread}) ` : "") + BRAND();
       const bd = $('[data-dock=chats]'); if (bd) { let x = $(".bd", bd); if (Chats.unread) { if (!x) { x = h('<span class="bd"></span>'); bd.append(x); } x.textContent = Chats.unread > 99 ? "99+" : Chats.unread; } else if (x) x.remove(); }
       await drawChats();
     } catch (e) { if (/not signed in/.test(e.message || "")) return boot(); }
@@ -987,7 +1110,8 @@
   async function preview(c) {
     const m = c.last; if (!m) return c.kind === "dm" ? "🔒 шифрованный чат" : esc(c.about || (c.kind === "channel" ? "канал" : "группа"));
     let t;
-    if (m.iv) t = CFG.preview ? (await E2E.dec(m)) ?? "🔒 сообщение" : "🔒 сообщение"; else t = m.photo && m.body.trim() === "" ? "📷 фото" : m.body;
+    if (m.iv) { t = CFG.preview ? (await E2E.dec(m)) ?? "🔒 сообщение" : "🔒 сообщение"; if (t[0] === "\u0001") { try { const o = JSON.parse(t.slice(1)); t = o.t || "📎 " + (o.f && o.f.name || "файл"); } catch { t = "📎"; } } }
+    else t = m.file && m.body.trim() === "" ? "📎 " + (m.file.name || "файл") : m.photo && m.body.trim() === "" ? "📷 фото" : m.body;
     const who = c.kind === "group" ? (m.mine ? "Вы: " : m.anon ? `Аноним #${m.tag}: ` : m.a ? (m.a.name || m.a.username) + ": " : "") : m.mine && c.kind === "dm" ? "Вы: " : "";
     return (m.expires_at ? "🔥 " : "") + esc(who + t);
   }
@@ -998,7 +1122,7 @@
     if (!list.length) { box.innerHTML = Chats.q || Chats.kind !== "all" ? `<div class="empty">Ничего не найдено</div>` : `<div class="empty"><b>Пока пусто</b>Найди людей или каналы в поиске, или создай свою группу.<div class="fab" style="justify-content:center"><button class="btn sm" data-o="find">Поиск</button><button class="btn sm ghost" data-n>Создать</button></div></div>`;
       $("[data-o]", box) && ($("[data-o]", box).onclick = () => open("find")); $("[data-n]", box) && ($("[data-n]", box).onclick = newChatDialog); return; }
     const rows = await Promise.all(list.map(async c => `<div class="row${c.id === Chat.id ? " on" : ""}" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${chatName(c)}${c.kind === "dm" ? ` <span class="lock">${I.lock.replace("<svg", '<svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2"')}</span>` : ""}</div><div class="p">${await preview(c)}</div></div>
-      <div class="m"><span>${c.last ? fmtTime(c.last.created_at) : ""}</span>${+c.unread && c.id !== Chat.id ? `<span class="badge">${c.unread}</span>` : ""}</div></div>`));
+      <div class="m"><span>${c.pin ? "📌 " : ""}${c.last ? fmtTime(c.last.created_at) : ""}</span>${+c.unread && c.id !== Chat.id ? `<span class="badge">${c.unread}</span>` : ""}</div></div>`));
     if (seq !== drawSeq) return;
     box.innerHTML = rows.join("");
     $$(".ftabs button, #ttabs button[data-k=all]").forEach(b => { const n = Chats.list.filter(c => (b.dataset.k === "all" || c.kind === b.dataset.k) && c.id !== Chat.id).reduce((s, c) => s + (+c.unread || 0), 0); $("i", b).textContent = n ? n : ""; });
@@ -1046,7 +1170,7 @@
       try {
         this.c = await rpc("nv_chat", { p_chat: id });
         if (this.id !== id) return;
-        this.head(w); this.composer(w);
+        this.head(w); this.composer(w); this.pinBar(w);
         const list = await rpc("nv_messages", { p_chat: id });
         if (this.id !== id) return;
         $(".msgs", w).innerHTML = this.intro();
@@ -1069,7 +1193,84 @@
       $("[data-burn]", w) && ($("[data-burn]", w).onclick = () => this.burnMenu());
       $("[data-info]", w).onclick = () => this.info();
       if (c.kind === "dm" && c.peer) $(".wt", w).style.cursor = "pointer", $(".wt", w).onclick = () => Profile.open(c.peer.id);
+      else if (c.kind === "channel") $(".wt", w).style.cursor = "pointer", $(".wt", w).onclick = () => Channel.open(c.id);
       else $(".wt", w).onclick = null;
+    },
+    // текст и файл сообщения (в личке всё лежит внутри шифра)
+    async decode(m) {
+      if (m._d) return m._d;
+      let t = null, f = null;
+      if (m.iv) { t = await E2E.dec(m); if (t && t[0] === "\u0001") { try { const o = JSON.parse(t.slice(1)); t = o.t || ""; f = o.f || null; } catch {} } }
+      else { t = (m.body || "").trim(); f = m.file || null; }
+      return (m._d = { t, f });
+    },
+    canPin() { const c = this.c; return c.kind === "dm" || c.owner || ME.is_admin; },
+    async pinBar(w) {
+      const c = this.c, root = $(".chat", w); let bar = $(".pinbar", root); if (bar) bar.remove();
+      if (!c.pinned) return;
+      const d = await this.decode(c.pinned);
+      bar = h(`<div class="pinbar"><span class="pi">📌</span><div><small>${tl("Закреплено")}</small><span>${esc(d.t || (d.f ? d.f.name : "") || tl("сообщение"))}</span></div>${this.canPin() ? `<button class="ib" title="Открепить">${I.x}</button>` : ""}</div>`);
+      root.prepend(bar);
+      bar.onclick = e => { if (e.target.closest("button")) return; const x = $(`.m[data-id="${c.pinned.id}"]`, root); if (x) { x.scrollIntoView({ block: "center", behavior: "smooth" }); x.classList.add("flash"); setTimeout(() => x.classList.remove("flash"), 1200); } };
+      const b = $("button", bar); if (b) b.onclick = () => this.pin(null);
+    },
+    async pin(m) {
+      try { await rpc("nv_pin_msg", { p_chat: this.c.id, p_msg: m ? m.id : null }); this.c.pinned = m; this.pinBar($(`.win[data-id=chat]`)); toast(m ? tl("Сообщение закреплено") : tl("Откреплено")); } catch (e) { toast(errText(e)); }
+    },
+    async menu(m, el) {
+      const c = this.c, d = await this.decode(m), canDel = m.mine || ME.is_admin || c.owner;
+      const items = [["fwd", "↪ Переслать"], d.t ? ["copy", "⧉ Копировать"] : null, this.canPin() ? ["pin", c.pinned && c.pinned.id === m.id ? "📌 Открепить" : "📌 Закрепить"] : null,
+        m.mine && d.t && !m.expires_at ? ["edit", "✎ Изменить"] : null, canDel ? ["del", "🗑 Удалить"] : null].filter(Boolean);
+      modal(`<div class="mmenu">${items.map(([k, t]) => `<button data-a="${k}">${t}</button>`).join("")}</div>`, (box, closeM) => {
+        $$("[data-a]", box).forEach(b => b.onclick = async () => {
+          closeM(); const a = b.dataset.a;
+          if (a === "copy") { try { await navigator.clipboard.writeText(d.t); toast(tl("Скопировано")); } catch {} }
+          else if (a === "pin") this.pin(c.pinned && c.pinned.id === m.id ? null : m);
+          else if (a === "del") { try { await rpc("nv_delete_msg", { p_id: m.id }); this.burn(el, m.id); } catch (e) { toast(errText(e)); } }
+          else if (a === "edit") this.edit(m, el, d);
+          else if (a === "fwd") this.forward(m, d);
+        });
+      });
+    },
+    edit(m, el, d) {
+      modal(`<h2>${tl("Изменить сообщение")}</h2><textarea class="box" rows="4" maxlength="2000">${esc(d.t)}</textarea><div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (box, closeM) => {
+        $("[data-n]", box).onclick = closeM;
+        $("[data-y]", box).onclick = async () => {
+          const t = $("textarea", box).value.trim(); if (!t) return;
+          try {
+            let args = { p_id: m.id, p_body: t };
+            if (this.c.kind === "dm") { const e = await E2E.enc(d.f ? "\u0001" + JSON.stringify({ t, f: d.f }) : t, this.c.peer.pubkey); args = { p_id: m.id, p_body: e.p_body, p_iv: e.p_iv, p_kp: e.p_kp, p_kr: e.p_kr }; }
+            const nm = await rpc("nv_edit_msg", args); closeM();
+            this.msgs.set(m.id, nm); el.replaceWith(await this.el(nm));
+          } catch (e) { $(".err", box).textContent = errText(e); }
+        };
+      });
+    },
+    forward(m, d) {
+      const from = m.mine ? (ME.name || ME.username) : m.anon ? "Аноним" : this.c.kind === "channel" ? this.c.title : m.a ? (m.a.name || m.a.username) : "";
+      const list = Chats.list.filter(c => c.kind !== "channel" || c.owner || ME.is_admin);
+      modal(`<h2>${tl("Переслать")}</h2><div class="fwdl">${list.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${chatName(c)}</div></div></div>`).join("") || `<div class="empty">${tl("Чатов пока нет")}</div>`}</div>
+        <div class="row2"><button class="btn ghost" data-n>Отмена</button></div>`, (box, closeM) => {
+        $("[data-n]", box).onclick = closeM;
+        $$("[data-c]", box).forEach(r => r.onclick = async () => {
+          const c = list.find(x => x.id === +r.dataset.c); closeM();
+          const t = (d.t || "") + (d.f && !d.f.k && !m.mine ? "" : "");
+          try {
+            let args;
+            if (c.kind === "dm") {
+              if (!c.peer || !c.peer.pubkey) throw new Error("no key");
+              const fileOk = d.f && m.mine;   // свой файл можно переслать как есть
+              const payload = fileOk ? "\u0001" + JSON.stringify({ t, f: d.f }) : (t || (d.f ? "📎 " + d.f.name : ""));
+              args = Object.assign({ p_chat: c.id, p_fwd: from }, await E2E.enc(payload, c.peer.pubkey), fileOk ? { p_file: { path: d.f.path } } : {});
+            } else {
+              const fileOk = d.f && m.mine && !d.f.k;
+              args = { p_chat: c.id, p_body: t || (d.f && !fileOk ? "📎 " + d.f.name : ""), p_fwd: from };
+              if (fileOk) args.p_file = { path: d.f.path, name: d.f.name, size: d.f.size, type: d.f.type };
+            }
+            await rpc("nv_send", args); toast(tl("Переслано")); loadChats();
+          } catch (e) { toast(errText(e)); }
+        });
+      });
     },
     composer(w) {
       const c = this.c, root = $(".chat", w); $(".comp,.joinbar", root) && $$(".comp,.joinbar", root).forEach(x => x.remove());
@@ -1081,7 +1282,8 @@
       if (c.kind === "channel" && !c.owner && !ME.is_admin) { const bar = h(`<div class="joinbar"><button class="btn ghost sm">Отписаться</button></div>`); root.append(bar); $("button", bar).onclick = () => this.leaveChat(); return; }
       if (c.kind === "dm" && (!c.peer || !c.peer.pubkey)) { root.append(h(`<div class="joinbar"><span class="note" style="margin:0">Собеседник ещё не заходил в Needle, ключа шифрования пока нет. Написать получится, когда он зайдёт.</span></div>`)); return; }
       const f = h(`<form class="comp">
-        ${c.kind !== "dm" ? `<label class="ib" title="Фото">${I.img}<input type="file" accept="image/*" hidden></label>` : ""}
+        ${c.kind !== "dm" ? `<label class="ib" title="Фото">${I.img}<input type="file" accept="image/*" hidden data-ph></label>` : ""}
+        <label class="ib" title="Файл, фото или музыка (до 8 МБ)">${I.clip}<input type="file" hidden data-fl></label>
         ${c.kind === "group" && c.anon_ok ? `<button type="button" class="ib" data-anon title="Анонимно">${I.mask}</button>` : ""}
         <textarea class="box" rows="1" maxlength="2000" placeholder="${c.kind === "dm" ? "Написать…" : c.kind === "channel" ? "Пост в канал…" : "Сообщение…"}"></textarea>
         <button class="send" title="Отправить (Enter)">${I.send}</button></form>`);
@@ -1091,13 +1293,19 @@
       ta.oninput = fit;
       ta.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); f.requestSubmit(); } };
       const an = $("[data-anon]", f); if (an) an.onclick = () => { this.anon = !this.anon; an.classList.toggle("on", this.anon); ta.placeholder = this.anon ? "Анонимно…" : "Сообщение…"; };
-      const fi = $("input[type=file]", f);
+      const fi = $("[data-ph]", f), fl = $("[data-fl]", f);
+      fl.onchange = async () => { const file = fl.files[0]; fl.value = ""; if (!file) return; if (file.size > FMAX) return toast(tl("Файл больше 8 МБ")); try { toast(tl("Загружаю файл…")); const meta = await upFile(file, c.kind === "dm"); await this.send(ta.value.trim(), null, meta); ta.value = ""; fit(); } catch (e) { toast(errText(e)); } };
       if (fi) fi.onchange = async () => { const file = fi.files[0]; fi.value = ""; if (!file) return; try { const im = await makeImage(file, 1600); toast("Загружаю фото…"); const path = await upload("nova", im.blob, im.ext, im.type); await this.send("", path); } catch (e) { toast(errText(e)); } };
       f.onsubmit = async e => { e.preventDefault(); const t = ta.value.trim(); if (!t) return; ta.value = ""; fit(); try { await this.send(t); } catch (x) { ta.value = t; fit(); toast(errText(x)); } };
       if (!isPhone()) setTimeout(() => ta.focus(), 60);
     },
-    async send(text, photo) {
+    async send(text, photo, file) {
       const c = this.c; let args = { p_chat: c.id, p_body: text };
+      if (file) {
+        if (c.kind === "dm") { if (!E2E.pub) throw new Error("locked"); args = Object.assign({ p_chat: c.id, p_file: { path: file.path } }, await E2E.enc("\u0001" + JSON.stringify({ t: text, f: file }), c.peer.pubkey)); }
+        else args.p_file = { path: file.path, name: file.name, size: file.size, type: file.type };
+        const m = await rpc("nv_send", args); if (this.id === c.id) await this.add([m]); loadChats(); return;
+      }
       if (c.kind === "dm") { if (!E2E.pub) { if (E2E.locked) { keyPrompt(true); throw new Error("Сначала открой переписку паролем"); } throw new Error("Шифрование недоступно в этом браузере"); } args = Object.assign({ p_chat: c.id }, await E2E.enc(text, c.peer.pubkey)); }
       else { if (photo) args.p_photo = photo; if (this.anon) args.p_anon = true; }
       const m = await rpc("nv_send", args);
@@ -1132,20 +1340,20 @@
       } catch (e) { toast(errText(e)); btn.disabled = false; }
     },
     async el(m) {
-      const c = this.c, mine = m.mine;
-      let text;
-      if (m.iv) { text = await E2E.dec(m); }
+      const c = this.c, mine = m.mine, d = await this.decode(m);
       const author = c.kind === "group" && !mine ? `<div class="au">${m.anon ? anonName(m, ME.is_admin) : m.a ? `<span style="cursor:pointer" data-p="${m.a.id}">${uname(m.a)}</span>` : ""}</div>` : (m.anon && mine ? `<div class="au">🎭 анонимно #${m.tag}</div>` : "");
-      const body = m.iv ? (text == null ? (E2E.locked ? `<span class="muted unlockm" style="cursor:pointer">🔒 Нажми и введи пароль, чтобы открыть</span>` : `<span class="muted">🔒 Не расшифровать: сообщение для старого ключа с другого устройства</span>`) : esc(text)) : esc(m.body.trim());
+      const body = m.iv && d.t == null ? (E2E.locked ? `<span class="muted unlockm" style="cursor:pointer">🔒 Нажми и введи пароль, чтобы открыть</span>` : `<span class="muted">🔒 Не расшифровать: сообщение для старого ключа с другого устройства</span>`) : esc(d.t || "");
       const el = h(`<div class="m${mine ? " me" : ""}" data-id="${m.id}">
         ${c.kind === "group" && !mine ? (m.anon ? `<span class="av an xs">?</span>` : av(m.a, "xs")) : ""}
-        <div class="bb">${author}${m.photo && PATH_RE.test(m.photo) ? `<img class="ph" src="${esc(pub("nova", m.photo))}" alt="" loading="lazy">` : ""}${body ? `<div class="tx">${body}</div>` : ""}
-        <div class="ft">${m.expires_at ? "🔥 " : ""}${hm(m.created_at)}</div>
-        ${mine || ME.is_admin || c.owner ? `<button class="del" title="Удалить">×</button>` : ""}</div></div>`);
-      const img = $("img.ph", el); if (img) img.onclick = () => lightbox(img.src);
+        <div class="bb">${author}${m.fwd ? `<div class="fwd">↪ ${tl("Переслано от")} <b>${esc(m.fwd)}</b></div>` : ""}${m.photo && PATH_RE.test(m.photo) ? `<img class="ph" src="${esc(pub("nova", m.photo))}" alt="" loading="lazy">` : ""}<span class="fslot"></span>${body ? `<div class="tx">${body}</div>` : ""}
+        <div class="ft">${m.edited ? `<span class="ed">${tl("изменено")}</span> ` : ""}${m.expires_at ? "🔥 " : ""}${hm(m.created_at)}</div>
+        <button class="mm" title="Действия">⋯</button></div></div>`);
+      const fe = fileEl(d.f); if (fe) $(".fslot", el).replaceWith(fe); else $(".fslot", el).remove();
+      const img = $("img.ph", el); if (img && !fe) img.onclick = () => lightbox(img.src);
       const ul = $(".unlockm", el); if (ul) ul.onclick = () => keyPrompt(true);
       const p = $("[data-p]", el); if (p) p.onclick = () => Profile.open(p.dataset.p);
-      const d = $(".del", el); if (d) d.onclick = async () => { try { await rpc("nv_delete_msg", { p_id: m.id }); this.burn(el, m.id); } catch (e) { toast(errText(e)); } };
+      $(".mm", el).onclick = e => { e.stopPropagation(); this.menu(m, el); };
+      $(".bb", el).addEventListener("contextmenu", e => { e.preventDefault(); this.menu(m, el); });
       if (m.expires_at) { const left = new Date(m.expires_at) - Date.now(); this.burnT.set(m.id, setTimeout(() => this.burn(el, m.id), Math.max(0, left))); }
       return el;
     },
@@ -1179,13 +1387,17 @@
       const code = c.kind === "dm" ? await E2E.code(E2E.pub, c.peer && c.peer.pubkey) : "";
       modal(`<h2>${chatName(c)}</h2>
         ${c.kind === "dm" ? `<div class="kv"><span>Код безопасности</span><span class="code">${code}</span></div><p class="note">Сверь этот код с собеседником лично. Если совпадает, никто не подменил ключи и не читает вашу переписку.</p>` :
-          `<div class="kv"><span>Тип</span><span>${c.kind === "channel" ? "Канал" : "Группа"}</span></div><div class="kv"><span>Участники</span><span>${c.members}</span></div>${c.about ? `<div class="kv"><span>Описание</span><span>${esc(c.about)}</span></div>` : ""}<div class="kv"><span>Анонимно</span><span>${c.anon_ok ? "можно" : "нельзя"}</span></div>`}
+          `<div class="kv"><span>Тип</span><span>${c.kind === "channel" ? "Канал" : "Группа"}</span></div>${c.handle ? `<div class="kv"><span>Юзернейм</span><span class="mono">@${esc(c.handle)}</span></div>` : ""}<div class="kv"><span>Участники</span><span>${c.members}</span></div>${c.about ? `<div class="kv"><span>Описание</span><span>${esc(c.about)}</span></div>` : ""}<div class="kv"><span>Анонимно</span><span>${c.anon_ok ? "можно" : "нельзя"}</span></div>`}
         <div class="row2" style="flex-wrap:wrap">
           ${c.kind !== "dm" && (c.owner || ME.is_admin) ? `<button class="btn ghost sm" data-ed>Изменить</button>` : ""}
           ${c.kind !== "dm" && c.joined && !c.owner ? `<button class="btn ghost sm" data-lv>Выйти</button>` : ""}
           ${c.kind === "dm" || c.owner || ME.is_admin ? `<button class="btn ghost sm" data-del>${c.kind === "dm" ? "Удалить переписку" : "Удалить"}</button>` : ""}
+          ${c.joined ? `<button class="btn ghost sm" data-pinc>${(Chats.list.find(x => x.id === c.id) || {}).pin ? "Открепить чат" : "📌 Закрепить чат"}</button>` : ""}
+          ${c.kind === "channel" ? `<button class="btn ghost sm" data-chp>Профиль канала</button>` : ""}
           <button class="btn sm" data-n>Закрыть</button></div>`, (m, closeM) => {
         $("[data-n]", m).onclick = closeM;
+        $("[data-chp]", m) && ($("[data-chp]", m).onclick = () => { closeM(); Channel.open(c.id); });
+        $("[data-pinc]", m) && ($("[data-pinc]", m).onclick = async () => { closeM(); const on = !(Chats.list.find(x => x.id === c.id) || {}).pin; try { await rpc("nv_pin_chat", { p_chat: c.id, p_on: on }); toast(on ? tl("Чат закреплён") : tl("Чат откреплён")); loadChats(); } catch (e) { toast(errText(e)); } });
         $("[data-lv]", m) && ($("[data-lv]", m).onclick = () => { closeM(); this.leaveChat(); });
         $("[data-del]", m) && ($("[data-del]", m).onclick = async () => { closeM(); if (!(await confirmBox(c.kind === "dm" ? "Удалить переписку у обоих? Её нельзя вернуть." : "Удалить навсегда? Все сообщения пропадут.", "Удалить"))) return; try { await rpc("nv_delete_chat", { p_chat: c.id }); close("chat"); if (L() !== "windows") open("chats"); this.leave(); loadChats(); toast("Удалено"); } catch (e) { toast(errText(e)); } });
         $("[data-ed]", m) && ($("[data-ed]", m).onclick = () => { closeM(); this.edit(); });
@@ -1195,11 +1407,12 @@
       const c = this.c;
       modal(`<h2>Изменить</h2><div class="field"><label class="k">название</label><input class="in" name="t" maxlength="40" value="${esc(c.title)}"></div>
         <div class="field"><label class="k">описание</label><input class="in" name="a" maxlength="200" value="${esc(c.about)}"></div>
+        <div class="field"><label class="k">юзернейм</label><div class="at"><span>@</span><input class="in" name="h" maxlength="20" autocomplete="off" placeholder="латиница, цифры, _ (можно пусто)" value="${esc(c.handle || "")}"></div></div>
         ${c.kind === "group" ? `<div class="opt"><span>Анонимные сообщения</span><button class="sw${c.anon_ok ? " on" : ""}" type="button"></button></div>` : ""}
         <div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (m, closeM) => {
         const sw = $(".sw", m); sw && (sw.onclick = () => sw.classList.toggle("on"));
         $("[data-n]", m).onclick = closeM;
-        $("[data-y]", m).onclick = async () => { try { await rpc("nv_edit_chat", { p_chat: c.id, p_title: $("[name=t]", m).value, p_about: $("[name=a]", m).value, p_anon: !!(sw && sw.classList.contains("on")) }); closeM(); this.open(c.id); loadChats(); } catch (e) { $(".err", m).textContent = errText(e); } };
+        $("[data-y]", m).onclick = async () => { try { const hd = $("[name=h]", m).value.trim().replace(/^@/, "").toLowerCase(); if (hd && !/^[a-z0-9_]{3,20}$/.test(hd)) throw new Error("bad username"); if (hd !== (c.handle || "")) await rpc("nv_chat_handle", { p_chat: c.id, p_handle: hd || null }); await rpc("nv_edit_chat", { p_chat: c.id, p_title: $("[name=t]", m).value, p_about: $("[name=a]", m).value, p_anon: !!(sw && sw.classList.contains("on")) }); closeM(); this.open(c.id); loadChats(); } catch (e) { $(".err", m).textContent = errText(e); } };
       });
     },
     async leaveChat() { try { await rpc("nv_leave", { p_chat: this.c.id }); const id = this.c.id; this.c.joined = false; loadChats(); this.open(id); } catch (e) { toast(errText(e)); } },
@@ -1218,7 +1431,7 @@
         <div class="bar"><label class="ib" title="Фото (до 4)">${I.img}<input type="file" accept="image/*" multiple hidden data-ph></label>
           ${ME.is_admin ? `<label class="ib" title="Видео">${I.vid}<input type="file" accept="video/mp4,video/webm" hidden data-vd></label>` : ""}
           <button class="ib" data-an title="Анонимно">${I.mask}</button><span class="sp"></span><span class="muted mono" style="font-size:11px" data-hint></span><button class="btn sm" data-post>Опубликовать</button></div></div>
-      <div class="posts mas"><div class="spin"></div></div></div></div>`;
+      <div class="posts insta"><div class="spin"></div></div></div></div>`;
     rpc("nv_top", { p_limit: 8 }).then(list => { const wl = $(".who .wl", w); if (!wl) return; wl.innerHTML = list.length ? list.map(u => `<div class="row" data-u="${u.id}">${av(u)}<div class="c"><div class="n">${uname(u)}</div><div class="p">@${esc(u.username)} · ${lvl(u.xp).name}</div></div></div>`).join("") : `<div class="empty">Пока никого</div>`; $$("[data-u]", wl).forEach(r => r.onclick = () => Profile.open(r.dataset.u)); }).catch(() => { const wl = $(".who .wl", w); if (wl) wl.innerHTML = ""; });
     const np = $(".newpost", w), ta = $("textarea", np), th = $(".thumbs", np), hint = $("[data-hint]", np);
     const drawThumbs = () => { th.innerHTML = Feed.photos.map((p, i) => `<div><img src="${p.url}" alt=""><button data-i="${i}">×</button></div>`).join("") + (Feed.video ? `<div style="width:auto;padding:0 10px;display:grid;place-items:center;font:11px var(--mono)">🎬 ${esc(Feed.video.name.slice(0, 20))}<button data-v>×</button></div>` : "");
@@ -1246,20 +1459,20 @@
   async function loadFeed(w, more) {
     const box = $(".posts", w);
     try {
-      const list = await rpc("nv_feed", { p_before: more ? Feed.oldest : null });
+      const raw = await rpc("nv_feed", { p_before: more ? Feed.oldest : null });
+      const list = [...raw]; for (let i = list.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [list[i], list[j]] = [list[j], list[i]]; }   // как в Instagram: каждый раз вперемешку
       if (!more) box.innerHTML = "";
       $(".morep", box) && $(".morep", box).remove();
       list.forEach(p => { box.append(postEl(p)); Feed.oldest = Feed.oldest && more ? Math.min(Feed.oldest, p.id) : p.id; });
       if (!more) Feed.oldest = list.length ? Math.min(...list.map(p => p.id)) : null;
       if (!box.children.length) box.innerHTML = `<div class="empty"><b>Лента пустая</b>Напиши первый пост!</div>`;
-      if (list.length >= 30) { const b = h(`<button class="btn ghost sm morep" style="align-self:center">Ещё</button>`); box.append(b); b.onclick = () => loadFeed(w, true); }
+      if (raw.length >= 30) { const b = h(`<button class="btn ghost sm morep" style="align-self:center">Ещё</button>`); box.append(b); b.onclick = () => loadFeed(w, true); }
     } catch (e) { box.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
   }
   function postEl(p) {
     const who = p.anon ? `<span class="av an">?</span><div><div class="n">${anonName(p, ME.is_admin)}</div><div class="s">${ago(p.created_at)}</div></div>` : `<span data-p="${p.a && p.a.id}" style="cursor:pointer">${av(p.a)}</span><div><div class="n" data-p="${p.a && p.a.id}">${uname(p.a)}</div><div class="s">ID ${p.a ? p.a.num : "?"} · ${ago(p.created_at)}</div></div>`;
     const ph = (p.photos || []).filter(x => PATH_RE.test(x));
-    const short = !ph.length && !p.video && p.text && p.text.length <= 90 && !p.text.includes("\n");
-    const el = h(`<article class="post${p.approved ? "" : " wait"}${short ? " big t" + (p.id % 5) : ""}">
+    const el = h(`<article class="post${p.approved ? "" : " wait"}">
       <div class="hd">${who}${p.approved ? "" : `<span class="sp" style="flex:1"></span><span class="pend">на проверке</span>`}</div>
       ${p.text ? `<div class="tx">${esc(p.text)}</div>` : ""}
       ${ph.length ? `<div class="gal">${ph.map(x => `<img src="${esc(pub("nova", x))}" alt="" loading="lazy">`).join("")}</div>` : ""}
@@ -1307,10 +1520,10 @@
         const r = await rpc("nv_find", { p_q: inp.value.trim() });
         res.innerHTML = (r.people.length ? `<div class="sec k">Люди</div>` + r.people.map(p => `<div class="row" data-u="${p.id}">${av(p)}<div class="c"><div class="n">${uname(p)}</div><div class="p">@${esc(p.username)} · ID ${p.num}</div></div></div>`).join("") : "") +
           `<div class="sec k">${inp.value.trim() ? "Каналы и группы" : "Популярное"}</div>` +
-          (r.chats.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${esc(c.title)}</div><div class="p">${c.kind === "channel" ? "канал" : "группа"} · ${c.members} ${plural(c.members, "участник", "участника", "участников")}${c.about ? " · " + esc(c.about) : ""}</div></div><div class="m">${c.joined ? "✓" : ""}</div></div>`).join("") || `<div class="empty">Ничего не найдено</div>`) +
+          (r.chats.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${esc(c.title)}</div><div class="p">${c.handle ? "@" + esc(c.handle) + " · " : ""}${c.kind === "channel" ? "канал" : "группа"} · ${c.members} ${plural(c.members, "участник", "участника", "участников")}${c.about ? " · " + esc(c.about) : ""}</div></div><div class="m">${c.joined ? "✓" : ""}</div></div>`).join("") || `<div class="empty">Ничего не найдено</div>`) +
           `<div class="fab"><button class="btn sm ghost" data-n>${I.plus} Создать группу или канал</button></div>`;
         $$("[data-u]", res).forEach(r2 => r2.onclick = () => Profile.open(r2.dataset.u));
-        $$("[data-c]", res).forEach(r2 => r2.onclick = () => Chat.open(+r2.dataset.c));
+        $$("[data-c]", res).forEach(r2 => r2.onclick = () => { const c = r.chats.find(x => x.id === +r2.dataset.c); c && c.kind === "channel" ? Channel.open(c.id) : Chat.open(+r2.dataset.c); });
         $("[data-n]", res).onclick = newChatDialog;
       } catch (e) { res.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
     };
@@ -1335,6 +1548,52 @@
     },
   };
   RENDER.user = () => {};
+  const Channel = {
+    async open(id) {
+      const w = open("user"); const b = $(".wb", w); b.innerHTML = `<div class="spin"></div>`; setTitle(w, "Канал");
+      try {
+        const c = await rpc("nv_chat", { p_chat: id }), msgs = await rpc("nv_messages", { p_chat: id }).catch(() => []);
+        setTitle(w, chatName(c), c.handle ? "@" + esc(c.handle) : tl("канал"));
+        const tile = (attr, icon, label) => `<button class="pa" ${attr}>${icon}<span>${label}</span></button>`;
+        b.innerHTML = `<div class="pv pv2 chp"><div class="ban b${+c.banner || 0}"></div>
+          <div class="pvc"><span class="av big ch">✦</span><h2>${chatName(c)}</h2><div class="st">${c.official ? `<span class="own">${tl("официальный канал")}</span> · ` : ""}${c.members} ${tl(plural(c.members, "подписчик", "подписчика", "подписчиков"))}</div></div>
+          <div class="pacts">${c.joined ? tile("data-go", I.chats, "Открыть") : tile("data-join", I.plus, "Подписаться")}${tile("data-share", I.at, "Поделиться")}${c.owner || ME.is_admin ? tile("data-style", I.palette, "Оформление") : ""}${ME.is_admin ? tile("data-off", I.crown, c.official ? "Обычный" : "Официальный") : ""}</div>
+          <div class="pcard">${c.about ? `<div class="ci"><div><small>о канале</small><p class="bio">${esc(c.about)}</p></div></div>` : ""}
+            ${c.author ? `<div class="ci" data-p="${c.author.id}" style="cursor:pointer"><div><small>автор</small><b>${uname(c.author)}</b></div></div>` : ""}
+            <div class="ci"><div><small>постов</small><b>${msgs.length >= 60 ? "60+" : msgs.length}</b></div></div></div></div>
+          <div class="feed insta" style="padding-top:0"><div class="posts">${msgs.length ? "" : `<div class="empty">${tl("Постов пока нет")}</div>`}</div></div>`;
+        const box = $(".posts", b);
+        for (const m of [...msgs].reverse()) {
+          const d = { t: (m.body || "").trim(), f: m.file };
+          const el = h(`<article class="post"><div class="hd"><span class="av ch">✦</span><div><div class="n">${chatName(c)}</div><div class="s">${ago(m.created_at)}</div></div></div>
+            ${m.photo && PATH_RE.test(m.photo) ? `<div class="gal"><img src="${esc(pub("nova", m.photo))}" alt="" loading="lazy"></div>` : ""}<span class="fslot"></span>${d.t ? `<div class="tx">${esc(d.t)}</div>` : ""}</article>`);
+          const fe = fileEl(d.f); if (fe) $(".fslot", el).replaceWith(fe); else $(".fslot", el).remove();
+          $$(".gal img", el).forEach(i => i.onclick = () => lightbox(i.src));
+          box.append(el);
+        }
+        const on = (sel, f) => { const x = $(sel, b); if (x) x.onclick = f; };
+        on("[data-go]", () => { if (L() === "windows") close("user"); Chat.open(c.id); });
+        on("[data-join]", async () => { try { await rpc("nv_join", { p_chat: c.id }); loadChats(); this.open(id); } catch (e) { toast(errText(e)); } });
+        on("[data-share]", async () => { const t = c.handle ? "@" + c.handle : c.title; try { await navigator.clipboard.writeText(t); toast(tl("Скопировано") + ": " + t); } catch {} });
+        on("[data-p]", () => Profile.open(c.author.id));
+        on("[data-off]", async () => { try { await rpc("nv_admin_chat_official", { p_chat: c.id, p_on: !c.official }); this.open(id); } catch (e) { toast(errText(e)); } });
+        on("[data-style]", () => this.style(c, () => this.open(id)));
+      } catch (e) { b.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
+    },
+    style(c, done) {
+      let ban = +c.banner || 0, col = c.color ?? null; const rich = c.official || ME.is_admin;
+      const bans = Array.from({ length: rich ? 20 : 12 }, (_, i) => i);
+      modal(`<h2>${tl("Оформление канала")}</h2>
+        <div class="field"><label class="k">фон</label><div class="sw-grid" data-ban>${bans.map(i => `<button class="ban b${i}${i === ban ? " on" : ""}${i > 11 ? " ex" : ""}" data-v="${i}"></button>`).join("")}</div></div>
+        <div class="field"><label class="k">цвет названия</label>${c.official ? `<div class="cl-grid"><button type="button" data-c="" class="${col == null ? "on" : ""}" style="--cc:var(--fg)">Aa</button>${CLC.map((x, i) => `<button type="button" style="--cc:${x}" data-c="${i}" class="${col === i ? "on" : ""}"></button>`).join("")}</div>` : `<p class="note">${tl("Цвет названия есть только у официальных каналов.")}</p>`}</div>
+        <div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (m, closeM) => {
+        $$("[data-ban] button", m).forEach(x => x.onclick = () => { ban = +x.dataset.v; $$("[data-ban] button", m).forEach(y => y.classList.toggle("on", y === x)); });
+        $$("[data-c]", m).forEach(x => x.onclick = () => { col = x.dataset.c === "" ? null : +x.dataset.c; $$("[data-c]", m).forEach(y => y.classList.toggle("on", y === x)); });
+        $("[data-n]", m).onclick = closeM;
+        $("[data-y]", m).onclick = async () => { try { await rpc("nv_chat_style", { p_chat: c.id, p_banner: ban, p_color: c.official ? col : null }); closeM(); loadChats(); done(); } catch (e) { $(".err", m).textContent = errText(e); } };
+      });
+    },
+  };
   const seenText = p => {
     if (!p.seen_at) return tl("был(а) давно");
     const m = (Date.now() - new Date(p.seen_at)) / 60000;
@@ -1386,7 +1645,7 @@
   }
   const BANNERS = 12, NICKS = 12, EXB = [12, 13, 14, 15, 16, 17, 18, 19], EXN = [13, 14, 15, 16, 17, 18, 19, 20];
   const TXP = ["(◕‿◕)", "¯\\_(ツ)_/¯", "ʕ•ᴥ•ʔ", "(ง •̀_•́)ง", "★彡", "♡ ♡ ♡", "~(˘▾˘~)", "(╯°□°)╯︵ ┻━┻", "ᕕ( ᐛ )ᕗ", "⚡ ⚡ ⚡", "[ o_o ]", "🪡"];
-  const refreshMe = async () => { try { const r = await rpc("nv_profile", { p_user: ME.id }); if (r) Object.assign(ME, { clan: r.clan, clans: r.clans || (r.clan ? [r.clan] : []), usernames: r.usernames || [], premium: r.premium, ban_text: r.ban_text || "" }); } catch {} };
+  const refreshMe = async () => { try { const r = await rpc("nv_profile", { p_user: ME.id }); if (r) Object.assign(ME, { main_clan: r.main_clan, clan: r.clan, clans: r.clans || (r.clan ? [r.clan] : []), usernames: r.usernames || [], premium: r.premium, ban_text: r.ban_text || "" }); } catch {} };
   RENDER.me = async w => {
     const b = $(".wb", w); setTitle(w, "Профиль");
     b.innerHTML = `${profileHead(ME, true)}<div class="feed" style="padding-top:0"><div class="posts"><div class="spin"></div></div></div>`;
@@ -1407,6 +1666,7 @@
       <div class="field"><label class="k">фон профиля</label><div class="sw-grid" data-ban>${banL.map(i => `<button class="ban b${i}${i === ban ? " on" : ""}${i > 11 ? " ex" : ""}" data-v="${i}"></button>`).join("")}</div></div>
       <div class="field"><label class="k">цвет ника</label><div class="sw-grid nk-grid" data-nick>${nickL.map(i => `<button class="${i === nick ? "on" : ""}${i > 12 ? " ex" : ""}" data-v="${i}"><span class="nk${i ? " n" + i : ""}">Aa</span></button>`).join("")}</div></div>
       <div class="field"><label class="k" for="p-t">надпись на фоне</label><input class="in mono" id="p-t" maxlength="24" autocomplete="off" placeholder="смайлики, ASCII или пара слов" value="${esc(btxt)}"><p class="note" style="margin:6px 0 0">Смайлики лягут мелким узором по всему фону, текст и ASCII будут крупно по центру.</p><div class="txp">${TXP.map(x => `<button type="button">${esc(x)}</button>`).join("")}</div></div>
+      ${(ME.clans || []).length > 1 ? `<div class="field"><label class="k">тег клана у ника</label><div class="seg" data-mc>${ME.clans.map(c => `<button type="button" data-v="${c.id}" class="${(ME.clan && ME.clan.id) === c.id ? "on" : ""}">[${esc(c.tag)}]</button>`).join("")}</div></div>` : ""}
       <div class="field"><label class="k" for="p-n">имя</label><input class="in" id="p-n" maxlength="40" placeholder="Как тебя показывать" value="${esc(ME.name || "")}"></div>
       <div class="field"><label class="k" for="p-u">юзернейм</label><div class="at"><span>@</span><input class="in" id="p-u" maxlength="20" autocomplete="off" placeholder="латиница, цифры, _" value="${esc(ME.username)}"></div></div>
       <div class="field"><label class="k" for="p-b">дата рождения</label><input class="in" id="p-b" type="date" min="1900-01-01" max="${new Date(Date.now() - 5 * 365.25 * 864e5).toISOString().slice(0, 10)}" value="${ME.birth || ""}"></div>
@@ -1416,6 +1676,8 @@
       <p class="note">Пароль, выход и шифрование теперь в ⚙ Настройки → Аккаунт и Конфиденциальность.</p></div>`;
     $("[data-done]", b).onclick = () => RENDER.me(w);
     const prevBan = $(".pv .ban", b), prev = $("[data-prev]", b);
+    let mclan = ME.clan ? ME.clan.id : null;
+    $$("[data-mc] button", b).forEach(x => x.onclick = () => { mclan = +x.dataset.v; $$("[data-mc] button", b).forEach(y => y.classList.toggle("on", y === x)); });
     $$("[data-ban] button", b).forEach(x => x.onclick = () => { ban = +x.dataset.v; $$("[data-ban] button", b).forEach(y => y.classList.toggle("on", y === x)); prevBan.className = "ban b" + ban; });
     $$("[data-nick] button", b).forEach(x => x.onclick = () => { nick = +x.dataset.v; $$("[data-nick] button", b).forEach(y => y.classList.toggle("on", y === x)); prev.className = "nk" + (nick ? " n" + nick : ""); });
     $("#p-n", b).oninput = e => prev.textContent = e.target.value.trim() || ME.username;
@@ -1442,6 +1704,7 @@
         await rpc("nv_set_profile", { p_name: n, p_username: u, p_birth: d });
         if (ban !== (+ME.banner || 0) || nick !== (+ME.nick || 0) || btxt !== (ME.ban_text || "")) await rpc("nv_set_style2", { p_banner: ban, p_nick: nick, p_text: btxt });
         if (t !== (ME.bio || "")) await rpc("sn_update_bio", { p_bio: t });
+        if (mclan && mclan !== (ME.clan && ME.clan.id)) { await rpc("nv_set_main_clan", { p_clan: mclan }); await refreshMe(); }
         Object.assign(ME, { name: n, username: u, birth: d, bio: t, banner: ban, nick, ban_text: btxt });
         toast("Сохранено"); RENDER.me(w);
       } catch (x) { toast(errText(x)); btn.disabled = false; }
@@ -1575,7 +1838,8 @@
           <div class="cbtn">${me ? `<button class="btn" data-chat>Чат клана</button>` : c.requested ? `<button class="btn ghost" data-cancel>Отменить заявку</button>` : c.official || (ME.clans || []).some(x => !x.official) ? "" : `<button class="btn" data-join>Подать заявку</button>`}
             ${me === "owner" ? `<button class="btn ghost" data-ed>Изменить</button><button class="btn ghost" data-delc>Удалить клан</button>` : me ? `<button class="btn ghost" data-leave>Выйти из клана</button>` : ""}</div>
           ${ME.is_admin ? `<h3 class="k">Выдать доступ</h3><div class="at"><span>@</span><input class="in" data-gu maxlength="20" autocomplete="off" placeholder="юзернейм"><button class="btn sm" data-give>Добавить</button></div>
-            <button class="btn ghost sm" data-offi style="margin:8px 0 4px">${c.official ? "Сделать обычным" : "Сделать официальным"}</button>` : ""}
+            <button class="btn ghost sm" data-offi style="margin:8px 0 4px">${c.official ? "Сделать обычным" : "Сделать официальным"}</button>
+            <button class="btn ghost sm" data-ver style="margin:8px 0 4px">${c.verified ? "Забрать галочку" : "✔ Дать галочку"}</button>` : ""}
           ${staff && (c.requests || []).length ? `<h3 class="k">Заявки</h3>${c.requests.map(u => mrow(u, `<button class="btn sm" data-ok="${u.id}">Принять</button><button class="ib" data-no="${u.id}" title="Отклонить">${I.x}</button>`)).join("")}` : ""}
           <h3 class="k">Участники</h3>
           ${(c.list || []).map(u => mrow(u, `<small class="rl ${u.role}">${ROLE[u.role]}</small><small class="wk">+${u.week}</small>${me === "owner" && u.role !== "owner" ? `<button class="ib" data-off="${u.id}" data-on="${u.role === "officer" ? 1 : 0}" title="${u.role === "officer" ? "Снять офицера" : "Сделать офицером"}">★</button>` : ""}${(me === "owner" || ME.is_admin) && u.role !== "owner" || (me === "officer" && u.role === "member") ? `<button class="ib" data-kick="${u.id}" title="Исключить">${I.x}</button>` : ""}`)).join("")}</div>`;
@@ -1590,6 +1854,7 @@
         on("[data-leave]", async () => { if (await confirmBox(tl("Выйти из клана") + " " + c.name + "?", tl("Выйти"))) act("nv_clan_kick", { p_clan: id, p_user: ME.id }, "", mine); });
         on("[data-delc]", async () => { if (await confirmBox(tl("Удалить клан") + " " + c.name + "? " + tl("Чат клана тоже удалится."), tl("Удалить"))) act("nv_clan_delete", { p_clan: id }, tl("Клан удалён"), async () => { await refreshMe(); loadChats(); this.home(w); }); });
         on("[data-ed]", () => this.form(w, c));
+        on("[data-ver]", () => act("nv_admin_clan_verify", { p_clan: id, p_on: !c.verified }, c.verified ? tl("Галочка забрана") : tl("Галочка выдана")));
         on("[data-offi]", () => act("nv_admin_clan_official", { p_clan: id, p_on: !c.official }, c.official ? tl("Клан теперь обычный") : tl("Клан теперь официальный")));
         const give = async () => {
           const n = $("[data-gu]", b).value.trim().replace(/^@/, "").toLowerCase(); if (!n) return;
@@ -1691,10 +1956,18 @@
     ["about", "О приложении", "info", "Версия, клавиши, ~/.needlerc"],
   ];
   const LANGN = { ru: "Русский", uk: "Українська", en: "English" };
+  const LOOKP = [
+    ["look:style", "Стиль", "palette", "Тема одной кнопкой"],
+    ["look:text", "Текст", "pen", "Шрифт, размер, углы"],
+    ["look:bg", "Фон", "spark", "Анимация из символов"],
+    ["look:desk", "Рабочий стол", "chats", "Раскладка, док, анимации, Игла"],
+    ["look:css", "Свой CSS", "cfg", "Для тех, кто любит покопаться"],
+  ];
   let cfgPage = "";
   RENDER.cfg = (w, page) => {
     if (page !== undefined) cfgPage = page;
-    const b = $(".wb", w), pg = CFGP.find(x => x[0] === cfgPage);
+    const b = $(".wb", w), pg = CFGP.find(x => x[0] === cfgPage) || LOOKP.find(x => x[0] === cfgPage);
+    const list = arr => `<div class="cfgg">${arr.map(([k, t, ic, d]) => `<button class="cfgi" data-go="${k}"><span class="ci2">${I[ic]}</span><span class="ct"><b>${t}</b><small>${k === "lang" ? LANGN[CFG.lang] : d}</small></span><span class="go">›</span></button>`).join("")}</div>`;
     const seg = (key, opts) => `<div class="seg" data-key="${key}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(CFG[key]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
     const sw = key => `<button class="sw${CFG[key] ? " on" : ""}" data-sw="${key}"></button>`;
     const rng = (key, min, max) => `<input type="range" min="${min}" max="${max}" value="${CFG[key]}" data-rng="${key}">`;
@@ -1702,26 +1975,27 @@
     if (!pg) {
       b.innerHTML = `<div class="cfg cfgl">
         <div class="cfgme" data-go="acc">${av(ME)}<div><b>${uname(ME)}</b><small class="mono">${handle(ME)}</small></div><span class="go">›</span></div>
-        <div class="cfgg">${CFGP.map(([k, t, ic, d]) => `<button class="cfgi" data-go="${k}"><span class="ci2">${I[ic]}</span><span class="ct"><b>${t}</b><small>${k === "lang" ? LANGN[CFG.lang] : d}</small></span><span class="go">›</span></button>`).join("")}</div>
-        <p class="note" style="text-align:center">Needle v6 · TAN — The Anonymous Network</p></div>`;
+        ${list(CFGP)}
+        <p class="note" style="text-align:center">Needle v7 · TAN — The Anonymous Network</p></div>`;
       $$("[data-go]", b).forEach(x => x.onclick = () => RENDER.cfg(w, x.dataset.go));
       return;
     }
     let body = "";
-    if (cfgPage === "look") body = `
-      <div class="opt"><span>Стиль<small>одна кнопка меняет всё; дальше можно докрутить ниже</small></span>${seg("theme", [["black", "Чёрная"], ["light", "Белая"], ["blue", "Синяя"], ["linux", "Linux"], ["windows", "Windows"], ["minimal", "Минимал"], ["matrix", "Матрица"], ["dark", "Огонь"]])}</div>
+    if (cfgPage === "look") body = list(LOOKP);
+    else if (cfgPage === "look:style") body = `<div class="opt"><span>Стиль<small>одна кнопка меняет всё; дальше можно докрутить в других пунктах</small></span>${seg("theme", [["black", "Чёрная"], ["light", "Белая"], ["blue", "Синяя"], ["linux", "Linux"], ["windows", "Windows"], ["minimal", "Минимал"], ["matrix", "Матрица"], ["dark", "Огонь"]])}</div>`;
+    else if (cfgPage === "look:text") body = `
       <div class="opt"><span>Шрифт</span>${seg("font", [["grotesk", "Grotesk"], ["mono", "Mono"], ["system", "Системный"]])}</div>
       <div class="opt"><span>Размер текста<small data-o="size">${CFG.size}px</small></span>${rng("size", 12, 20)}</div>
-      <div class="opt"><span>Скругление углов<small data-o="radius">${CFG.radius}px</small></span>${rng("radius", 0, 20)}</div>
-      <h3>Фон</h3>
+      <div class="opt"><span>Скругление углов<small data-o="radius">${CFG.radius}px</small></span>${rng("radius", 0, 20)}</div>`;
+    else if (cfgPage === "look:bg") body = `
       <div class="opt"><span>Анимация из символов</span>${seg("bg", [["needle", "Нитки"], ["fire", "Огонь"], ["stars", "Звёзды"], ["matrix", "Матрица"], ["none", "Нет"]])}</div>
-      <div class="opt"><span>Яркость фона<small data-o="bgLevel">${CFG.bgLevel}%</small></span>${rng("bgLevel", 5, 100)}</div>
-      <h3>Рабочий стол</h3>
+      <div class="opt"><span>Яркость фона<small data-o="bgLevel">${CFG.bgLevel}%</small></span>${rng("bgLevel", 5, 100)}</div>`;
+    else if (cfgPage === "look:desk") body = `
       <div class="opt"><span>Раскладка<small>«Окна» можно таскать и растягивать; двойной клик по заголовку вернёт на место</small></span>${seg("layout", [["app", "Needle"], ["windows", "Окна"], ["tiles", "Классика"]])}</div>
       <div class="opt"><span>Док</span>${seg("dock", [["bottom", "Снизу"], ["left", "Слева"], ["hidden", "Скрыт"]])}</div>
       <div class="opt"><span>Анимации</span>${seg("motion", [["full", "Все"], ["off", "Выкл"]])}</div>
-      <div class="opt"><span>Игла в углу экрана</span>${sw("helper")}</div>
-      <h3>Свой CSS</h3>
+      <div class="opt"><span>Игла-питомец<small>живёт на экране, её можно таскать куда угодно</small></span>${sw("helper")}</div>`;
+    else if (cfgPage === "look:css") body = `
       <p class="note" style="margin-top:0">Как в Linux: меняй что хочешь. Например <span class="mono">.bb{border-radius:18px}</span></p>
       <textarea class="box rc" data-css spellcheck="false" placeholder="/* твои стили */">${esc(CFG.css)}</textarea>`;
     else if (cfgPage === "lang") body = `<div class="cfgg">${Object.entries(LANGN).map(([k, t]) => `<button class="cfgi" data-lang="${k}"><span class="ct"><b>${t}</b></span><span class="go">${CFG.lang === k ? "✓" : ""}</span></button>`).join("")}</div>
@@ -1732,14 +2006,14 @@
     else if (cfgPage === "priv") body = `
       <div class="opt"><span>Текст в списке чатов<small>показывать расшифрованное начало личных сообщений</small></span>${sw("preview")}</div>
       <h3>Шифрование личных сообщений</h3>
-      <div class="kv"><span>Отпечаток ключа</span><span class="code" data-fp>…</span></div>
+      <div class="kv"><span>Отпечаток ключа</span><button class="spoil code" data-fp title="Нажми, чтобы показать">••••••••••</button></div>
       <div class="kv"><span>Копия ключа</span><span>${E2E.backed ? "✓ на сервере, закрыта паролем" : E2E.locked ? "🔒 не открыта на этом устройстве" : "только на этом устройстве"}</span></div>
       ${E2E.backed ? "" : `<button class="btn sm" data-kbox style="margin:10px 0">${E2E.locked ? "Открыть переписку паролем" : "Сохранить ключ на сервере"}</button>`}
       <p class="note">Личка шифруется прямо в браузере, сервер видит только шифр. Копия ключа лежит на сервере, закрытая твоим паролем, поэтому переписка открывается на любом твоём устройстве. Сообщения, отправленные на старые ключи (до Needle v6), на новом устройстве не откроются. Если сбросишь пароль через почту, создастся новый ключ.</p>`;
     else if (cfgPage === "acc") body = `
       <div class="kv"><span>Юзернейм</span><span class="mono">${handle(ME)}</span></div>
       <div class="kv"><span>ID</span><span class="mono">${ME.num}</span></div>
-      <div class="kv"><span>Почта<small class="muted" style="display:block;font-size:11px">видишь только ты</small></span><span class="mono" style="font-size:12px">${esc(session && session.user && session.user.email || "")}</span></div>
+      <div class="kv"><span>Почта<small class="muted" style="display:block;font-size:11px">видишь только ты</small></span><button class="spoil mono" data-spoil="${esc(session && session.user && session.user.email || "")}" title="Нажми, чтобы показать">••••••••••</button></div>
       <div class="kv"><span>Профиль</span><button class="btn ghost sm" data-edit>Изменить</button></div>
       <div class="kv"><span>Пароль</span><button class="btn ghost sm" data-pw>Сменить</button></div>
       <div class="kv"><span>Выход</span><button class="btn ghost sm" data-out>Выйти</button></div>`;
@@ -1751,8 +2025,10 @@
       <p class="note" style="margin-top:0">Все настройки одним файлом. Можно править руками, сохранить себе или вставить чужой.</p>
       <textarea class="box rc" data-rc spellcheck="false"></textarea>
       <div class="fab" style="margin:10px 0;flex-wrap:wrap"><button class="btn sm" data-apply>Применить</button><button class="btn sm ghost" data-dl>Скачать</button><label class="btn sm ghost">Загрузить<input type="file" accept=".json,.needlerc,application/json,text/plain" hidden data-ul></label><button class="btn sm ghost" data-reset>Сбросить всё</button></div>`;
-    b.innerHTML = `<div class="cfg"><button class="btn ghost sm cfgback" data-back>${I.back} Настройки</button>${body}</div>`;
-    $("[data-back]", b).onclick = () => RENDER.cfg(w, "");
+    const up = cfgPage.startsWith("look:") ? "look" : "";
+    b.innerHTML = `<div class="cfg"><button class="btn ghost sm cfgback" data-back>${I.back} ${up ? tl("Оформление") : tl("Настройки")}</button>${body}</div>`;
+    $("[data-back]", b).onclick = () => RENDER.cfg(w, up);
+    $$("[data-go]", b).forEach(x => x.onclick = () => RENDER.cfg(w, x.dataset.go));
     const rc = $("[data-rc]", b), on = (sel, f) => { const x = $(sel, b); if (x) x.onclick = f; };
     const showRc = () => { if (!rc) return; const c = Object.assign({}, CFG); delete c.wins; rc.value = JSON.stringify(c, null, 2); };
     const set = (k, v) => { CFG[k] = v; saveCfg(); applyCfg(); showRc(); };
@@ -1761,7 +2037,8 @@
     $$("[data-sw]", b).forEach(x => x.onclick = () => { x.classList.toggle("on"); set(x.dataset.sw, x.classList.contains("on")); if (x.dataset.sw === "preview") drawChats(); });
     $$("[data-rng]", b).forEach(x => x.oninput = () => { const k = x.dataset.rng; $(`[data-o=${k}]`, b).textContent = x.value + (k === "bgLevel" ? "%" : "px"); set(k, +x.value); });
     let ct = 0; const css = $("[data-css]", b); if (css) css.oninput = e => { clearTimeout(ct); ct = setTimeout(() => set("css", e.target.value.slice(0, 20000)), 300); };
-    const fp = $("[data-fp]", b); if (fp) (E2E.pub ? E2E.code(E2E.pub, E2E.pub) : Promise.resolve("нет")).then(c => fp.textContent = c.slice(0, 14));
+    const fp = $("[data-fp]", b); if (fp) (E2E.pub ? E2E.code(E2E.pub, E2E.pub) : Promise.resolve("нет")).then(c => fp.dataset.spoil = c.slice(0, 14));
+    $$("[data-spoil]", b).forEach(x => x.onclick = () => { const on = x.classList.toggle("open"); x.textContent = on ? x.dataset.spoil : "••••••••••"; });
     on("[data-kbox]", () => keyPrompt(true));
     on("[data-edit]", () => { const mw = open("me"); RENDER.me(mw).then(() => editMe(mw)); });
     on("[data-pw]", changePw); on("[data-out]", logout);
@@ -1845,6 +2122,31 @@
     return { mount() {} };
   })();
 
+  // ================= Игла-питомец: живёт на экране, её можно таскать =================
+  const Pet = {
+    mount() {
+      const el = $("#mini"); if (!el) return;
+      el.innerHTML = `<div class="spirit"></div><div class="pbub" hidden></div><span class="pz">z Z</span>`;
+      const bub = $(".pbub", el); let bt = 0, last = Date.now(), drag = null, moved = false;
+      const say = t => { if (el.hidden) return; bub.textContent = tl(t); bub.hidden = false; clearTimeout(bt); bt = setTimeout(() => bub.hidden = true, 5200); };
+      const place = (x, y) => { x = Math.max(0, Math.min(innerWidth - el.offsetWidth, x)); y = Math.max(50, Math.min(innerHeight - el.offsetHeight, y)); Object.assign(el.style, { left: x + "px", top: y + "px", right: "auto", bottom: "auto" }); };
+      const pos = store.get("needle-pet", null); if (pos) requestAnimationFrame(() => place(pos.x, pos.y));
+      addEventListener("resize", () => { if (el.style.left) place(el.offsetLeft, el.offsetTop); });
+      const wake = () => { last = Date.now(); if (el.classList.contains("sleep")) { el.classList.remove("sleep"); say("А? Я не сплю!"); } };
+      el.onpointerdown = e => { if (e.button) return; drag = { x: e.clientX, y: e.clientY, dx: e.clientX - el.offsetLeft, dy: e.clientY - el.offsetTop }; moved = false; el.setPointerCapture(e.pointerId); };
+      el.onpointermove = e => { if (!drag) return; if (!moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 5) { moved = true; el.classList.add("held"); wake(); } if (moved) place(e.clientX - drag.dx, e.clientY - drag.dy); };
+      el.onpointerup = () => { if (!drag) return; drag = null; el.classList.remove("held");
+        if (moved) { store.set("needle-pet", { x: el.offsetLeft, y: el.offsetTop }); say(["Тут уютно 🪡", "Оп, новое место!", "Уиии!", "Посижу тут"][Math.random() * 4 | 0]); }
+        else { wake(); open("spark"); } };
+      ["pointerdown", "keydown"].forEach(ev => addEventListener(ev, () => { last = Date.now(); el.classList.remove("sleep"); }, { passive: true }));
+      const TALK = () => { const hr = new Date().getHours(); return [hr < 6 ? "Ночь на дворе, а ты всё в Needle 🌙" : hr < 12 ? "Доброе утро! ☀️" : hr < 18 ? "Как день проходит?" : "Вечер, самое время поболтать",
+        "Перетащи меня куда хочешь", "Сообщения можно сжечь: кнопка 🔥 в чате", "Нажми на меня, и я подскажу", "Слышал про кланы? Загляни во вкладку «Кланы»",
+        "Сообщение можно закрепить: нажми ⋯ рядом с ним", "Можно отправить музыку: скрепка в чате 📎", "Я просто посижу тут…", "Шью-шью 🪡"]; };
+      setInterval(() => { if (el.hidden || document.hidden || drag) return; if (Date.now() - last > 120000) { el.classList.add("sleep"); return; } if (Math.random() < .3) { const l = TALK(); say(l[Math.random() * l.length | 0]); } }, 30000);
+      setTimeout(() => say(`${tl("Привет")}, ${ME.name || ME.username}!`), 2500);
+    },
+  };
+
   // ================= горячие клавиши =================
   document.addEventListener("keydown", e => {
     if (!ME || $(".modal")) return;
@@ -1868,6 +2170,7 @@
     await E2E.init(ME.id, PW); PW = null;
     desk();
     setTimeout(() => keyPrompt(E2E.locked), 900);
+    setTimeout(cleanFiles, 5000);
     if (ME.banned) toast("Аккаунт заблокирован: писать нельзя");
   }
   if (sb) sb.auth.onAuthStateChange((ev) => { if (ev === "PASSWORD_RECOVERY") authScreen("reset"); if (ev === "SIGNED_OUT" && ME) location.reload(); });
