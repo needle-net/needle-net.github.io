@@ -737,3 +737,25 @@ body.l-tiles.sec-feed .feedwrap .feed{flex:0 1 620px}
 body.l-phone #mini{display:block;bottom:76px}
 body.l-phone #mini .spirit{font-size:3.4px;line-height:3.4px}
 body.l-app #mini{position:fixed;bottom:96px}
+
+/* ===== v8: как в Telegram ===== */
+.logo b.wm:after,.logo.big b.wm:after{display:none}
+.ctag.of:after,.cchip.of:not(.big):after{content:none}
+.chat.chan .m.cp{justify-content:flex-start}
+.chat.chan .m.cp .bb{width:min(520px,92%);max-width:none;border-radius:14px 14px 14px 4px;padding:8px 12px 6px}
+.m.cp .cph{margin-bottom:3px;line-height:1.2}
+.m.cp .cph .av{display:none}
+.m.cp .cph b{font-size:14px;font-weight:600;color:var(--acc,var(--fg))}
+.m.cp .ft{text-align:right}
+.invl{display:flex;gap:6px;align-items:center}
+.invl .mono{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;padding:8px 10px;border:1px solid var(--line);border-radius:8px}
+.invl .btn{flex:none}
+.ppl{max-height:60vh;overflow:auto;margin:0 -12px}
+.ppl h3.k{margin:10px 12px 2px;font-size:11px}
+.ppl .row{display:flex;align-items:center;gap:10px;padding:7px 12px;border-radius:0}
+.ppl .row:hover{background:var(--hover)}
+.ppl .row .c{flex:1;min-width:0;cursor:pointer}
+.ppl .row .c .p{font-size:12px;color:var(--mid)}
+.ppl .row .btn{flex:none}
+.card .invl .btn,.card .ppl .btn{width:auto;margin:0;padding:7px 12px}
+.ppl .row .btn+.btn{margin-left:4px}

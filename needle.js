@@ -61,6 +61,7 @@
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
 
   const ERR = {
+    "no access": "Это закрытый чат: войти можно только по ссылке-приглашению", "no chat": "Ничего не нашлось по этой ссылке",
     "too fast": "Слишком быстро, подожди пару секунд", "no links": "Ссылки и @ники писать нельзя", "limit 3": "Можно создать не больше 3 групп и каналов",
     "bad length": "Слишком длинно или пусто", "join first": "Сначала вступи", "channel owner only": "Писать в канал может только его автор",
     "not signed in": "Нужно войти заново", "banned": "Аккаунт заблокирован", "no anon here": "Здесь нельзя писать анонимно",
@@ -76,6 +77,26 @@
 
   // ================= языки: русский (исходный), English, українська =================
   const DICT = [
+    ["без тега", "no tag", "без тегу"],
+    ["Заявка отправлена · отменить", "Request sent · cancel", "Заявку надіслано · скасувати"],
+    ["Подписчики", "Subscribers", "Підписники"],
+    ["заявки", "requests", "заявки"],
+    ["Открытый", "Public", "Відкритий"],
+    ["По заявке", "By request", "За заявкою"],
+    ["Закрытый", "Private", "Закритий"],
+    ["Любой найдёт по @юзернейму и вступит сразу.", "Anyone can find it by @username and join right away.", "Будь-хто знайде за @юзернеймом і вступить одразу."],
+    ["Человек подаёт заявку, ты принимаешь или отклоняешь.", "People send a request, you accept or decline.", "Людина подає заявку, ти приймаєш або відхиляєш."],
+    ["Не виден в поиске. Попасть можно только по ссылке-приглашению.", "Hidden from search. Join only by invite link.", "Не видно в пошуку. Потрапити можна лише за посиланням-запрошенням."],
+    ["Копировать", "Copy", "Копіювати"],
+    ["Новая", "New", "Нове"],
+    ["Сначала создай ссылку", "Create a link first", "Спершу створи посилання"],
+    ["Старая ссылка больше не работает", "The old link no longer works", "Старе посилання більше не працює"],
+    ["Удалить из чата?", "Remove from chat?", "Видалити з чату?"],
+    ["тип канала", "channel type", "тип каналу"],
+    ["тип группы", "group type", "тип групи"],
+    ["ссылка-приглашение", "invite link", "посилання-запрошення"],
+    ["Это закрытый чат: войти можно только по ссылке-приглашению", "This chat is private: join only by invite link", "Це закритий чат: увійти можна лише за посиланням-запрошенням"],
+    ["Ничего не нашлось по этой ссылке", "Nothing found at this link", "За цим посиланням нічого немає"],
     ["Тема одной кнопкой", "Theme in one tap", "Тема однією кнопкою"],
     ["Текст", "Text", "Текст"],
     ["Шрифт, размер, углы", "Font, size, corners", "Шрифт, розмір, кути"],
@@ -812,8 +833,8 @@
   const lvl = xp => { xp = +xp || 0; let n = 1; while (n < 10 && xp >= LVX[n]) n++; const cur = LVX[n - 1], nx = LVX[n] ?? null; return { n, name: LVN[n - 1], xp, cur, next: nx, pct: nx ? Math.round((xp - cur) / (nx - cur) * 100) : 100 }; };
   const lvBadge = (p, full) => !p ? "" : p.is_admin ? `<i class="lv own" title="${tl("Создатель")}">67${full ? " · " + tl("Создатель") : ""}</i>` : p.xp != null ? `<i class="lv l${lvl(p.xp).n}" title="Уровень ${lvl(p.xp).n}">${lvl(p.xp).n}</i>` : "";
   const CLC = ["#9aa0aa", "#ff6b6b", "#ffa94d", "#ffd43b", "#69db7c", "#38d9a9", "#4dabf7", "#748ffc", "#9775fa", "#f783ac", "#e8e8ea", "#ff922b"];
-  const clanTag = p => p && p.clan && p.clan.tag ? `<span class="ctag${p.clan.official ? " of" : ""}" title="${p.clan.official ? "Официальный клан" : ""}" style="--cc:${CLC[+p.clan.color] || CLC[0]}">[${esc(p.clan.tag)}${p.clan.verified ? "✔" : ""}]</span>` : "";
-  const clanChip = (c, big) => `<span class="cchip${big ? " big" : ""}${c.official ? " of" : ""}" style="--cc:${CLC[+c.color] || CLC[0]}">${esc(c.tag)}</span>${c.verified ? `<span class="cvf" title="Клан подтверждён">${I.check}</span>` : ""}`;
+  const clanTag = p => p && p.clan && p.clan.tag ? `<span class="ctag${p.clan.official ? " of" : ""}" title="${p.clan.official ? "Официальный клан" : ""}" style="--cc:${CLC[+p.clan.color] || CLC[0]}">[${esc(p.clan.tag)}]</span>` : "";
+  const clanChip = (c, big) => `<span class="cchip${big ? " big" : ""}${c.official ? " of" : ""}" style="--cc:${CLC[+c.color] || CLC[0]}">${esc(c.tag)}</span>${c.verified && big ? `<span class="cvf" title="Клан подтверждён">${I.check}</span>` : ""}`;
   const pmBadge = p => p && p.premium && !p.is_admin ? `<i class="pm" title="Премиум">✦</i>` : "";
   const uname = (p, full) => p ? clanTag(p) + `<span class="nk${p.nick > 0 ? " n" + (+p.nick) : ""}">${esc(p.name || p.username)}</span>` + (p.verified ? I.check : "") + pmBadge(p) + lvBadge(p, full) : "удалённый";
   // надпись на фоне профиля: смайлики ложатся мелким узором вокруг аватарки, остальное крупно по центру
@@ -1170,6 +1191,7 @@
       try {
         this.c = await rpc("nv_chat", { p_chat: id });
         if (this.id !== id) return;
+        $(".chat", w).classList.toggle("chan", this.c.kind === "channel");
         this.head(w); this.composer(w); this.pinBar(w);
         const list = await rpc("nv_messages", { p_chat: id });
         if (this.id !== id) return;
@@ -1181,11 +1203,11 @@
     intro() {
       const c = this.c;
       if (c.kind === "dm") return `<div class="sys">🔒 Сквозное шифрование. Сообщения читаете только вы двое, сервер видит только шифр. Ключ закрыт твоим паролем, поэтому переписка открывается на любом твоём устройстве.${c.burn ? `<br>🔥 Сообщения сгорают через ${burnName(c.burn)}.` : ""}</div>`;
-      return `<div class="sys">${c.kind === "channel" ? "Канал" : "Группа"} «${esc(c.title)}» · ${c.members} ${plural(c.members, "участник", "участника", "участников")}${c.about ? "<br>" + esc(c.about) : ""}${c.anon_ok ? "<br>🎭 Можно писать анонимно" : ""}${c.burn ? `<br>🔥 Сообщения сгорают через ${burnName(c.burn)}` : ""}</div>`;
+      return `<div class="sys">${c.kind === "channel" ? "Канал" : "Группа"} «${esc(c.title)}» · ${c.members} ${c.kind === "channel" ? plural(c.members, "подписчик", "подписчика", "подписчиков") : plural(c.members, "участник", "участника", "участников")}${c.about ? "<br>" + esc(c.about) : ""}${c.anon_ok ? "<br>🎭 Можно писать анонимно" : ""}${c.burn ? `<br>🔥 Сообщения сгорают через ${burnName(c.burn)}` : ""}</div>`;
     },
     head(w) {
       const c = this.c;
-      const sub = c.kind === "dm" ? (c.peer && !c.peer.pubkey ? "ещё не заходил в Needle" : "🔒 шифр" + (c.burn ? " · 🔥 " + burnName(c.burn) : "")) : `${c.members} ${plural(c.members, "участник", "участника", "участников")}${c.burn ? " · 🔥 " + burnName(c.burn) : ""}`;
+      const sub = c.kind === "dm" ? (c.peer && !c.peer.pubkey ? "ещё не заходил в Needle" : "🔒 шифр" + (c.burn ? " · 🔥 " + burnName(c.burn) : "")) : `${c.members} ${c.kind === "channel" ? plural(c.members, "подписчик", "подписчика", "подписчиков") : plural(c.members, "участник", "участника", "участников")}${c.burn ? " · 🔥 " + burnName(c.burn) : ""}`;
       $(".wt", w).innerHTML = `${chatAv(c)}<span class="tt"><b>${chatName(c)}</b><small>${sub}</small></span>`;
       $(".wt .av", w).style.cssText = "width:30px;height:30px;font-size:11px";
       const canBurn = c.kind === "dm" || c.owner || ME.is_admin;
@@ -1247,7 +1269,7 @@
       });
     },
     forward(m, d) {
-      const from = m.mine ? (ME.name || ME.username) : m.anon ? "Аноним" : this.c.kind === "channel" ? this.c.title : m.a ? (m.a.name || m.a.username) : "";
+      const from = this.c.kind === "channel" ? this.c.title : m.mine ? (ME.name || ME.username) : m.anon ? "Аноним" : m.a ? (m.a.name || m.a.username) : "";
       const list = Chats.list.filter(c => c.kind !== "channel" || c.owner || ME.is_admin);
       modal(`<h2>${tl("Переслать")}</h2><div class="fwdl">${list.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${chatName(c)}</div></div></div>`).join("") || `<div class="empty">${tl("Чатов пока нет")}</div>`}</div>
         <div class="row2"><button class="btn ghost" data-n>Отмена</button></div>`, (box, closeM) => {
@@ -1275,8 +1297,13 @@
     composer(w) {
       const c = this.c, root = $(".chat", w); $(".comp,.joinbar", root) && $$(".comp,.joinbar", root).forEach(x => x.remove());
       if (!c.joined) {
-        const bar = h(`<div class="joinbar"><button class="btn">${c.kind === "channel" ? "Подписаться" : "Вступить"}</button></div>`); root.append(bar);
-        $("button", bar).onclick = async () => { try { await rpc("nv_join", { p_chat: c.id }); this.c.joined = true; this.c.members++; this.head(w); this.composer(w); loadChats(); } catch (e) { toast(errText(e)); } };
+        const lbl = c.requested ? tl("Заявка отправлена · отменить") : c.access === "request" ? tl("Подать заявку") : c.kind === "channel" ? "Подписаться" : "Вступить";
+        const bar = h(`<div class="joinbar"><button class="btn${c.requested ? " ghost" : ""}">${lbl}</button></div>`); root.append(bar);
+        $("button", bar).onclick = async () => { try {
+          if (c.requested) { await rpc("nv_unrequest", { p_chat: c.id }); this.c.requested = false; return this.composer(w); }
+          const r = await rpc("nv_join", { p_chat: c.id });
+          if (r === "requested") { this.c.requested = true; toast(tl("Заявка отправлена")); return this.composer(w); }
+          this.c.joined = true; this.c.members++; this.head(w); this.composer(w); loadChats(); } catch (e) { toast(errText(e)); } };
         return;
       }
       if (c.kind === "channel" && !c.owner && !ME.is_admin) { const bar = h(`<div class="joinbar"><button class="btn ghost sm">Отписаться</button></div>`); root.append(bar); $("button", bar).onclick = () => this.leaveChat(); return; }
@@ -1343,10 +1370,11 @@
       const c = this.c, mine = m.mine, d = await this.decode(m);
       const author = c.kind === "group" && !mine ? `<div class="au">${m.anon ? anonName(m, ME.is_admin) : m.a ? `<span style="cursor:pointer" data-p="${m.a.id}">${uname(m.a)}</span>` : ""}</div>` : (m.anon && mine ? `<div class="au">🎭 анонимно #${m.tag}</div>` : "");
       const body = m.iv && d.t == null ? (E2E.locked ? `<span class="muted unlockm" style="cursor:pointer">🔒 Нажми и введи пароль, чтобы открыть</span>` : `<span class="muted">🔒 Не расшифровать: сообщение для старого ключа с другого устройства</span>`) : esc(d.t || "");
-      const el = h(`<div class="m${mine ? " me" : ""}" data-id="${m.id}">
+      const ch = c.kind === "channel";
+      const el = h(`<div class="m${mine && !ch ? " me" : ""}${ch ? " cp" : ""}" data-id="${m.id}">
         ${c.kind === "group" && !mine ? (m.anon ? `<span class="av an xs">?</span>` : av(m.a, "xs")) : ""}
-        <div class="bb">${author}${m.fwd ? `<div class="fwd">↪ ${tl("Переслано от")} <b>${esc(m.fwd)}</b></div>` : ""}${m.photo && PATH_RE.test(m.photo) ? `<img class="ph" src="${esc(pub("nova", m.photo))}" alt="" loading="lazy">` : ""}<span class="fslot"></span>${body ? `<div class="tx">${body}</div>` : ""}
-        <div class="ft">${m.edited ? `<span class="ed">${tl("изменено")}</span> ` : ""}${m.expires_at ? "🔥 " : ""}${hm(m.created_at)}</div>
+        <div class="bb">${ch ? `<div class="cph">${chatAv(c)}<b>${chatName(c)}</b></div>` : author}${m.fwd ? `<div class="fwd">↪ ${tl("Переслано от")} <b>${esc(m.fwd)}</b></div>` : ""}${m.photo && PATH_RE.test(m.photo) ? `<img class="ph" src="${esc(pub("nova", m.photo))}" alt="" loading="lazy">` : ""}<span class="fslot"></span>${body ? `<div class="tx">${body}</div>` : ""}
+        <div class="ft">${m.edited ? `<span class="ed">${tl("изменено")}</span> ` : ""}${m.expires_at ? "🔥 " : ""}${ch ? ago(m.created_at) : hm(m.created_at)}</div>
         <button class="mm" title="Действия">⋯</button></div></div>`);
       const fe = fileEl(d.f); if (fe) $(".fslot", el).replaceWith(fe); else $(".fslot", el).remove();
       const img = $("img.ph", el); if (img && !fe) img.onclick = () => lightbox(img.src);
@@ -1387,16 +1415,18 @@
       const code = c.kind === "dm" ? await E2E.code(E2E.pub, c.peer && c.peer.pubkey) : "";
       modal(`<h2>${chatName(c)}</h2>
         ${c.kind === "dm" ? `<div class="kv"><span>Код безопасности</span><span class="code">${code}</span></div><p class="note">Сверь этот код с собеседником лично. Если совпадает, никто не подменил ключи и не читает вашу переписку.</p>` :
-          `<div class="kv"><span>Тип</span><span>${c.kind === "channel" ? "Канал" : "Группа"}</span></div>${c.handle ? `<div class="kv"><span>Юзернейм</span><span class="mono">@${esc(c.handle)}</span></div>` : ""}<div class="kv"><span>Участники</span><span>${c.members}</span></div>${c.about ? `<div class="kv"><span>Описание</span><span>${esc(c.about)}</span></div>` : ""}<div class="kv"><span>Анонимно</span><span>${c.anon_ok ? "можно" : "нельзя"}</span></div>`}
+          `<div class="kv"><span>Тип</span><span>${c.kind === "channel" ? "Канал" : "Группа"} · ${tl(ACC[c.access] || ACC.open)}</span></div>${c.handle ? `<div class="kv"><span>Юзернейм</span><span class="mono">@${esc(c.handle)}</span></div>` : ""}<div class="kv"><span>Участники</span><span>${c.members}</span></div>${c.about ? `<div class="kv"><span>Описание</span><span>${esc(c.about)}</span></div>` : ""}<div class="kv"><span>Анонимно</span><span>${c.anon_ok ? "можно" : "нельзя"}</span></div>`}
         <div class="row2" style="flex-wrap:wrap">
           ${c.kind !== "dm" && (c.owner || ME.is_admin) ? `<button class="btn ghost sm" data-ed>Изменить</button>` : ""}
           ${c.kind !== "dm" && c.joined && !c.owner ? `<button class="btn ghost sm" data-lv>Выйти</button>` : ""}
           ${c.kind === "dm" || c.owner || ME.is_admin ? `<button class="btn ghost sm" data-del>${c.kind === "dm" ? "Удалить переписку" : "Удалить"}</button>` : ""}
           ${c.joined ? `<button class="btn ghost sm" data-pinc>${(Chats.list.find(x => x.id === c.id) || {}).pin ? "Открепить чат" : "📌 Закрепить чат"}</button>` : ""}
           ${c.kind === "channel" ? `<button class="btn ghost sm" data-chp>Профиль канала</button>` : ""}
+          ${c.kind !== "dm" && (c.owner || ME.is_admin) ? `<button class="btn ghost sm" data-ppl>${c.kind === "channel" ? tl("Подписчики") : tl("Участники")}${+c.reqs ? ` · ${tl("заявки")}: ${c.reqs}` : ""}</button>` : ""}
           <button class="btn sm" data-n>Закрыть</button></div>`, (m, closeM) => {
         $("[data-n]", m).onclick = closeM;
         $("[data-chp]", m) && ($("[data-chp]", m).onclick = () => { closeM(); Channel.open(c.id); });
+        $("[data-ppl]", m) && ($("[data-ppl]", m).onclick = () => { closeM(); People.open(c); });
         $("[data-pinc]", m) && ($("[data-pinc]", m).onclick = async () => { closeM(); const on = !(Chats.list.find(x => x.id === c.id) || {}).pin; try { await rpc("nv_pin_chat", { p_chat: c.id, p_on: on }); toast(on ? tl("Чат закреплён") : tl("Чат откреплён")); loadChats(); } catch (e) { toast(errText(e)); } });
         $("[data-lv]", m) && ($("[data-lv]", m).onclick = () => { closeM(); this.leaveChat(); });
         $("[data-del]", m) && ($("[data-del]", m).onclick = async () => { closeM(); if (!(await confirmBox(c.kind === "dm" ? "Удалить переписку у обоих? Её нельзя вернуть." : "Удалить навсегда? Все сообщения пропадут.", "Удалить"))) return; try { await rpc("nv_delete_chat", { p_chat: c.id }); close("chat"); if (L() !== "windows") open("chats"); this.leave(); loadChats(); toast("Удалено"); } catch (e) { toast(errText(e)); } });
@@ -1408,15 +1438,58 @@
       modal(`<h2>Изменить</h2><div class="field"><label class="k">название</label><input class="in" name="t" maxlength="40" value="${esc(c.title)}"></div>
         <div class="field"><label class="k">описание</label><input class="in" name="a" maxlength="200" value="${esc(c.about)}"></div>
         <div class="field"><label class="k">юзернейм</label><div class="at"><span>@</span><input class="in" name="h" maxlength="20" autocomplete="off" placeholder="латиница, цифры, _ (можно пусто)" value="${esc(c.handle || "")}"></div></div>
+        <div class="field"><label class="k">${c.kind === "channel" ? "тип канала" : "тип группы"}</label><div class="seg" data-acc>${Object.keys(ACC).map(k => `<button type="button" data-v="${k}" class="${(c.access || "open") === k ? "on" : ""}">${tl(ACC[k])}</button>`).join("")}</div>
+          <p class="note" data-acch></p></div>
+        <div class="field"><label class="k">ссылка-приглашение</label><div class="invl"><span class="mono" data-inv>${c.invite ? esc(SITE + "+" + c.invite) : "—"}</span><button type="button" class="btn ghost sm" data-ic>${tl("Копировать")}</button><button type="button" class="btn ghost sm" data-ir>${c.invite ? tl("Новая") : tl("Создать")}</button></div></div>
         ${c.kind === "group" ? `<div class="opt"><span>Анонимные сообщения</span><button class="sw${c.anon_ok ? " on" : ""}" type="button"></button></div>` : ""}
         <div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (m, closeM) => {
+        let acc = c.access || "open"; const hint = () => $("[data-acch]", m).textContent = tl(ACCH[acc]); hint();
+        $$("[data-acc] button", m).forEach(x => x.onclick = () => { acc = x.dataset.v; $$("[data-acc] button", m).forEach(y => y.classList.toggle("on", y === x)); hint(); });
+        const inv = $("[data-inv]", m);
+        $("[data-ic]", m).onclick = async () => { if (!c.invite) return toast(tl("Сначала создай ссылку")); try { await navigator.clipboard.writeText(SITE + "+" + c.invite); toast(tl("Скопировано")); } catch {} };
+        $("[data-ir]", m).onclick = async () => { try { c.invite = await rpc("nv_chat_invite", { p_chat: c.id, p_reset: true }); inv.textContent = SITE + "+" + c.invite; $("[data-ir]", m).textContent = tl("Новая"); toast(tl("Старая ссылка больше не работает")); } catch (e) { toast(errText(e)); } };
         const sw = $(".sw", m); sw && (sw.onclick = () => sw.classList.toggle("on"));
         $("[data-n]", m).onclick = closeM;
-        $("[data-y]", m).onclick = async () => { try { const hd = $("[name=h]", m).value.trim().replace(/^@/, "").toLowerCase(); if (hd && !/^[a-z0-9_]{3,20}$/.test(hd)) throw new Error("bad username"); if (hd !== (c.handle || "")) await rpc("nv_chat_handle", { p_chat: c.id, p_handle: hd || null }); await rpc("nv_edit_chat", { p_chat: c.id, p_title: $("[name=t]", m).value, p_about: $("[name=a]", m).value, p_anon: !!(sw && sw.classList.contains("on")) }); closeM(); this.open(c.id); loadChats(); } catch (e) { $(".err", m).textContent = errText(e); } };
+        $("[data-y]", m).onclick = async () => { try { const hd = $("[name=h]", m).value.trim().replace(/^@/, "").toLowerCase(); if (hd && !/^[a-z0-9_]{3,20}$/.test(hd)) throw new Error("bad username"); if (hd !== (c.handle || "")) await rpc("nv_chat_handle", { p_chat: c.id, p_handle: hd || null }); if (acc !== (c.access || "open")) await rpc("nv_chat_access", { p_chat: c.id, p_access: acc }); await rpc("nv_edit_chat", { p_chat: c.id, p_title: $("[name=t]", m).value, p_about: $("[name=a]", m).value, p_anon: !!(sw && sw.classList.contains("on")) }); closeM(); this.open(c.id); loadChats(); } catch (e) { $(".err", m).textContent = errText(e); } };
       });
     },
     async leaveChat() { try { await rpc("nv_leave", { p_chat: this.c.id }); const id = this.c.id; this.c.joined = false; loadChats(); this.open(id); } catch (e) { toast(errText(e)); } },
   };
+  const ACC = { open: "Открытый", request: "По заявке", closed: "Закрытый" };
+  const ACCH = { open: "Любой найдёт по @юзернейму и вступит сразу.", request: "Человек подаёт заявку, ты принимаешь или отклоняешь.", closed: "Не виден в поиске. Попасть можно только по ссылке-приглашению." };
+  const People = {
+    async open(c) {
+      modal(`<h2>${c.kind === "channel" ? tl("Подписчики") : tl("Участники")}</h2><div class="ppl"><div class="spin"></div></div><div class="row2"><button class="btn sm" data-n>${tl("Закрыть")}</button></div>`, async (m, closeM) => {
+        $("[data-n]", m).onclick = closeM;
+        const box = $(".ppl", m);
+        const draw = async () => {
+          try {
+            const r = await rpc("nv_chat_people", { p_chat: c.id }); const clan = c.title && /^\[[A-Z0-9]+\] /.test(c.title) && c.about === "Чат клана";
+            const row = (u, btns) => `<div class="row" data-u="${u.id}">${av(u)}<div class="c"><div class="n">${uname(u)}</div><div class="p">@${esc(u.username)}${u.role === "owner" ? " · " + tl("владелец") : ""}</div></div>${btns}</div>`;
+            box.innerHTML = (r.reqs.length ? `<h3 class="k">${tl("Заявки")} · ${r.reqs.length}</h3>` + r.reqs.map(u => row(u, `<button class="btn sm" data-ok="${u.id}">${tl("Принять")}</button><button class="btn ghost sm" data-no="${u.id}">✕</button>`)).join("") : "")
+              + `<h3 class="k">${c.kind === "channel" ? tl("Подписчики") : tl("Участники")} · ${c.members}</h3>`
+              + (r.list.map(u => row(u, u.role === "owner" || clan ? "" : `<button class="btn ghost sm" data-kick="${u.id}" title="${tl("Удалить")}">✕</button>`)).join("") || `<div class="empty">${tl("Пока никого")}</div>`);
+            $$("[data-u] .c", box).forEach(x => x.onclick = () => { closeM(); Profile.open(x.parentElement.dataset.u); });
+            const act = (sel, fn) => $$(sel, box).forEach(b => b.onclick = async () => { try { await fn(b); draw(); } catch (e) { toast(errText(e)); } });
+            act("[data-ok]", b => rpc("nv_chat_answer", { p_chat: c.id, p_user: b.dataset.ok, p_ok: true }).then(() => { c.members++; c.reqs = Math.max(0, (c.reqs || 1) - 1); }));
+            act("[data-no]", b => rpc("nv_chat_answer", { p_chat: c.id, p_user: b.dataset.no, p_ok: false }).then(() => { c.reqs = Math.max(0, (c.reqs || 1) - 1); }));
+            act("[data-kick]", async b => { if (!(await confirmBox(tl("Удалить из чата?"), tl("Удалить")))) throw new Error("cancel"); await rpc("nv_chat_kick", { p_chat: c.id, p_user: b.dataset.kick }); c.members--; });
+          } catch (e) { if (e.message !== "cancel") box.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
+        };
+        draw();
+      });
+    },
+  };
+  // ссылки needle-net.github.io/имя и /+приглашение
+  async function goLink(name) {
+    try {
+      const r = await rpc("nv_resolve", { p_name: name });
+      if (r.user) return Profile.open(r.user);
+      loadChats();
+      if (r.kind === "channel" && name[0] !== "+") return Channel.open(r.chat);
+      Chat.open(r.chat);
+    } catch (e) { toast(errText(e)); }
+  }
   const burnName = s => ({ 60: "1 минуту", 3600: "1 час", 86400: "1 день" }[s] || s + " " + tl("с"));
   const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const d = n % 10; return n > 10 && n < 20 ? c : d > 1 && d < 5 ? b : d === 1 ? a : c; };
   RENDER.chat = () => {};
@@ -1520,7 +1593,7 @@
         const r = await rpc("nv_find", { p_q: inp.value.trim() });
         res.innerHTML = (r.people.length ? `<div class="sec k">Люди</div>` + r.people.map(p => `<div class="row" data-u="${p.id}">${av(p)}<div class="c"><div class="n">${uname(p)}</div><div class="p">@${esc(p.username)} · ID ${p.num}</div></div></div>`).join("") : "") +
           `<div class="sec k">${inp.value.trim() ? "Каналы и группы" : "Популярное"}</div>` +
-          (r.chats.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${esc(c.title)}</div><div class="p">${c.handle ? "@" + esc(c.handle) + " · " : ""}${c.kind === "channel" ? "канал" : "группа"} · ${c.members} ${plural(c.members, "участник", "участника", "участников")}${c.about ? " · " + esc(c.about) : ""}</div></div><div class="m">${c.joined ? "✓" : ""}</div></div>`).join("") || `<div class="empty">Ничего не найдено</div>`) +
+          (r.chats.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${esc(c.title)}</div><div class="p">${c.handle ? "@" + esc(c.handle) + " · " : ""}${c.kind === "channel" ? "канал" : "группа"} · ${c.members} ${c.kind === "channel" ? plural(c.members, "подписчик", "подписчика", "подписчиков") : plural(c.members, "участник", "участника", "участников")}${c.about ? " · " + esc(c.about) : ""}</div></div><div class="m">${c.joined ? "✓" : ""}</div></div>`).join("") || `<div class="empty">Ничего не найдено</div>`) +
           `<div class="fab"><button class="btn sm ghost" data-n>${I.plus} Создать группу или канал</button></div>`;
         $$("[data-u]", res).forEach(r2 => r2.onclick = () => Profile.open(r2.dataset.u));
         $$("[data-c]", res).forEach(r2 => r2.onclick = () => { const c = r.chats.find(x => x.id === +r2.dataset.c); c && c.kind === "channel" ? Channel.open(c.id) : Chat.open(+r2.dataset.c); });
@@ -1557,7 +1630,7 @@
         const tile = (attr, icon, label) => `<button class="pa" ${attr}>${icon}<span>${label}</span></button>`;
         b.innerHTML = `<div class="pv pv2 chp"><div class="ban b${+c.banner || 0}"></div>
           <div class="pvc"><span class="av big ch">✦</span><h2>${chatName(c)}</h2><div class="st">${c.official ? `<span class="own">${tl("официальный канал")}</span> · ` : ""}${c.members} ${tl(plural(c.members, "подписчик", "подписчика", "подписчиков"))}</div></div>
-          <div class="pacts">${c.joined ? tile("data-go", I.chats, "Открыть") : tile("data-join", I.plus, "Подписаться")}${tile("data-share", I.at, "Поделиться")}${c.owner || ME.is_admin ? tile("data-style", I.palette, "Оформление") : ""}${ME.is_admin ? tile("data-off", I.crown, c.official ? "Обычный" : "Официальный") : ""}</div>
+          <div class="pacts">${c.joined ? tile("data-go", I.chats, "Открыть") : c.requested ? tile("data-unreq", I.plus, "Заявка отправлена") : tile("data-join", I.plus, c.access === "request" ? "Подать заявку" : "Подписаться")}${tile("data-share", I.at, "Поделиться")}${c.owner || ME.is_admin ? tile("data-style", I.palette, "Оформление") : ""}${ME.is_admin ? tile("data-off", I.crown, c.official ? "Обычный" : "Официальный") : ""}</div>
           <div class="pcard">${c.about ? `<div class="ci"><div><small>о канале</small><p class="bio">${esc(c.about)}</p></div></div>` : ""}
             ${c.author ? `<div class="ci" data-p="${c.author.id}" style="cursor:pointer"><div><small>автор</small><b>${uname(c.author)}</b></div></div>` : ""}
             <div class="ci"><div><small>постов</small><b>${msgs.length >= 60 ? "60+" : msgs.length}</b></div></div></div></div>
@@ -1573,8 +1646,9 @@
         }
         const on = (sel, f) => { const x = $(sel, b); if (x) x.onclick = f; };
         on("[data-go]", () => { if (L() === "windows") close("user"); Chat.open(c.id); });
-        on("[data-join]", async () => { try { await rpc("nv_join", { p_chat: c.id }); loadChats(); this.open(id); } catch (e) { toast(errText(e)); } });
-        on("[data-share]", async () => { const t = c.handle ? "@" + c.handle : c.title; try { await navigator.clipboard.writeText(t); toast(tl("Скопировано") + ": " + t); } catch {} });
+        on("[data-join]", async () => { try { const r = await rpc("nv_join", { p_chat: c.id }); if (r === "requested") toast(tl("Заявка отправлена")); loadChats(); this.open(id); } catch (e) { toast(errText(e)); } });
+        on("[data-unreq]", async () => { try { await rpc("nv_unrequest", { p_chat: c.id }); this.open(id); } catch (e) { toast(errText(e)); } });
+        on("[data-share]", async () => { const t = c.handle ? SITE + c.handle : c.title; try { await navigator.clipboard.writeText(t); toast(tl("Скопировано") + ": " + t); } catch {} });
         on("[data-p]", () => Profile.open(c.author.id));
         on("[data-off]", async () => { try { await rpc("nv_admin_chat_official", { p_chat: c.id, p_on: !c.official }); this.open(id); } catch (e) { toast(errText(e)); } });
         on("[data-style]", () => this.style(c, () => this.open(id)));
@@ -1666,7 +1740,7 @@
       <div class="field"><label class="k">фон профиля</label><div class="sw-grid" data-ban>${banL.map(i => `<button class="ban b${i}${i === ban ? " on" : ""}${i > 11 ? " ex" : ""}" data-v="${i}"></button>`).join("")}</div></div>
       <div class="field"><label class="k">цвет ника</label><div class="sw-grid nk-grid" data-nick>${nickL.map(i => `<button class="${i === nick ? "on" : ""}${i > 12 ? " ex" : ""}" data-v="${i}"><span class="nk${i ? " n" + i : ""}">Aa</span></button>`).join("")}</div></div>
       <div class="field"><label class="k" for="p-t">надпись на фоне</label><input class="in mono" id="p-t" maxlength="24" autocomplete="off" placeholder="смайлики, ASCII или пара слов" value="${esc(btxt)}"><p class="note" style="margin:6px 0 0">Смайлики лягут мелким узором по всему фону, текст и ASCII будут крупно по центру.</p><div class="txp">${TXP.map(x => `<button type="button">${esc(x)}</button>`).join("")}</div></div>
-      ${(ME.clans || []).length > 1 ? `<div class="field"><label class="k">тег клана у ника</label><div class="seg" data-mc>${ME.clans.map(c => `<button type="button" data-v="${c.id}" class="${(ME.clan && ME.clan.id) === c.id ? "on" : ""}">[${esc(c.tag)}]</button>`).join("")}</div></div>` : ""}
+      ${(ME.clans || []).length ? `<div class="field"><label class="k">тег клана у ника</label><div class="seg" data-mc><button type="button" data-v="0" class="${ME.main_clan === 0 ? "on" : ""}">${tl("без тега")}</button>${ME.clans.map(c => `<button type="button" data-v="${c.id}" class="${ME.main_clan !== 0 && (ME.clan && ME.clan.id) === c.id ? "on" : ""}">[${esc(c.tag)}]</button>`).join("")}</div></div>` : ""}
       <div class="field"><label class="k" for="p-n">имя</label><input class="in" id="p-n" maxlength="40" placeholder="Как тебя показывать" value="${esc(ME.name || "")}"></div>
       <div class="field"><label class="k" for="p-u">юзернейм</label><div class="at"><span>@</span><input class="in" id="p-u" maxlength="20" autocomplete="off" placeholder="латиница, цифры, _" value="${esc(ME.username)}"></div></div>
       <div class="field"><label class="k" for="p-b">дата рождения</label><input class="in" id="p-b" type="date" min="1900-01-01" max="${new Date(Date.now() - 5 * 365.25 * 864e5).toISOString().slice(0, 10)}" value="${ME.birth || ""}"></div>
@@ -1676,7 +1750,7 @@
       <p class="note">Пароль, выход и шифрование теперь в ⚙ Настройки → Аккаунт и Конфиденциальность.</p></div>`;
     $("[data-done]", b).onclick = () => RENDER.me(w);
     const prevBan = $(".pv .ban", b), prev = $("[data-prev]", b);
-    let mclan = ME.clan ? ME.clan.id : null;
+    const mc0 = ME.main_clan === 0 ? 0 : ME.clan ? ME.clan.id : null; let mclan = mc0;
     $$("[data-mc] button", b).forEach(x => x.onclick = () => { mclan = +x.dataset.v; $$("[data-mc] button", b).forEach(y => y.classList.toggle("on", y === x)); });
     $$("[data-ban] button", b).forEach(x => x.onclick = () => { ban = +x.dataset.v; $$("[data-ban] button", b).forEach(y => y.classList.toggle("on", y === x)); prevBan.className = "ban b" + ban; });
     $$("[data-nick] button", b).forEach(x => x.onclick = () => { nick = +x.dataset.v; $$("[data-nick] button", b).forEach(y => y.classList.toggle("on", y === x)); prev.className = "nk" + (nick ? " n" + nick : ""); });
@@ -1704,7 +1778,7 @@
         await rpc("nv_set_profile", { p_name: n, p_username: u, p_birth: d });
         if (ban !== (+ME.banner || 0) || nick !== (+ME.nick || 0) || btxt !== (ME.ban_text || "")) await rpc("nv_set_style2", { p_banner: ban, p_nick: nick, p_text: btxt });
         if (t !== (ME.bio || "")) await rpc("sn_update_bio", { p_bio: t });
-        if (mclan && mclan !== (ME.clan && ME.clan.id)) { await rpc("nv_set_main_clan", { p_clan: mclan }); await refreshMe(); }
+        if (mclan != null && mclan !== mc0) { await rpc("nv_set_main_clan", { p_clan: mclan }); await refreshMe(); }
         Object.assign(ME, { name: n, username: u, birth: d, bio: t, banner: ban, nick, ban_text: btxt });
         toast("Сохранено"); RENDER.me(w);
       } catch (x) { toast(errText(x)); btn.disabled = false; }
@@ -1976,7 +2050,7 @@
       b.innerHTML = `<div class="cfg cfgl">
         <div class="cfgme" data-go="acc">${av(ME)}<div><b>${uname(ME)}</b><small class="mono">${handle(ME)}</small></div><span class="go">›</span></div>
         ${list(CFGP)}
-        <p class="note" style="text-align:center">Needle v7 · TAN — The Anonymous Network</p></div>`;
+        <p class="note" style="text-align:center">Needle v8 · TAN — The Anonymous Network</p></div>`;
       $$("[data-go]", b).forEach(x => x.onclick = () => RENDER.cfg(w, x.dataset.go));
       return;
     }
@@ -2157,6 +2231,7 @@
   document.addEventListener("visibilitychange", () => { if (!document.hidden && ME) { loadChats(); if (Chat.id) Chat.tick(); } });
 
   // ================= запуск =================
+  try { const g = new URLSearchParams(location.search).get("go"); if (g && /^\+?[A-Za-z0-9_]{3,40}$/.test(g)) sessionStorage.setItem("needle-go", g); } catch {}
   async function boot() {
     applyCfg();
     if (!sb) { $("#root").innerHTML = `<div class="empty" style="padding-top:30vh">Не загрузилась библиотека. Обнови страницу.</div>`; return; }
@@ -2171,6 +2246,7 @@
     desk();
     setTimeout(() => keyPrompt(E2E.locked), 900);
     setTimeout(cleanFiles, 5000);
+    try { const g = sessionStorage.getItem("needle-go"); if (g) { sessionStorage.removeItem("needle-go"); setTimeout(() => goLink(g), 600); } } catch {}
     if (ME.banned) toast("Аккаунт заблокирован: писать нельзя");
   }
   if (sb) sb.auth.onAuthStateChange((ev) => { if (ev === "PASSWORD_RECOVERY") authScreen("reset"); if (ev === "SIGNED_OUT" && ME) location.reload(); });
