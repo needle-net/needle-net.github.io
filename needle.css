@@ -490,3 +490,33 @@ a.dr-i,a.lnk{color:inherit;text-decoration:none}.dl-win{display:block;text-align
 .sw-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%) scale(.6);width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.28);color:#fff;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .15s}
 .sw-arrow .ic{width:18px;height:18px}
 @media (hover:none){.chat .msgs{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
+
+/* название рядом с ☰ */
+.lh .brand{font-weight:600;font-size:1.12em;letter-spacing:.01em;white-space:nowrap;padding:0 2px;flex:none}
+@media (max-width:380px){.lh .brand{display:none}}
+/* служебный чат «Needle» */
+.av.svc{background:var(--acc);color:var(--acc-t)}.av.svc .ic{width:28px;height:28px}.av.svc.sm .ic{width:20px;height:20px}
+.svc-note{text-align:center;color:var(--sub);font-size:.85em;padding:10px;background:var(--panel);border-radius:var(--r)}
+.svc-m .bb{max-width:min(420px,86%)}
+.svc-m .tx p{margin:0 0 6px;line-height:1.4}.svc-m .tx p:last-of-type{margin-bottom:2px}
+.svc-m .sm-sub{color:var(--sub);font-size:.88em}
+.svc-m .btn{margin:4px 0 2px}
+.svc-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.spoil{font:inherit;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600;letter-spacing:.18em;background:var(--panel2);color:var(--sub);border:0;border-radius:6px;padding:1px 8px;cursor:pointer;filter:blur(.4px)}
+.spoil.open{filter:none;color:var(--text);background:var(--sel)}
+.spoil.dead{cursor:default;opacity:.6}
+.svc-m .ph.sq{display:block;width:180px;height:180px;object-fit:cover;border-radius:12px;margin:4px 0;cursor:zoom-in}
+.lnk-n{cursor:pointer}.lnk-n:hover{text-decoration:underline}
+/* профиль: кнопки как в Telegram */
+.pa-row{display:flex;gap:8px;padding:0 16px 16px}
+.pa-row button{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px 8px;border-radius:12px;background:var(--panel2);color:var(--text);font-size:.8em}
+.pa-row button:hover{background:var(--hover)}
+.pa-row button span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.pa-row .ic{width:22px;height:22px}
+.tabs2.sub{border-bottom:0;padding:6px 8px 0}
+/* карточка контакта в сообщении */
+.ccard{display:flex;align-items:center;gap:10px;min-width:200px;padding:4px 0;cursor:pointer}
+.ccard>.ic{width:38px;height:38px;padding:8px;border-radius:50%;background:var(--panel2);box-sizing:border-box;flex:none}
+.ccard>span:not(.lnk){display:flex;flex-direction:column;flex:1}.ccard small{color:var(--sub)}
+.ccard .lnk{font-weight:500;font-size:.9em}
+.ccard .lnk{display:inline;padding:0;margin:0}

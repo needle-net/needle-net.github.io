@@ -97,6 +97,9 @@
     text: svg('<path d="M5 6.5V5h14v1.5M12 5v14M9.5 19h5"/>'),
     calendar: svg('<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>'),
     id: svg('<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 15.5c.6-1.3 1.6-2 3-2s2.4.7 3 2M14.5 10h3M14.5 13.5h3"/>'),
+    book: svg('<path d="M6 3.5h11.5a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H6a1.5 1.5 0 0 1-1.5-1.5v-14A1.5 1.5 0 0 1 6 3.5z"/><circle cx="11.5" cy="10" r="2.4"/><path d="M7.8 16.2c.7-1.7 2.1-2.6 3.7-2.6s3 .9 3.7 2.6"/>'),
+    share: svg('<path d="M14 5l6 6-6 6M20 11H10a6 6 0 0 0-6 6v1"/>'),
+    needle: svg('<path d="M5 19L16.2 7.8"/><path d="M15 9l3.6-3.6a1.6 1.6 0 0 0-2.2-2.2L12.8 6.8"/><path d="M8 13c-3 1-4 3-2.5 4.5S10 18 11 15"/>'),
     verified: `<span class="vf" title="Подтверждён"><svg viewBox="0 0 24 24"><path class="vb" d="M12 2.5l2.3 1.8 2.9-.3 1 2.7 2.6 1.4-.6 2.8 1.3 2.6-2.2 1.9-.3 2.9-2.8.7-1.6 2.4-2.6-1.2-2.6 1.2-1.6-2.4-2.8-.7-.3-2.9-2.2-1.9 1.3-2.6-.6-2.8 2.6-1.4 1-2.7 2.9.3z"/><path class="vc" d="M8.3 12.2l2.5 2.5 4.9-5"/></svg></span>`,
   };
   const STAR = '<path class="thr" d="M30.5 13.5C20 13.5 8 18 6.5 23.5c-.5 2 .5 3.4 2 4.2" stroke-width="1.3"/><path class="ndl" fill="currentColor" stroke="none" fill-rule="evenodd" d="M12.6 37.6L26.4 6.2C27.3 4.1 29.2 3 30.6 3.6c1.4.6 1.5 2.6.4 4.7L13.2 37.8zM28.3 7.4c-.6 1.3-.7 2.5-.2 2.7.5.2 1.2-.7 1.8-2 .6-1.3.7-2.5.2-2.7-.5-.2-1.2.7-1.8 2z"/><path class="thr" d="M33.2 16.2c2.4 1.7 1.7 4.6-1.8 7.4-3.6 2.8-9.6 5-15.8 5.9" stroke-width="1.3"/>';
@@ -104,6 +107,7 @@
 
   // ================= ошибки по-русски =================
   const ERR = {
+    "write first": "Сначала напиши этому человеку", "already in": "Это устройство уже вошло. Выкинуть его можно в «Устройствах»", "no notice": "Сообщение не найдено", "self": "Это ты",
     "device not trusted": "Подтверди вход кодом", "code expired": "Код устарел, запроси новый", "too many tries": "Слишком много попыток, запроси новый код", "qr expired": "QR-код устарел, обнови его на том устройстве", "too many devices": "Слишком много устройств, отключи лишние в настройках", "no device": "Обнови страницу",
     "blocked": "Этот человек ограничил тебе сообщения", "dm closed": "Этот человек не принимает новые личные сообщения", "banned here": "Тебя забанили в этом чате", "comments off": "Комментарии выключены", "poll closed": "Опрос завершён",
     "no access": "Это закрытый чат: войти можно только по ссылке-приглашению", "no chat": "Ничего не нашлось по этой ссылке",
@@ -149,6 +153,8 @@
   // ================= оформление =================
   // программа для Windows: кнопка видна только в браузере на Windows (в самой программе её нет)
   const WIN_APP = "https://github.com/needle-net/needle-net.github.io/releases/latest/download/Needle-Setup.exe";
+  // название рядом с ☰: по языку браузера
+  const BRAND = (() => { const l = String(navigator.language || "").toLowerCase(); return /^uk/.test(l) ? "Голка" : /^(ru|be|kk)/.test(l) ? "Игла" : "Needle"; })();
   const SHOW_WIN_APP = /Windows NT/.test(navigator.userAgent) && !/Electron\//.test(navigator.userAgent);
   const CFG = Object.assign({ theme: "system", size: 16, sound: true, vol: 85, preview: true, enter: true }, store.get("needle2-cfg", {}));
   const saveCfg = () => { store.set("needle2-cfg", CFG); applyCfg(); };
@@ -235,15 +241,18 @@
   }
 
   // ================= аватарки и имена =================
-  const avUrl = p => p && p.avatar && /^[0-9a-f-]{36}\/[0-9]{10,14}\.webp$/.test(p.avatar) ? pub("avatars", p.avatar) : "";
+  let CONTACTS = new Map();   // id человека -> { name, photo }: своё имя и фото для контакта (видишь только ты)
+  const ct = p => p && p.id ? CONTACTS.get(p.id) : null;
+  const avUrl = p => { const c = ct(p); return c && c.photo && PATH_RE.test(c.photo) ? pub("nova", c.photo) : avUrl0(p); };
+  const avUrl0 = p => p && p.avatar && /^[0-9a-f-]{36}\/[0-9]{10,14}\.webp$/.test(p.avatar) ? pub("avatars", p.avatar) : "";
   const initials = s => { const w = String(s || "?").trim().split(/\s+/); return esc(((w[0] || "?")[0] + (w[1] ? w[1][0] : "")).toUpperCase()); };
   const shade = id => { let n = 0; for (const c of String(id || "")) n = (n * 31 + c.charCodeAt(0)) >>> 0; return n % 5; };
   function av(p, cls = "") {
     const u = avUrl(p);
-    return `<span class="av s${shade(p && p.id)} ${cls}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : initials(p && (p.name || p.username))}</span>`;
+    return `<span class="av s${shade(p && p.id)} ${cls}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : initials(p && ((ct(p) || {}).name || p.name || p.username))}</span>`;
   }
   const chatAv = (c, cls = "") => c.saved ? `<span class="av sv ${cls}">${I.saved}</span>` : c.kind === "dm" ? av(c.peer || {}, cls) : `<span class="av s${shade(c.id)} ${cls}">${initials(c.title)}</span>`;
-  const pname = p => p ? esc(p.name || p.username) : "Удалённый аккаунт";
+  const pname = p => p ? esc((ct(p) || {}).name || p.name || p.username) : "Удалённый аккаунт";
   const uname = p => p ? `<span class="nm">${pname(p)}</span>${p.verified || p.is_admin ? I.verified : ""}` : "Удалённый аккаунт";
   const chatTitle = c => c.saved ? "Избранное" : c.kind === "dm" ? (c.peer ? pname(c.peer) : "Удалённый аккаунт") : esc(c.title);
   const chatName = c => c.saved ? "Избранное" : c.kind === "dm" ? uname(c.peer) : `<span class="nm">${esc(c.title)}</span>${c.official ? I.verified : ""}`;
@@ -701,10 +710,10 @@
       $("#root").innerHTML = `<div class="app">
         <aside class="left"><div class="lstack">
           <section class="lp lmain">
-            <header class="lh"><button class="ib" data-menu aria-label="Меню">${I.menu}</button>
+            <header class="lh"><button class="ib" data-menu aria-label="Меню">${I.menu}</button><span class="brand">${BRAND}</span>
               <label class="srch">${I.search}<input type="search" placeholder="Поиск" maxlength="40" autocomplete="off"><button type="button" class="ib sm" data-sx hidden>${I.close}</button></label></header>
             <nav class="folders"></nav>
-            <div class="lbody"><div class="codes"></div><div class="list"><div class="spin"></div></div><div class="sres" hidden></div></div>
+            <div class="lbody"><div class="list"><div class="spin"></div></div><div class="sres" hidden></div></div>
             <button class="fab" data-new aria-label="Новое сообщение">${I.pen}</button>
           </section>
         </div></aside>
@@ -722,7 +731,7 @@
       Drawer.draw();
       Chats.load(true);
       rpc("nv_prefs_get").then(p => { if (p) { PREFS = Object.assign(PREFS, p); Chats.drawFolders(); Chats.draw(); } }).catch(() => {});
-      Codes.poll();
+      Notices.poll(); Contacts.load().then(() => { Chats.draw(); Drawer.draw(); });
       // «в сети»
       let act = Date.now(); ["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, () => { act = Date.now(); }, { passive: true }));
       const ping = () => { if (!document.hidden && Date.now() - act < 300000) rpc("nv_ping").catch(() => {}); };
@@ -750,14 +759,14 @@
     show(kind, node) {
       const r = $(".right"); if (!r) return;
       if (this.kind === "chat" && kind !== "chat") Chat.leave();
-      this.kind = kind; r.innerHTML = ""; r.append(node);
+      this.kind = kind; Notices.open = kind === "svc"; r.innerHTML = ""; r.append(node);
       const app = $(".app"); if (isPhone() && !app.classList.contains("r-open")) history.pushState({ r: 1 }, ""); app.classList.add("r-open");
       Side.close();
     },
     close(fromPop) {
       const app = $(".app"); if (!app) return;
       if (this.kind === "chat") Chat.leave();
-      this.kind = ""; app.classList.remove("r-open");
+      this.kind = ""; Notices.open = false; app.classList.remove("r-open");
       $(".right").innerHTML = `<div class="r-empty"><span class="pill">Выбери чат, чтобы начать общение</span></div>`;
       Side.close(); Chats.draw();
       if (isPhone() && !fromPop && history.state && history.state.r) history.back();
@@ -785,7 +794,7 @@
       d.innerHTML = `<div class="dr-h">${av(ME, "lg")}<button class="ib dr-theme" data-theme title="Ночной режим">${darkNow() ? I.sun : I.moon}</button>
           <div class="dr-n">${uname(ME)}</div><div class="dr-u">@${esc(ME.username)}</div></div>
         <div class="dr-l">
-          ${[["me", I.user, "Мой профиль"], ["feed", I.feed, "Лента"], ["saved", I.saved, "Избранное"], "-", ["group", I.users, "Создать группу"], ["channel", I.channel, "Создать канал"], ["people", I.search, "Найти людей и каналы"], "-", ["devices", I.devices, "Устройства"], ["settings", I.gear, "Настройки"]]
+          ${[["me", I.user, "Мой профиль"], ["feed", I.feed, "Лента"], ["saved", I.saved, "Избранное"], ["contacts", I.book, "Контакты"], "-", ["group", I.users, "Создать группу"], ["channel", I.channel, "Создать канал"], ["people", I.search, "Найти людей и каналы"], "-", ["devices", I.devices, "Устройства"], ["settings", I.gear, "Настройки"]]
             .map(x => x === "-" ? `<div class="sep"></div>` : `<button class="dr-i" data-go="${x[0]}">${x[1]}<span>${x[2]}</span></button>`).join("")}
           ${SHOW_WIN_APP ? `<a class="dr-i" href="${WIN_APP}" rel="noopener">${I.download || I.laptop}<span>Needle для Windows</span></a>` : ""}
           <div class="dr-i dr-night" data-night>${I.moon}<span>Ночной режим</span>${sw(darkNow())}</div>
@@ -797,6 +806,7 @@
       if (k === "me") Profile.open(ME.id);
       else if (k === "feed") Feed.open();
       else if (k === "saved") openSaved();
+      else if (k === "contacts") { L.clear(); Contacts.open(); }
       else if (k === "group" || k === "channel") createChat(k);
       else if (k === "people") { const i = $(".lmain .srch input"); L.clear(); i.focus(); toast("Начни вводить имя, @юзернейм или название"); }
       else if (k === "devices") { L.clear(); Settings.open(); Settings.devices(); }
@@ -806,19 +816,107 @@
     close() { const w = $(".drawer-wrap"); if (w) w.classList.remove("on"); },
   };
 
-  // ================= коды для входа (приходят сюда, как сообщение от Telegram) =================
-  const Codes = {
-    seen: new Set(), t: 0,
+  // ================= служебный чат «Needle»: коды входа, новые входы, предложенные фото (как уведомления Telegram) =================
+  const Notices = {
+    list: [], t: 0, open: false, key: "", revealed: new Map(),
+    seen: +store.get("needle-ntc-seen", -1), heard: +store.get("needle-ntc-heard", -1),
+    get unread() { return this.list.filter(n => n.id > this.seen).length; },
+    get last() { return this.list[this.list.length - 1] || null; },
+    preview(n) {
+      if (!n) return "";
+      if (n.kind === "code") return "Код для входа: •••••";
+      if (n.kind === "login") return "Вход с нового устройства: " + (n.device || "");
+      return (n.from ? (n.from.name || n.from.username) : "Кто-то") + " предлагает фото профиля";
+    },
+    markSeen() { const l = this.last; if (l && l.id > this.seen) { this.seen = l.id; store.set("needle-ntc-seen", l.id); setTitle(); } },
     async poll() {
       clearTimeout(this.t);
       try {
-        const list = await rpc("nv_dev_codes");
-        const box = $(".lmain .codes");
-        if (box) box.innerHTML = list.map(c => `<div class="code-note">${I.shield}<div><b>Код для входа: <span class="mono">${esc(c.code)}</span></b><small>${esc(c.device || "Новое устройство")} просит вход. Никому не сообщай этот код. Если это не ты, смени пароль.</small></div></div>`).join("");
-        for (const c of list) { const k = c.code + c.created_at; if (this.seen.has(k)) continue; this.seen.add(k); beep();
-          popup({ title: "Код для входа", html: `<div class="code-big mono">${esc(c.code)}</div><p class="pop-x"><b>${esc(c.device || "Новое устройство")}</b> просит вход в твой аккаунт. Введи этот код там. Никому его не сообщай, даже «поддержке». Если это не ты, сразу смени пароль в настройках.</p>`, buttons: [{ t: "Понятно", main: true }] }); }
+        const list = await rpc("nv_notices"), top = list.length ? list[list.length - 1].id : 0;
+        if (this.seen < 0) {   // первый запуск: старое считаем прочитанным, кроме кодов за последние 10 минут
+          const old = list.filter(n => !(n.kind === "code" && n.state === "active")).map(n => n.id);
+          this.seen = old.length ? Math.max(...old) : 0; store.set("needle-ntc-seen", this.seen);
+        }
+        if (this.heard < 0) this.heard = top;
+        const fresh = list.filter(n => n.id > this.heard);
+        this.list = list;
+        if (fresh.length) {
+          this.heard = top; store.set("needle-ntc-heard", top);
+          beep(); if (!this.open) toast("Needle: " + this.preview(fresh[fresh.length - 1]));
+        }
+        const key = JSON.stringify(list.map(n => [n.id, n.state]));
+        if (key !== this.key) { this.key = key; if (this.open) { this.markSeen(); NoticeChat.draw(); } Chats.draw(); setTitle(); }
       } catch {}
       this.t = setTimeout(() => this.poll(), document.hidden ? 15000 : 5000);
+    },
+  };
+  function setTitle() { const n = Chats.unread + Notices.unread; document.title = (n ? `(${n}) ` : "") + "Needle"; }
+  const NoticeChat = {
+    open() {
+      Search.close();
+      const node = h(`<section class="chat svc-chat"><header class="ch">${backBtn()}<div class="ch-t"><span class="av svc sm">${I.needle}</span><div class="ch-n"><b><span class="nm">Needle</span>${I.verified}</b><small>служебные уведомления</small></div></div><div class="ch-a"></div></header>
+        <div class="msgs-w"><div class="msgs"></div></div><div class="bottom"><div class="svc-note">Отвечать в этот чат нельзя. Needle никогда не просит твой код или пароль.</div></div></section>`);
+      R.show("svc", node); wireBack(node); Chats.draw();
+      this.draw(); Notices.markSeen(); Chats.draw();
+    },
+    draw() {
+      const box = $(".right .svc-chat .msgs"); if (!box) return;
+      const stick = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      let html = `<div class="intro">${I.needle}<b>Needle</b><span>Здесь приходят коды для входа и сообщения о новых входах в твой аккаунт.</span></div>`, day = "";
+      for (const n of Notices.list) {
+        const d = new Date(n.created_at).toDateString(); if (d !== day) { day = d; html += `<div class="day"><span>${dayLabel(n.created_at)}</span></div>`; }
+        html += this.bubble(n);
+      }
+      box.innerHTML = html;
+      $$("[data-code]", box).forEach(x => x.onclick = () => this.reveal(+x.dataset.code, x));
+      $$("[data-deny]", box).forEach(x => x.onclick = () => this.deny(+x.dataset.deny));
+      $$("[data-devs]", box).forEach(x => x.onclick = () => { L.clear(); Settings.open(); Settings.devices(); });
+      $$("[data-take]", box).forEach(x => x.onclick = () => this.take(Notices.list.find(n => n.id === +x.dataset.take), x));
+      $$("[data-skip]", box).forEach(x => x.onclick = async () => { try { await rpc("nv_notice_done", { p_id: +x.dataset.skip }); Notices.poll(); } catch (e) { toast(errText(e)); } });
+      $$("[data-p]", box).forEach(x => x.onclick = () => Profile.open(x.dataset.p));
+      $$("img.ph", box).forEach(im => im.onclick = () => lightbox(im.src));
+      if (stick || !box.dataset.done) { box.dataset.done = 1; box.scrollTop = box.scrollHeight; }
+    },
+    bubble(n) {
+      const t = `<span class="meta">${hm(n.created_at)}</span>`, dev = `<b>${esc(n.device || "Новое устройство")}</b>`;
+      let body = "";
+      if (n.kind === "code") {
+        const code = Notices.revealed.get(n.id), act = n.state === "active";
+        const st = { used: "Код использован: вход выполнен.", expired: "Код больше не действует.", denied: "Вход отклонён: ты нажал(а) «Это не я»." }[n.state] || "";
+        body = `<p><b>Код для входа:</b> ${act ? `<button class="spoil${code ? " open" : ""}" data-code="${n.id}">${code ? esc(code) : "•••••"}</button>` : `<span class="spoil dead">•••••</span>`}</p>
+          ${act && !code ? `<p class="sm-sub">Нажми на точки, чтобы увидеть код.</p>` : ""}
+          <p>Никому не сообщай этот код, даже если человек пишет от имени Needle. С ним можно войти в твой аккаунт.</p>
+          <p>Вход просит: ${dev}, ${hm(n.created_at)}.</p>
+          ${st ? `<p class="sm-sub">${st}</p>` : ""}
+          ${act ? `<p>Если это не ты, нажми «Это не я»: устройство не войдёт.</p><button class="btn ghost sm" data-deny="${n.id}">Это не я</button>` : ""}`;
+      } else if (n.kind === "login") {
+        body = `<p><b>Новый вход в аккаунт</b></p><p>Устройство: ${dev}, ${hm(n.created_at)}.</p>
+          ${n.state === "active" ? `<p>Если это не ты, открой «Устройства», выкинь его и смени пароль.</p><button class="btn ghost sm" data-devs>Устройства</button>` : `<p class="sm-sub">Это устройство уже вышло.</p>`}`;
+      } else {
+        const who = n.from ? `<b class="lnk-n" data-p="${n.from.id}">${pname(n.from)}</b>` : "Кто-то";
+        const img = n.photo && PATH_RE.test(n.photo) ? `<img class="ph sq" src="${esc(pub("nova", n.photo))}" alt="" loading="lazy">` : "";
+        body = `<p>${who} предлагает тебе фото профиля.</p>${img}
+          ${n.state === "active" ? `<div class="svc-btns"><button class="btn sm" data-take="${n.id}">Поставить себе</button><button class="btn ghost sm" data-skip="${n.id}">Не надо</button></div>` : `<p class="sm-sub">Готово.</p>`}`;
+      }
+      return `<div class="m in svc-m"><div class="bb"><div class="tx">${body.replace(/>\s+</g, "><").trim()}<i class="msp" style="width:42px"></i>${t}</div></div></div>`;
+    },
+    async reveal(id, el) {
+      const have = Notices.revealed.get(id);
+      if (have) return copy(have, "Код скопирован");
+      try { const c = await rpc("nv_notice_code", { p_id: id }); Notices.revealed.set(id, c); el.textContent = c; el.classList.add("open"); const s = el.closest(".tx").querySelector(".sm-sub"); if (s) s.textContent = "Нажми на код, чтобы скопировать."; }
+      catch (e) { toast(errText(e)); Notices.poll(); }
+    },
+    async deny(id) {
+      if (!(await confirmBox("Это не я", "Это устройство не сможет войти, его код перестанет работать. Если код просили не ты, смени пароль: значит, его кто-то знает.", "Не пускать"))) return;
+      try { await rpc("nv_notice_deny", { p_id: id }); toast("Вход отклонён"); Notices.poll(); } catch (e) { toast(errText(e)); }
+    },
+    async take(n, btn) {
+      if (!n) return; btn.disabled = true;
+      try {
+        const r = await fetch(pub("nova", n.photo)); if (!r.ok) throw new Error("bad photo");
+        const b = await r.blob(); await setAvatar(new File([b], "photo", { type: b.type || "image/webp" }));
+        await rpc("nv_notice_done", { p_id: n.id }); Notices.poll();
+      } catch (e) { btn.disabled = false; toast(errText(e)); }
     },
   };
 
@@ -848,7 +946,7 @@
         const before = this.unread;
         this.list = list; this.unread = list.reduce((s, c) => s + (c.id === Chat.id || c.muted ? 0 : +c.unread || 0), 0);
         if (this.unread > before && !first) beep();
-        document.title = (this.unread ? `(${this.unread}) ` : "") + "Needle";
+        setTitle();
         await this.draw();
       } catch (e) { if (/not signed in|device not trusted/.test(e.message || "")) return boot(); }
       this.timer = setTimeout(() => this.load(), document.hidden ? 15000 : 5000);
@@ -872,13 +970,18 @@
       const arch = this.list.filter(c => c.archived);
       const list = this.list.filter(c => this.inKind(c, this.kind));
       let html = "";
-      if (this.kind === "all" && arch.length) html += `<div class="row arch" data-arch><span class="av sv">${I.archive}</span><div class="rc"><div class="r1"><span class="rn">Архив</span></div><div class="r2"><span class="rp">${arch.slice(0, 4).map(c => esc(c.saved ? "Избранное" : c.kind === "dm" ? (c.peer && (c.peer.name || c.peer.username)) || "" : c.title || "")).join(", ")}</span>${arch.some(c => +c.unread) ? `<span class="bd mu">${arch.reduce((s, c) => s + (+c.unread || 0), 0)}</span>` : ""}</div></div></div>`;
+      if (this.kind === "all" && arch.length) html += `<div class="row arch" data-arch><span class="av sv">${I.archive}</span><div class="rc"><div class="r1"><span class="rn">Архив</span></div><div class="r2"><span class="rp">${arch.slice(0, 4).map(c => c.saved ? "Избранное" : c.kind === "dm" ? (c.peer ? pname(c.peer) : "") : esc(c.title || "")).join(", ")}</span>${arch.some(c => +c.unread) ? `<span class="bd mu">${arch.reduce((s, c) => s + (+c.unread || 0), 0)}</span>` : ""}</div></div></div>`;
+      const nl = Notices.last;
+      if (this.kind === "all" && nl) { const nu = Notices.unread;
+        html += `<div class="row svc${R.kind === "svc" ? " on" : ""}" data-svc><span class="av svc">${I.needle}</span><div class="rc"><div class="r1"><span class="rn"><span class="nm">Needle</span>${I.verified}</span><span class="rt">${fmtTime(nl.created_at)}</span></div>
+          <div class="r2"><span class="rp">${esc(Notices.preview(nl))}</span>${nu ? `<span class="bd">${nu}</span>` : `<span class="pin-s">${I.pin}</span>`}</div></div></div>`; }
       const rows = await Promise.all(list.map(c => this.row(c)));
       if (seq !== this.seq) return;
       html += rows.join("");
       if (!list.length) html += this.kind === "all" ? `<div class="l-empty"><b>Здесь пока пусто</b><span>Найди людей или каналы через поиск сверху или создай свою группу.</span><button class="btn" data-n>Новый чат</button></div>` : `<div class="l-empty"><span>${this.kind === "archive" ? "В архиве пусто" : "В этой папке пока нет чатов"}</span></div>`;
       box.innerHTML = html;
       const a = $("[data-arch]", box); if (a) a.onclick = () => this.setKind("archive");
+      const sv = $("[data-svc]", box); if (sv) sv.onclick = () => NoticeChat.open();
       const n = $("[data-n]", box); if (n) n.onclick = e => newMenu(e.currentTarget);
       $$(".row[data-c]", box).forEach(r => {
         const c = this.list.find(x => x.id === +r.dataset.c);
@@ -942,7 +1045,7 @@
       const s = $(".lmain .sres"), l = $(".lmain .list"); if (!s) return; const seq = ++this.seq;
       s.hidden = false; l.hidden = true;
       const lq = q.toLowerCase();
-      const local = Chats.list.filter(c => (c.saved ? "избранное" : c.kind === "dm" ? (c.peer ? (c.peer.name || "") + " " + c.peer.username : "") : c.title || "").toLowerCase().includes(lq));
+      const local = Chats.list.filter(c => (c.saved ? "избранное" : c.kind === "dm" ? (c.peer ? ((ct(c.peer) || {}).name || "") + " " + (c.peer.name || "") + " " + c.peer.username : "") : c.title || "").toLowerCase().includes(lq));
       s.innerHTML = (local.length ? `<div class="sec">Чаты</div>` + (await Promise.all(local.map(c => Chats.row(c)))).join("") : "") + `<div class="sec">Глобальный поиск</div><div class="glob"><div class="spin"></div></div>`;
       $$(".row[data-c]", s).forEach(r => r.onclick = () => Chat.open(+r.dataset.c));
       try {
@@ -1002,6 +1105,7 @@
   const RX = ["👍", "❤️", "🔥", "😂", "😮", "😢", "🙏", "👎"];
   const can = (c, r) => !!c && (ME.is_admin || c.owner || (c.rights || []).includes(r));
   const isAdm = c => !!c && (ME.is_admin || c.owner || c.role === "admin");
+  const CARD_RE = new RegExp("^" + SITE.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&") + "([a-z0-9_]{3,20})$", "i");
   const Chat = {
     id: 0, c: null, msgs: new Map(), last: 0, first: 0, timer: 0, burnT: new Map(), reply: null, editing: null, since: null, read: 0, typT: 0, sub: "",
     get box() { return $(".right .msgs"); },
@@ -1070,8 +1174,8 @@
       if (!(await confirmBox(c.kind === "channel" ? "Удалить канал" : "Удалить группу", "Все сообщения пропадут у всех участников. Вернуть будет нельзя."))) return;
       try { await rpc("nv_delete_chat", { p_chat: c.id }); R.close(); Chats.load(); toast("Удалено"); } catch (e) { toast(errText(e)); }
     },
-    async keyCode() {
-      const c = this.c, code = await E2E.code(E2E.pub, c.peer && c.peer.pubkey);
+    async keyCode(c = this.c) {
+      const code = await E2E.code(E2E.pub, c.peer && c.peer.pubkey);
       popup({ title: "Код шифрования", html: `<div class="code-big mono sm">${esc(code)}</div><p class="pop-x">Сверь этот код с собеседником лично или по звонку. Если он совпадает, никто не подменил ключи и переписку читаете только вы двое.</p>`, buttons: [{ t: "Закрыть", main: true }] });
     },
     // текст и файл сообщения (в личке всё лежит внутри шифра)
@@ -1102,7 +1206,9 @@
       const c = this.c, mine = m.mine, ch = c.kind === "channel", d = await this.decode(m);
       let body = m.iv && d.t == null ? (E2E.locked ? `<span class="muted unlock">${I.lock} Нажми, чтобы открыть переписку паролем</span>` : `<span class="muted">${I.lock} Сообщение для ключа с другого устройства</span>`) : esc(d.t || "");
       if (body && !m.iv) body = body.replace(/(^|[^a-z0-9_])@([a-z0-9_]{3,20})/gi, (x, a, n) => `${a}<span class="mn" data-mn="${n}">@${n}</span>`);
-      body = body.replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer nofollow">${u}</a>`);
+      const cc = d.t && !m.poll ? String(d.t).trim().match(CARD_RE) : null;
+      if (cc) body = `<span class="ccard" data-mn="${esc(cc[1])}">${I.user}<span><b>Контакт в Needle</b><small>@${esc(cc[1])}</small></span><span class="lnk">Открыть</span></span>`;
+      else body = body.replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer nofollow">${u}</a>`);
       const rd = m.rp ? await this.decode(m.rp) : null;
       const rq = m.rp ? `<div class="rq" data-rq="${m.rp.id}"><b>${m.rp.name ? esc(m.rp.name) : chatTitle(c)}</b><span>${esc(rd.t && rd.t.trim() ? rd.t.slice(0, 120) : rd.f ? "Файл: " + (rd.f.name || "") : m.rp.photo ? "Фото" : rd.t == null ? "Зашифрованное сообщение" : "Сообщение")}</span></div>` : "";
       const rx = m.rx ? `<div class="rx">${Object.entries(m.rx).sort((a, b) => b[1] - a[1]).map(([e, n]) => `<button class="${m.my === e ? "on" : ""}" data-rx="${e}">${e}<i>${n}</i></button>`).join("")}</div>` : "";
@@ -1409,7 +1515,7 @@
     // ---------- информация справа ----------
     info(tab) {
       const c = this.c; if (!c) return;
-      if (c.kind === "dm" && !c.saved && c.peer) return UserSide.open(c.peer.id, c, tab);
+      if (c.kind === "dm" && !c.saved && c.peer) return Profile.open(c.peer.id, c, tab === "media" ? "chat" : "");
       Side.open(c.saved ? "Избранное" : c.kind === "channel" ? "Информация о канале" : "Информация о группе", async (b, s) => {
         if (c.kind !== "dm" && can(c, "edit")) { $(".lh-a", s).innerHTML = `<button class="ib" aria-label="Изменить">${I.pen}</button>`; $(".lh-a button", s).onclick = () => this.editChat(); }
         b.innerHTML = `<div class="si-h">${chatAv(c, "xl")}<h3>${chatName(c)}</h3><small>${c.saved ? "Заметки для себя" : esc(members(c))}</small></div>
@@ -1557,36 +1663,6 @@
     },
   };
 
-  // ================= профиль человека справа (из личного чата) =================
-  const UserSide = {
-    async open(uid, c, tab) {
-      Side.open("Информация", async (b) => {
-        b.innerHTML = `<div class="spin"></div>`;
-        try {
-          const p = await rpc("nv_profile", { p_user: uid }); if (!p) throw new Error("no user");
-          const st = seenText(p.seen_at);
-          const lc = Chats.list.find(x => x.id === c.id) || c;
-          b.innerHTML = `<div class="si-h">${av(p, "xl")}<h3>${uname(p)}</h3><small class="${st === "в сети" ? "on" : ""}">${esc(st)}</small></div>
-            <div class="si-l">
-              ${p.bio ? `<div class="si-r">${I.info}<div><span class="pre">${esc(p.bio)}</span><small>О себе</small></div></div>` : ""}
-              <div class="si-r click" data-cp>${I.at}<div><span>@${esc(p.username)}</span><small>Юзернейм</small></div></div>
-              ${p.birth ? `<div class="si-r">${I.calendar}<div><span>${dateRu(p.birth)}</span><small>День рождения</small></div></div>` : ""}
-              <label class="si-r">${I.bell}<div><span>Уведомления</span><small>${lc.muted ? "Выключены" : "Включены"}</small></div>${sw(!lc.muted, "data-mute")}</label>
-            </div>
-            <div class="si-l"><button class="si-r click" data-prof>${I.user}<div><span>Открыть профиль</span></div></button>
-              <button class="si-r click" data-key>${I.key}<div><span>Код шифрования</span><small>Сверить ключи с собеседником</small></div></button>
-              <button class="si-r click danger" data-block>${I.block}<div><span>${p.blocked ? "Разблокировать" : "Заблокировать"}</span></div></button></div>
-            <div class="tabs2"><button class="on" data-t="m">Медиа</button><button data-t="f">Файлы</button></div><div class="mgal"><div class="spin"></div></div>`;
-          $("[data-cp]", b).onclick = () => copy("@" + p.username, "Юзернейм скопирован");
-          $("[data-prof]", b).onclick = () => Profile.open(p.id);
-          $("[data-key]", b).onclick = () => Chat.keyCode();
-          $("[data-mute]", b).parentElement.onclick = async e => { e.preventDefault(); await Chats.act(lc, lc.muted ? "unmute" : "mute"); $("[data-mute]", b).classList.toggle("on"); };
-          $("[data-block]", b).onclick = () => blockUser(p, () => this.open(uid, c));
-          Media.into(c, b, "m");
-        } catch (e) { b.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; }
-      });
-    },
-  };
   async function blockUser(p, done) {
     if (!p.blocked && !(await confirmBox("Заблокировать", `${p.name || p.username} не сможет писать тебе в личку и не увидит, когда ты в сети.`, "Заблокировать"))) return;
     try { await rpc("nv_block", { p_user: p.id, p_on: !p.blocked }); toast(p.blocked ? "Разблокирован(а)" : "Заблокирован(а)"); PREFS = Object.assign(PREFS, await rpc("nv_prefs_get")); done && done(); } catch (e) { toast(errText(e)); }
@@ -1636,9 +1712,13 @@
     ]);
   }
   const Profile = {
-    async open(uid) {
-      const node = h(`<section class="page prof"><header class="ch">${backBtn()}<div class="ch-t"><div class="ch-n"><b>Профиль</b></div></div><div class="ch-a"></div></header><div class="page-b"><div class="spin"></div></div></section>`);
-      R.show("profile", node); wireBack(node); Drawer.close();
+    async open(uid, chat, tab) {
+      // chat: личный чат с этим человеком (если открыли из чата: «Назад» вернёт в него)
+      const from = chat && chat.id;
+      chat = chat || Chats.list.find(c => c.kind === "dm" && !c.saved && c.peer && c.peer.id === uid) || null;
+      const node = h(`<section class="page prof"><header class="ch">${from ? `<button class="ib" data-rback aria-label="Назад">${I.back}</button>` : backBtn()}<div class="ch-t"><div class="ch-n"><b>Профиль</b></div></div><div class="ch-a"></div></header><div class="page-b"><div class="spin"></div></div></section>`);
+      R.show("profile", node); Drawer.close();
+      if (from) $("[data-rback]", node).onclick = () => Chat.open(from); else wireBack(node);
       const b = $(".page-b", node), mine = uid === ME.id;
       try {
         const p = await rpc("nv_profile", { p_user: uid }); if (!p) throw new Error("no user");
@@ -1647,22 +1727,38 @@
         $(".ch-n b", node).innerHTML = uname(p);
         const cu = coverUrl(p), cb = cu ? "" : coverBg(p.cover_color);
         const also = (p.usernames || []).filter(u => u !== p.username);
+        const cn = CONTACTS.get(p.id), lc = chat && (Chats.list.find(x => x.id === chat.id) || chat);
         b.innerHTML = `<div class="pw-wrap">
           <div class="vk-card"><div class="cover${cu || cb ? "" : " none"}"${cb ? ` style="background:${cb}"` : ""}>${cu ? `<img src="${esc(cu)}" alt="">` : ""}${mine ? `<button class="cover-btn" data-covm>${I.camera}<span>${cu || cb ? "Изменить фон" : "Добавить фон"}</span></button><input type="file" accept="image/*" hidden data-cov>` : ""}</div>
             <div class="vk-row"><div class="vk-av">${av(p, "xxl")}${mine ? `<label class="av-btn" title="Сменить фото">${I.camera}<input type="file" accept="image/*" hidden data-av></label>` : ""}</div>
               <div class="vk-main"><h1>${uname(p)}${premBadge(p)}</h1><div class="vk-st${st === "в сети" ? " on" : ""}">${esc(st)}</div>${p.bio ? `<div class="vk-bio">${esc(p.bio)}</div>` : ""}</div>
-              <div class="vk-btns">${mine ? `<button class="btn ghost" data-edit>Редактировать профиль</button>` : `${p.banned ? "" : `<button class="btn" data-dm>Написать сообщение</button>`}<button class="ib box" data-more aria-label="Ещё">${I.more}</button>`}</div></div>
-            <div class="vk-info"><span>${I.at}${esc(["@" + p.username, ...also.map(u => "@" + u)].join(", "))}</span>${p.birth ? `<span>${I.calendar}${dateRu(p.birth).replace(/ г\.$/, "")}</span>` : ""}<span>${I.id}ID ${p.num}</span><span>${I.star}в Needle с ${MONTHS[new Date(p.created_at).getMonth()]} ${new Date(p.created_at).getFullYear()}</span></div>
+              ${mine ? `<div class="vk-btns"><button class="btn ghost" data-edit>Редактировать профиль</button></div>` : ""}</div>
+            <div class="vk-info"><span>${I.at}${esc(["@" + p.username, ...also.map(u => "@" + u)].join(", "))}</span>${p.birth ? `<span>${I.calendar}${dateRu(p.birth).replace(/ г\.$/, "")}</span>` : ""}<span>${I.id}ID ${p.num}</span>${cn && cn.name ? `<span>${I.user}в Needle: ${esc(p.name || p.username)}</span>` : ""}${cn ? `<span>${I.book}в твоих контактах</span>` : ""}<span>${I.star}в Needle с ${MONTHS[new Date(p.created_at).getMonth()]} ${new Date(p.created_at).getFullYear()}</span></div>
             ${p.banned ? `<div class="vk-ban">Аккаунт заблокирован</div>` : ""}
+            ${mine ? "" : `<div class="pa-row">
+              ${p.banned ? "" : `<button data-pa="msg">${I.chats}<span>Сообщение</span></button>`}
+              ${lc ? `<button data-pa="mute">${lc.muted ? I.bell : I.mute}<span>${lc.muted ? "Со звуком" : "Без звука"}</span></button><button data-pa="find">${I.search}<span>Поиск</span></button><button data-pa="media">${I.photo}<span>Медиа</span></button>` : ""}
+              <button data-pa="more">${I.more}<span>Ещё</span></button></div>`}
           </div>
-          <div class="vk-card wall"><div class="tabs2"><button class="on" data-pt="posts">Записи</button><button data-pt="media">Фото</button></div>
+          <div class="vk-card wall"><div class="tabs2"><button class="on" data-pt="posts">Записи</button><button data-pt="media">Фото</button>${lc ? `<button data-pt="chat">Медиа и файлы</button>` : ""}</div>
             ${mine ? `<div class="np-mini" data-np>${av(ME, "sm")}<span>Что у вас нового?</span>${I.photo}</div>` : ""}<div class="posts"><div class="spin"></div></div></div></div>`;
         const on = (s, f) => { const x = $(s, b); if (x) x.onclick = f; };
-        on("[data-dm]", () => openDm(p.id));
+        const reopen = () => this.open(uid, from ? chat : null);
+        on("[data-pa=msg]", () => lc ? Chat.open(lc.id) : openDm(p.id));
+        on("[data-pa=mute]", async () => { await Chats.act(lc, lc.muted ? "unmute" : "mute"); await Chats.load(); reopen(); });
+        on("[data-pa=find]", async () => { await Chat.open(lc.id); Chat.search(); });
+        on("[data-pa=media]", () => { draw("chat"); $(".wall", b).scrollIntoView({ behavior: "smooth", block: "start" }); });
         on("[data-edit]", () => { L.clear(); Settings.open(); Settings.account(); });
         on("[data-np]", () => Feed.compose(() => this.open(uid)));
-        on("[data-more]", e => menuAt(e.currentTarget, [
+        on("[data-pa=more]", e => menuAt(e.currentTarget, [
+          cn ? { i: I.pen, t: "Переименовать", f: () => Contacts.rename(p, reopen) } : { i: I.book, t: "Добавить в контакты", f: () => Contacts.rename(p, reopen, true) },
+          { i: I.camera, t: "Поставить своё фото", f: () => Contacts.photo(p, reopen) },
+          cn && cn.photo ? { i: I.close, t: "Убрать своё фото", f: () => Contacts.photo(p, reopen, true) } : null,
+          lc ? { i: I.photo, t: "Предложить фото", f: () => Contacts.suggest(p) } : null,
+          { i: I.share, t: "Поделиться контактом", f: () => Contacts.share(p) },
           { i: I.link, t: "Скопировать ссылку", f: () => copy(SITE + p.username, "Ссылка скопирована") },
+          lc ? { i: I.key, t: "Код шифрования", f: () => Chat.keyCode(lc) } : null,
+          cn ? { i: I.trash, t: "Удалить из контактов", danger: true, f: () => Contacts.remove(p, reopen) } : null,
           { i: I.block, t: p.blocked ? "Разблокировать" : "Заблокировать", danger: !p.blocked, f: () => blockUser(p, () => this.open(uid)) },
           ME.is_admin && !p.is_admin ? { i: I.admin, t: p.banned ? "Разбанить в Needle" : "Забанить в Needle", danger: !p.banned, f: async () => { if (!(await confirmBox(p.banned ? "Разбанить" : "Забанить", `@${p.username}`, p.banned ? "Разбанить" : "Забанить"))) return; try { await rpc("sn_set_ban", { p_username: p.username, p_ban: !p.banned }); this.open(uid); } catch (x) { toast(errText(x)); } } } : null,
         ]));
@@ -1671,14 +1767,75 @@
         const posts = await rpc("nv_feed", { p_user: p.id }).catch(() => []);
         const box = $(".posts", b);
         const draw = k => {
-          $$(".wall .tabs2 button", b).forEach(x => x.classList.toggle("on", x.dataset.pt === k));
+          $$(".wall [data-pt]", b).forEach(x => x.classList.toggle("on", x.dataset.pt === k));
           box.innerHTML = ""; box.className = "posts" + (k === "media" ? " pgrid" : "");
+          if (k === "chat") { box.innerHTML = `<div class="tabs2 sub"><button class="on" data-t="m">Медиа</button><button data-t="f">Файлы</button></div><div class="mgal"><div class="spin"></div></div>`; return Media.into(lc, box, "m"); }
           if (k === "media") { const ph = posts.flatMap(x => (x.photos || []).filter(u => PATH_RE.test(u))); box.innerHTML = ph.length ? ph.map(u => `<img src="${esc(pub("nova", u))}" alt="" loading="lazy">`).join("") : `<div class="l-empty"><span>Фото пока нет</span></div>`; $$("img", box).forEach(im => im.onclick = () => lightbox(im.src)); }
           else { if (!posts.length) box.innerHTML = `<div class="l-empty"><span>${mine ? "Здесь будут твои записи" : "Записей пока нет"}</span></div>`; posts.forEach(x => box.append(Feed.post(x))); }
         };
-        $$(".wall .tabs2 button", b).forEach(x => x.onclick = () => draw(x.dataset.pt));
-        draw("posts");
+        $$(".wall [data-pt]", b).forEach(x => x.onclick = () => draw(x.dataset.pt));
+        draw(tab === "chat" && lc ? "chat" : "posts");
       } catch (e) { b.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; }
+    },
+  };
+  // ================= контакты: своё имя и фото для человека (видишь только ты) =================
+  const pickImage = () => new Promise(res => { const i = h(`<input type="file" accept="image/*" hidden>`); i.onchange = () => { res(i.files[0] || null); i.remove(); }; document.body.append(i); i.click(); });
+  const Contacts = {
+    list: [],
+    async load() {
+      try { this.list = await rpc("nv_contacts"); CONTACTS = new Map(this.list.filter(x => x.user).map(x => [x.user.id, { name: x.name, photo: x.photo }])); } catch {}
+    },
+    async changed(after) { await this.load(); Chats.draw(); if (R.kind === "chat" && Chat.c) Chat.head(); after && after(); },
+    async rename(p, after, add) {
+      const cur = (CONTACTS.get(p.id) || {}).name || "";
+      const v = await popup({ title: add ? "Добавить в контакты" : "Переименовать", html: `<div class="pop-f">${field("n", "Имя (видишь только ты)", 'maxlength="40"', cur || p.name || p.username)}<p class="hint">Оставь пустым, чтобы было имя, которое человек выбрал сам.</p></div>`,
+        buttons: [{ t: "Отмена", v: null }, { t: add ? "Добавить" : "Сохранить", main: true, click: card => ({ n: $("[name=n]", card).value.trim() }) }] });
+      if (!v) return;
+      try { await rpc("nv_contact_set", { p_user: p.id, p_name: v.n === (p.name || p.username) ? "" : v.n }); toast(add ? "Добавлено в контакты" : "Сохранено"); await this.changed(after); } catch (e) { toast(errText(e)); }
+    },
+    async photo(p, after, clear) {
+      const old = (CONTACTS.get(p.id) || {}).photo;
+      try {
+        let path = null;
+        if (!clear) { const f = await pickImage(); if (!f) return; toast("Загружаю фото…"); const im = await makeImage(f, 320, true); path = await upload("nova", im.blob, im.ext, im.type); }
+        await rpc("nv_contact_photo", { p_user: p.id, p_path: path });
+        if (old) sb.storage.from("nova").remove([old]).catch(() => {});
+        toast(clear ? "Фото убрано" : "Это фото видишь только ты"); await this.changed(after);
+      } catch (e) { toast(errText(e)); }
+    },
+    async suggest(p) {
+      try {
+        const f = await pickImage(); if (!f) return; toast("Загружаю фото…");
+        const im = await makeImage(f, 320, true), path = await upload("nova", im.blob, im.ext, im.type);
+        await rpc("nv_suggest_photo", { p_user: p.id, p_path: path }); toast(`Фото предложено. ${p.name || p.username} увидит его в чате «Needle»`);
+      } catch (e) { toast(errText(e)); }
+    },
+    async remove(p, after) {
+      if (!(await confirmBox("Удалить из контактов", "Твоё имя и фото для этого человека пропадут.", "Удалить"))) return;
+      const old = (CONTACTS.get(p.id) || {}).photo;
+      try { await rpc("nv_contact_del", { p_user: p.id }); if (old) sb.storage.from("nova").remove([old]).catch(() => {}); toast("Удалено из контактов"); await this.changed(after); } catch (e) { toast(errText(e)); }
+    },
+    share(p) {
+      const list = Chats.list.filter(c => (c.kind !== "channel" || can(c, "post")) && !(c.kind === "dm" && c.peer && c.peer.id === p.id));
+      popup({ title: "Поделиться контактом", cls: "tall", html: `<div class="plist">${list.map(c => `<div class="row sm" data-c="${c.id}">${chatAv(c, "sm")}<div class="rc"><div class="r1"><span class="rn">${chatName(c)}</span></div></div></div>`).join("") || `<p class="pop-x">Чатов пока нет</p>`}</div>`, buttons: [{ t: "Отмена" }],
+        onMount: (card, done) => $$("[data-c]", card).forEach(r => r.onclick = async () => {
+          const c = list.find(x => x.id === +r.dataset.c), t = SITE + p.username; done();
+          try {
+            let args = { p_chat: c.id, p_body: t };
+            if (c.kind === "dm") { const key = c.saved ? E2E.pub : c.peer && c.peer.pubkey; if (!key) throw new Error("no key"); args = Object.assign({ p_chat: c.id }, await E2E.enc(t, key)); }
+            await rpc("nv_send", args); toast("Контакт отправлен"); Chats.load();
+          } catch (e) { toast(errText(e)); }
+        }) });
+    },
+    open() {
+      L.push("Контакты", async body => {
+        body.innerHTML = `<div class="spin"></div>`;
+        await this.load();
+        const xs = this.list.filter(x => x.user).sort((a, b) => (a.name || a.user.name || a.user.username).localeCompare(b.name || b.user.name || b.user.username, "ru"));
+        body.innerHTML = xs.length ? xs.map(x => `<div class="row" data-u="${x.user.id}">${av(x.user)}<div class="rc"><div class="r1"><span class="rn">${uname(x.user)}</span></div><div class="r2"><span class="rp">@${esc(x.user.username)}</span></div></div></div>`).join("")
+          : `<div class="l-empty"><b>Контактов пока нет</b><span>Открой профиль человека, нажми «Ещё» и выбери «Добавить в контакты». Там же можно дать ему своё имя и фото.</span></div>`;
+        $$("[data-u]", body).forEach(r => r.onclick = () => Profile.open(r.dataset.u));
+      });
     },
   };
   async function setAvatar(f) {
