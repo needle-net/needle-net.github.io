@@ -148,7 +148,7 @@
 
   // ================= оформление =================
   // программа для Windows: кнопка видна только в браузере на Windows (в самой программе её нет)
-  const WIN_APP = "/download/Needle-portable.exe";
+  const WIN_APP = "https://github.com/needle-net/needle-net.github.io/releases/latest/download/Needle-Setup.exe";
   const SHOW_WIN_APP = /Windows NT/.test(navigator.userAgent) && !/Electron\//.test(navigator.userAgent);
   const CFG = Object.assign({ theme: "system", size: 16, sound: true, vol: 85, preview: true, enter: true }, store.get("needle2-cfg", {}));
   const saveCfg = () => { store.set("needle2-cfg", CFG); applyCfg(); };
@@ -269,13 +269,13 @@
       const vol = Math.max(0, Math.min(100, CFG.vol ?? 85)) / 100; if (!vol) return;
       const out = AC.createDynamicsCompressor(); out.connect(AC.destination);
       const t0 = AC.currentTime;
-      [[988, 0], [1319, .12]].forEach(([f, d]) => {
-        [1, 2].forEach(k => {
-          const o = AC.createOscillator(), g = AC.createGain(); o.type = k === 1 ? "triangle" : "sine"; o.frequency.value = f * k;
-          const peak = vol * (k === 1 ? .9 : .25);
-          g.gain.setValueAtTime(.0001, t0 + d); g.gain.exponentialRampToValueAtTime(peak, t0 + d + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + d + .45);
-          o.connect(g).connect(out); o.start(t0 + d); o.stop(t0 + d + .5);
-        });
+      // мягкий короткий «тук-тук», как капля: тон быстро уходит вниз, без звона
+      [[880, 0, 1], [660, .085, .7]].forEach(([f, d, k]) => {
+        const o = AC.createOscillator(), g = AC.createGain(), lp = AC.createBiquadFilter();
+        o.type = "sine"; lp.type = "lowpass"; lp.frequency.value = 2200;
+        o.frequency.setValueAtTime(f * 1.6, t0 + d); o.frequency.exponentialRampToValueAtTime(f, t0 + d + .035);
+        g.gain.setValueAtTime(.0001, t0 + d); g.gain.exponentialRampToValueAtTime(vol * k, t0 + d + .006); g.gain.exponentialRampToValueAtTime(.0001, t0 + d + .13);
+        o.connect(lp).connect(g).connect(out); o.start(t0 + d); o.stop(t0 + d + .16);
       });
     } catch {}
   }

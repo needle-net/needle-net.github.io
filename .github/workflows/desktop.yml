@@ -1,0 +1,44 @@
+# Сборка программы Needle для Windows на настоящем Windows и выкладка в Releases.
+# Запускается сама, когда меняется папка desktop/, или вручную (Actions → Needle для Windows → Run workflow).
+name: Needle для Windows
+on:
+  push:
+    branches: [main]
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: desktop
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            desktop
+            .github
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --no-audit --no-fund
+      - run: npx electron-builder --win --publish never
+      - name: SHA-256
+        shell: pwsh
+        run: Get-FileHash dist\Needle-Setup.exe, dist\*.zip -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" } | Tee-Object dist\SHA256.txt
+      - name: Выложить в Releases
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $v = (Get-Content package.json | ConvertFrom-Json).version
+          $tag = "desktop-v$v"
+          Copy-Item (Get-ChildItem dist\*.zip | Select-Object -First 1).FullName dist\Needle-Windows.zip
+          gh release view $tag 2>$null
+          if ($LASTEXITCODE -ne 0) { gh release create $tag --title "Needle для Windows $v" --notes "Скачай Needle-Setup.exe и запусти. Без установки: Needle-Windows.zip, распакуй и открой Needle.exe. Программа без платной подписи: если Windows покажет «Windows защитила компьютер», нажми «Подробнее» → «Выполнить в любом случае». Проверка файлов: SHA256.txt." --latest }
+          gh release upload $tag dist\Needle-Setup.exe dist\Needle-Windows.zip dist\SHA256.txt --clobber

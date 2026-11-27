@@ -1,0 +1,73 @@
+{
+  "name": "needle-desktop",
+  "productName": "Needle",
+  "version": "1.0.1",
+  "description": "Needle для Windows",
+  "author": "Needle",
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "scripts": {
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.11.6",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "io.github.needle-net.desktop",
+    "productName": "Needle",
+    "files": [
+      "main.js",
+      "icon.png",
+      "package.json"
+    ],
+    "asar": true,
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
+    "win": {
+      "icon": "icon.ico",
+      "artifactName": "Needle-${version}.${ext}",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Needle-portable.exe"
+    },
+    "nsis": {
+      "artifactName": "Needle-Setup.exe",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Needle",
+      "installerIcon": "icon.ico",
+      "uninstallerIcon": "icon.ico",
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
+    },
+    "electronLanguages": [
+      "ru",
+      "en-US",
+      "uk"
+    ],
+    "compression": "maximum"
+  }
+}
