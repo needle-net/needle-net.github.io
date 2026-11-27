@@ -1,26 +1,26 @@
 <!doctype html>
-<html lang="ru" data-theme="dark">
+<html lang="ru" data-theme="light">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://knzhaqttibsiyczpfveb.supabase.co https://cdn.jsdelivr.net; media-src blob: https://knzhaqttibsiyczpfveb.supabase.co; connect-src https://knzhaqttibsiyczpfveb.supabase.co wss://knzhaqttibsiyczpfveb.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://knzhaqttibsiyczpfveb.supabase.co; media-src blob: https://knzhaqttibsiyczpfveb.supabase.co; connect-src https://knzhaqttibsiyczpfveb.supabase.co wss://knzhaqttibsiyczpfveb.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
 <meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#000000">
-<meta name="description" content="Needle (TAN · The Anonymous Network) — мессенджер, где ничего не остаётся. Шифрование, сгорающие сообщения, без номера телефона.">
+<meta name="theme-color" content="#fafafa">
+<meta name="description" content="Needle — мессенджер без номера телефона. Личные сообщения шифруются, вход подтверждается кодом.">
 <title>Needle</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600&family=Unbounded:wght@600;700&family=Space+Grotesk:wght@300;400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="needle.css?v=10">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Roboto+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="needle.css?v=20">
 </head>
 <body>
-<pre id="bg" aria-hidden="true"></pre>
-<style id="user-css"></style>
-<div id="root"></div>
+<div id="root"><div class="spin" style="margin-top:40vh"></div></div>
 <div id="toasts" aria-live="polite"></div>
-<noscript><p style="padding:40px;font-family:sans-serif;color:#fff">Для Needle нужен включённый JavaScript.</p></noscript>
+<noscript><p style="padding:40px;font-family:sans-serif">Для Needle нужен включённый JavaScript.</p></noscript>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js" crossorigin="anonymous" integrity="sha384-0w2KAL2YHP6wKOkUDzkCDGgVvfmHnj02DHeQ6XcHOgTfFsGyonKOpShMH1x6nk9o"></script>
-<script src="needle.js?v=10"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js" crossorigin="anonymous" integrity="sha384-8FWZA6BGMXhsfO+BLtrJK0We6gg5o1JyO8xQm6peWDEUs17ACA5ziE/NIAkl9z2k"></script>
+<script src="needle.js?v=20"></script>
 </body>
 </html>

@@ -1,740 +1,260 @@
 /*!
- * Needle (TAN · The Anonymous Network) — мессенджер, где ничего не остаётся.
- * © 2026 Needle / TAN (toner). Все права защищены. Копирование и использование кода без разрешения запрещено.
- *
- * Секретов тут нет: только публичный ключ Supabase. Все права проверяет база
- * (функции nv_*), сайт их обойти не может. Личные сообщения шифруются прямо
- * в браузере (ECDH P-256 + AES-GCM). Копия ключа хранится на сервере закрытой паролем входа.
+ * Needle — мессенджер. © 2026 Needle (toner). Все права защищены.
+ * Секретов тут нет: только публичный ключ Supabase. Все права проверяет база (функции nv_*).
+ * Личные сообщения шифруются прямо в браузере (ECDH P-256 + AES-GCM).
  */
 (() => {
   "use strict";
   const API = "https://knzhaqttibsiyczpfveb.supabase.co";
   const KEY = "sb_publishable_N59Y2_KXDcB9xbmVXrjHMA_Yn3yG_qZ";
-  const SITE = location.origin + location.pathname;
+  const SITE = location.origin + "/";
 
   // ================= мелочи =================
   const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const h = html => { const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content.firstElementChild; };
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-  const svg = p => `<svg viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
-  const STAR = '<path class="thr" d="M30.5 13.5C20 13.5 8 18 6.5 23.5c-.5 2 .5 3.4 2 4.2" stroke-width="1.3"/><path class="ndl" fill="currentColor" stroke="none" fill-rule="evenodd" d="M12.6 37.6L26.4 6.2C27.3 4.1 29.2 3 30.6 3.6c1.4.6 1.5 2.6.4 4.7L13.2 37.8zM28.3 7.4c-.6 1.3-.7 2.5-.2 2.7.5.2 1.2-.7 1.8-2 .6-1.3.7-2.5.2-2.7-.5-.2-1.2.7-1.8 2z"/><path class="thr" d="M33.2 16.2c2.4 1.7 1.7 4.6-1.8 7.4-3.6 2.8-9.6 5-15.8 5.9" stroke-width="1.3"/>';
-  const LOGO = (big) => `<div class="logo${big ? " big" : ""}"><svg viewBox="0 0 40 40">${STAR}</svg><b class="wm">${BRAND()}</b><i>TAN</i></div>`;
-  const BRAND = () => LANG === "en" ? "Needle" : LANG === "uk" ? "Голка" : "Игла";
-  const I = {
-    chats: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.8A8 8 0 1 1 21 12z"/>'),
-    feed: svg('<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
-    find: svg('<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>'),
-    spark: svg('<path d="M5 20L17 5.5"/><path d="M16.5 4.8l1.6-1.3" stroke-width="2.6"/><path d="M18 5c3 3-2 7-9 8.5S2.5 13 5 10.5"/>'),
-    me: svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/>'),
-    cfg: svg('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.9 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.9-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3 15.1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
-    x: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
-    at: svg('<circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-4 8"/>'),
-    pen: svg('<path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/>'),
-    back: svg('<path d="M15 18l-6-6 6-6"/>'),
-    plus: svg('<path d="M12 5v14M5 12h14"/>'),
-    send: svg('<path d="M5 12h14M13 6l6 6-6 6"/>'),
-    img: svg('<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M21 16l-5-5-9 9"/>'),
-    vid: svg('<rect x="3" y="5" width="13" height="14" rx="2"/><path d="M16 10l5-3v10l-5-3"/>'),
-    fire: svg('<path d="M12 3c1 4 5 6 5 11a5 5 0 0 1-10 0c0-3 2-4 3-6 0 2 1 3 2 3-.5-3 .5-5 0-8z"/>'),
-    info: svg('<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/>'),
-    heart: svg('<path d="M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.5-7 10-7 10z"/>'),
-    cmt: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.8A8 8 0 1 1 21 12z"/>'),
-    trash: svg('<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>'),
-    mask: svg('<path d="M3 9c3-2 6-2 9 0 3-2 6-2 9 0-.5 5-3 8-6 8-1.5 0-2-1.5-3-1.5S10.5 17 9 17c-3 0-5.5-3-6-8z"/><circle cx="8" cy="11" r="1.2"/><circle cx="16" cy="11" r="1.2"/>'),
-    lock: svg('<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>'),
-    clan: svg('<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
-    clip: svg('<path d="M20 11.5l-8.3 8.3a5 5 0 0 1-7-7l8.6-8.6a3.3 3.3 0 0 1 4.7 4.7l-8.6 8.6a1.7 1.7 0 0 1-2.4-2.4l8-8"/>'),
-    file: svg('<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/>'),
-    palette: svg('<path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5c0-4-4-7.2-9-7.2z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>'),
-    globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.8 5.7 3.8 9s-1.3 6.3-3.8 9c-2.5-2.7-3.8-5.7-3.8-9S9.5 5.7 12 3z"/>'),
-    menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
-    bell: svg('<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
-    crown: svg('<path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/>'),
-    check: '<span class="vf" title="Подтверждён">' + svg('<path d="M12 2l2.4 2.1 3.1-.4.9 3 2.8 1.5-1 3 1 3-2.8 1.5-.9 3-3.1-.4L12 22l-2.4-2.1-3.1.4-.9-3L2.8 15.8l1-3-1-3 2.8-1.5.9-3 3.1.4z"/><path d="M8 12l3 3 5-6" stroke="var(--inv)" stroke-width="2" fill="none"/>') + "</span>",
-  };
-  const fmtTime = d => { d = new Date(d); const n = new Date(); return d.toDateString() === n.toDateString() ? d.toLocaleTimeString(LOC(), { hour: "2-digit", minute: "2-digit" }) : d.toLocaleDateString(LOC(), { day: "2-digit", month: "2-digit" }); };
-  const hm = d => new Date(d).toLocaleTimeString(LOC(), { hour: "2-digit", minute: "2-digit" });
-  const ago = d => { const s = (Date.now() - new Date(d)) / 1000; if (s < 60) return tl("только что"); if (s < 3600) return Math.floor(s / 60) + " " + tl("мин"); if (s < 86400) return Math.floor(s / 3600) + " " + tl("ч"); return new Date(d).toLocaleDateString(LOC(), { day: "numeric", month: "short" }); };
-  const toast = t => { const el = h(`<div class="toast">${esc(t)}</div>`); $("#toasts").append(el); setTimeout(() => el.remove(), 3300); };
+  const tl = s => s;
   const b64u = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   const unb64u = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((s.length + 3) % 4)), c => c.charCodeAt(0));
-  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} } };
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }, del(k) { try { localStorage.removeItem(k); } catch {} } };
+  const isPhone = () => matchMedia("(max-width: 760px)").matches;
+  const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const d = n % 10; return n > 10 && n < 20 ? c : d > 1 && d < 5 ? b : d === 1 ? a : c; };
+  const fmtN = n => n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M" : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K" : String(n);
+  const hm = d => new Date(d).toLocaleTimeString("ru", { hour: "2-digit", minute: "2-digit" });
+  const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+  const fmtTime = d => { d = new Date(d); const n = new Date(); if (d.toDateString() === n.toDateString()) return hm(d); if (n - d < 6 * 864e5) return d.toLocaleDateString("ru", { weekday: "short" }); return d.toLocaleDateString("ru", { day: "2-digit", month: "2-digit", year: d.getFullYear() === n.getFullYear() ? undefined : "2-digit" }); };
+  const dayLabel = d => { d = new Date(d); const n = new Date(), y = new Date(Date.now() - 864e5); if (d.toDateString() === n.toDateString()) return "Сегодня"; if (d.toDateString() === y.toDateString()) return "Вчера"; return d.toLocaleDateString("ru", { day: "numeric", month: "long", year: d.getFullYear() === n.getFullYear() ? undefined : "numeric" }); };
+  const ago = d => { const s = (Date.now() - new Date(d)) / 1000; if (s < 60) return "только что"; if (s < 3600) return Math.floor(s / 60) + " мин назад"; if (s < 86400) return Math.floor(s / 3600) + " ч назад"; return new Date(d).toLocaleDateString("ru", { day: "numeric", month: "long" }); };
+  const dateRu = d => new Date(d).toLocaleDateString("ru", { day: "numeric", month: "long", year: "numeric" });
+  const debounce = (f, ms) => { let t = 0; return (...a) => { clearTimeout(t); t = setTimeout(() => f(...a), ms); }; };
+  const copy = async (t, msg = "Скопировано") => { try { await navigator.clipboard.writeText(t); toast(msg); } catch { toast(t); } };
 
+  // ================= иконки (свои, тонкие линии) =================
+  const svg = (p, cls = "") => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${p}</svg>`;
+  const I = {
+    menu: svg('<path d="M4 6.5h16M4 12h16M4 17.5h16"/>'),
+    back: svg('<path d="M19 12H5.5M11 5.5L4.5 12l6.5 6.5"/>'),
+    close: svg('<path d="M6 6l12 12M18 6L6 18"/>'),
+    search: svg('<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L20 20"/>'),
+    more: svg('<circle cx="12" cy="5.5" r="1.3" class="f"/><circle cx="12" cy="12" r="1.3" class="f"/><circle cx="12" cy="18.5" r="1.3" class="f"/>'),
+    pen: svg('<path d="M4.5 19.5l1-4L15.8 5.2a2 2 0 0 1 2.9 0l.1.1a2 2 0 0 1 0 2.9L8.5 18.5z"/><path d="M14 7l3 3"/>'),
+    send: svg('<path d="M4 11.6L19.6 4.5c.5-.2 1 .3.8.8L13.3 20.9c-.2.5-1 .5-1.1-.1L10.6 13.4 3.3 11.9c-.6-.1-.6-.9-.1-1.1z"/><path d="M10.6 13.4l4.2-4.2"/>'),
+    clip: svg('<path d="M19.5 11.5l-7.6 7.6a4.8 4.8 0 0 1-6.8-6.8l8-8a3.2 3.2 0 0 1 4.5 4.5l-8 8a1.6 1.6 0 0 1-2.3-2.3l7.3-7.3"/>'),
+    photo: svg('<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 15.5l-4.5-4.5-8.5 8.5"/>'),
+    file: svg('<path d="M13.5 3.5H7a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9z"/><path d="M13.5 3.5V9H19"/>'),
+    poll: svg('<path d="M5.5 19.5v-7M12 19.5v-15M18.5 19.5v-10"/>'),
+    smile: svg('<circle cx="12" cy="12" r="8.5"/><path d="M8.5 14c.8 1.3 2 2 3.5 2s2.7-.7 3.5-2"/><circle cx="9.2" cy="9.8" r=".9" class="f"/><circle cx="14.8" cy="9.8" r=".9" class="f"/>'),
+    check: svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>'),
+    check2: svg('<path d="M2.5 12.5l4.5 4.5 9.5-9.5M11.5 16.8l.2.2 9.5-9.5"/>'),
+    pin: svg('<path d="M14.5 4l5.5 5.5-2.2.8-3.6 3.6.4 4.1-1.6 1.6-3.8-3.8L5 20l-.2-.2 4.3-4.3-3.8-3.8 1.6-1.6 4.1.4 3.6-3.6z"/>'),
+    unpin: svg('<path d="M14.5 4l5.5 5.5-2.2.8-3.6 3.6.4 4.1-1.6 1.6-3.8-3.8L5 20l-.2-.2 4.3-4.3-3.8-3.8 1.6-1.6 4.1.4 3.6-3.6z"/><path d="M3.5 3.5l17 17"/>'),
+    bell: svg('<path d="M6.5 16.5v-5a5.5 5.5 0 0 1 11 0v5l1.5 2h-14z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>'),
+    mute: svg('<path d="M6.5 16.5v-5a5.5 5.5 0 0 1 8.6-4.5M17.5 11v5.5l1.5 2H8M10 20.5a2 2 0 0 0 4 0"/><path d="M4 4l16 16"/>'),
+    archive: svg('<rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4"/>'),
+    unarchive: svg('<rect x="3.5" y="4.5" width="17" height="4.5" rx="1.2"/><path d="M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M12 17.5v-6M9.5 14l2.5-2.5 2.5 2.5"/>'),
+    trash: svg('<path d="M4.5 6.5h15M9.5 6.5V4.5h5v2M6.5 6.5l.9 12.2a2 2 0 0 0 2 1.8h5.2a2 2 0 0 0 2-1.8l.9-12.2M10 10.5v6M14 10.5v6"/>'),
+    reply: svg('<path d="M10 5.5L4 11.5l6 6M4.5 11.5H14a6 6 0 0 1 6 6v1"/>'),
+    forward: svg('<path d="M14 5.5l6 6-6 6M19.5 11.5H10a6 6 0 0 0-6 6v1"/>'),
+    copy: svg('<rect x="8.5" y="8.5" width="11" height="11" rx="2.5"/><path d="M15.5 8.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5"/>'),
+    user: svg('<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20c1.2-3.6 4-5.5 7.5-5.5s6.3 1.9 7.5 5.5"/>'),
+    users: svg('<circle cx="9" cy="9" r="3.5"/><path d="M2.5 19.5c1-3.2 3.4-5 6.5-5s5.5 1.8 6.5 5"/><path d="M15 5.7a3.5 3.5 0 0 1 0 6.6M17.5 14.8c2 .6 3.3 2.2 4 4.7"/>'),
+    channel: svg('<path d="M4 9.5v5a1 1 0 0 0 1 1h2.5l7.5 4V4.5l-7.5 4H5a1 1 0 0 0-1 1z"/><path d="M18 9a4 4 0 0 1 0 6"/>'),
+    saved: svg('<path d="M6.5 3.5h11a1 1 0 0 1 1 1v16l-6.5-4.5-6.5 4.5v-16a1 1 0 0 1 1-1z"/>'),
+    gear: svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.8l1.6 2.1 2.6-.5 1 2.4 2.5 1-.5 2.6 2.1 1.6-2.1 1.6.5 2.6-2.5 1-1 2.4-2.6-.5L12 21.2l-1.6-2.1-2.6.5-1-2.4-2.5-1 .5-2.6L2.8 12l2.1-1.6-.5-2.6 2.5-1 1-2.4 2.6.5z"/>'),
+    moon: svg('<path d="M19.5 14.5A8 8 0 0 1 9.5 4.5a8 8 0 1 0 10 10z"/>'),
+    sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>'),
+    lock: svg('<rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/>'),
+    shield: svg('<path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/><path d="M9 12l2.2 2.2L15.5 10"/>'),
+    devices: svg('<rect x="2.5" y="5" width="13" height="9.5" rx="1.5"/><path d="M1.5 17.5h11"/><rect x="16.5" y="8" width="5.5" height="11" rx="1.3"/>'),
+    laptop: svg('<rect x="4.5" y="5" width="15" height="10.5" rx="1.5"/><path d="M2.5 18.5h19"/>'),
+    phone: svg('<rect x="7" y="3" width="10" height="18" rx="2.5"/><path d="M11 18h2"/>'),
+    qr: svg('<rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><path d="M14 14h2.5v2.5H14zM17.5 17.5H20V20h-2.5zM14 20h1M20 14v1"/>'),
+    camera: svg('<path d="M4 8.5a2 2 0 0 1 2-2h2l1.5-2h5L16 6.5h2a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.5"/>'),
+    logout: svg('<path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10.5M17 8.5l3.5 3.5-3.5 3.5"/>'),
+    folder: svg('<path d="M3.5 7a2 2 0 0 1 2-2h4l2 2.5h7a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>'),
+    feed: svg('<rect x="4" y="3.5" width="16" height="17" rx="2.5"/><path d="M8 8h8M8 12h8M8 16h5"/>'),
+    heart: svg('<path d="M12 19.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 6.8a4.3 4.3 0 0 1 7.5 2.5c0 5.6-7.5 10.2-7.5 10.2z"/>'),
+    comment: svg('<path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.4A7.5 7.5 0 1 1 20 11.5z"/>'),
+    eye: svg('<path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/>'),
+    eyeoff: svg('<path d="M9.9 5.7A9.6 9.6 0 0 1 12 5.5c6 0 9.5 6.5 9.5 6.5a16 16 0 0 1-2.6 3.4M6.5 7.2C3.9 8.9 2.5 12 2.5 12S6 18.5 12 18.5a9.3 9.3 0 0 0 4.7-1.3M9.9 9.9a3 3 0 0 0 4.2 4.2M3.5 3.5l17 17"/>'),
+    plus: svg('<path d="M12 5v14M5 12h14"/>'),
+    info: svg('<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.8v.2"/>'),
+    timer: svg('<circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/>'),
+    block: svg('<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>'),
+    link: svg('<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>'),
+    at: svg('<circle cx="12" cy="12" r="3.8"/><path d="M15.8 8.5v4.8a2.6 2.6 0 0 0 5.2 0V12a9 9 0 1 0-3.6 7.2"/>'),
+    download: svg('<path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19.5h14"/>'),
+    read: svg('<path d="M4 12.5l4 4 10-10"/><path d="M4 20h16"/>'),
+    unread: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3" class="f"/>'),
+    key: svg('<circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16 7l2.5 2.5M14 9l2 2"/>'),
+    mail: svg('<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>'),
+    star: svg('<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>'),
+    admin: svg('<path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/>'),
+    stop: svg('<rect x="6" y="6" width="12" height="12" rx="2"/>'),
+    retry: svg('<path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3M4.5 4.5v4h4"/>'),
+    chats: svg('<path d="M20 11.5a7.5 7.5 0 0 1-10.9 6.7L4 19.5l1.3-4.4A7.5 7.5 0 1 1 20 11.5z"/>'),
+    text: svg('<path d="M5 6.5V5h14v1.5M12 5v14M9.5 19h5"/>'),
+    calendar: svg('<rect x="4" y="5.5" width="16" height="14.5" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/>'),
+    id: svg('<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><circle cx="9" cy="11" r="2"/><path d="M6 15.5c.6-1.3 1.6-2 3-2s2.4.7 3 2M14.5 10h3M14.5 13.5h3"/>'),
+    verified: `<span class="vf" title="Подтверждён"><svg viewBox="0 0 24 24"><path class="vb" d="M12 2.5l2.3 1.8 2.9-.3 1 2.7 2.6 1.4-.6 2.8 1.3 2.6-2.2 1.9-.3 2.9-2.8.7-1.6 2.4-2.6-1.2-2.6 1.2-1.6-2.4-2.8-.7-.3-2.9-2.2-1.9 1.3-2.6-.6-2.8 2.6-1.4 1-2.7 2.9.3z"/><path class="vc" d="M8.3 12.2l2.5 2.5 4.9-5"/></svg></span>`,
+  };
+  const STAR = '<path class="thr" d="M30.5 13.5C20 13.5 8 18 6.5 23.5c-.5 2 .5 3.4 2 4.2" stroke-width="1.3"/><path class="ndl" fill="currentColor" stroke="none" fill-rule="evenodd" d="M12.6 37.6L26.4 6.2C27.3 4.1 29.2 3 30.6 3.6c1.4.6 1.5 2.6.4 4.7L13.2 37.8zM28.3 7.4c-.6 1.3-.7 2.5-.2 2.7.5.2 1.2-.7 1.8-2 .6-1.3.7-2.5.2-2.7-.5-.2-1.2.7-1.8 2z"/><path class="thr" d="M33.2 16.2c2.4 1.7 1.7 4.6-1.8 7.4-3.6 2.8-9.6 5-15.8 5.9" stroke-width="1.3"/>';
+  const LOGO = `<svg class="logo" viewBox="0 0 40 40" aria-hidden="true">${STAR}</svg>`;
+
+  // ================= ошибки по-русски =================
   const ERR = {
-    "blocked": "Этот человек ограничил тебе сообщения", "dm closed": "Этот человек не принимает новые личные сообщения",
+    "device not trusted": "Подтверди вход кодом", "code expired": "Код устарел, запроси новый", "too many tries": "Слишком много попыток, запроси новый код", "qr expired": "QR-код устарел, обнови его на том устройстве", "too many devices": "Слишком много устройств, отключи лишние в настройках", "no device": "Обнови страницу",
+    "blocked": "Этот человек ограничил тебе сообщения", "dm closed": "Этот человек не принимает новые личные сообщения", "banned here": "Тебя забанили в этом чате", "comments off": "Комментарии выключены", "poll closed": "Опрос завершён",
     "no access": "Это закрытый чат: войти можно только по ссылке-приглашению", "no chat": "Ничего не нашлось по этой ссылке",
     "too fast": "Слишком быстро, подожди пару секунд", "no links": "Ссылки и @ники писать нельзя", "limit 3": "Можно создать не больше 3 групп и каналов",
     "bad length": "Слишком длинно или пусто", "join first": "Сначала вступи", "channel owner only": "Писать в канал может только его автор",
     "not signed in": "Нужно войти заново", "banned": "Аккаунт заблокирован", "no anon here": "Здесь нельзя писать анонимно",
     "Invalid login credentials": "Неверная почта или пароль", "User already registered": "Эта почта уже зарегистрирована",
     "Email not confirmed": "Подтверди почту: открой письмо и нажми ссылку", "bad photo": "Фото не загрузилось", "empty": "Пусто",
-    "reserved username": "Этот юзернейм занят или запрещён", "bad username": "Юзернейм: 3–20 символов, латиница, цифры и _", "bad name": "Имя: до 40 символов, без ссылок и запрещённых слов", "bad birth": "Проверь дату рождения",
-    "clan level": "Клан можно создать с 3 уровня", "clan already": "Ты уже в клане", "clan taken": "Такое название или тег уже заняты", "clan full": "В клане уже 50 человек",
-    "premium only": "Это доступно с премиумом", "limit 5": "Можно до 5 юзернеймов", "no request": "Заявка уже обработана", "request limit": "Можно подать не больше 3 заявок",
-    "bad style": "Этот фон или цвет тебе не выдан", "not yours": "Нет прав", "no clan": "Клан не найден", "no user": "Пользователь не найден", "official clan": "В официальный клан доступ выдаёт создатель", "locked": "Сначала открой переписку паролем",
-    "video is admin only": "Видео может выкладывать только владелец", "file big": "Файл больше 8 МБ", "bad file": "Файл не загрузился", "pin limit": "Можно закрепить до 5 чатов", "no key": "Собеседник ещё не заходил в Needle", "gone": "Файл удалён", "dm must be encrypted": "Сообщение не зашифровалось",
+    "reserved username": "Этот юзернейм занят", "bad username": "Юзернейм: 3–20 символов, латиница, цифры и _", "bad name": "Имя: до 40 символов, без ссылок", "bad birth": "Проверь дату рождения",
+    "no request": "Заявка уже обработана", "not yours": "Нет прав", "no user": "Пользователь не найден", "locked": "Сначала открой переписку паролем",
+    "file big": "Файл больше 8 МБ", "bad file": "Файл не загрузился", "pin limit": "Можно закрепить до 5 чатов", "no key": "Собеседник ещё не заходил в Needle", "gone": "Файл удалён", "dm must be encrypted": "Сообщение не зашифровалось",
+    "Token has expired": "Ссылка устарела, запроси новую", "otp_expired": "Ссылка устарела, запроси новую", "Password should be": "Пароль слишком простой",
   };
-  const errText = e => { const m = (e && (e.message || e.error_description || e.msg)) || String(e || ""); for (const k in ERR) if (m.includes(k)) return ERR[k]; if (/rate limit/i.test(m)) return "Слишком много попыток, подожди немного"; if (/fetch|network/i.test(m)) return "Нет связи с сервером"; return "Ошибка: " + m.slice(0, 120); };
-
-  // ================= языки: русский (исходный), English, українська =================
-  const DICT = [
-    ["Меню", "Menu", "Меню"],
-    ["Мой профиль", "My profile", "Мій профіль"],
-    ["Создать группу", "New group", "Створити групу"],
-    ["Создать канал", "New channel", "Створити канал"],
-    ["Люди и поиск", "People and search", "Люди і пошук"],
-    ["Ночной режим", "Night mode", "Нічний режим"],
-    ["Удалить папку", "Delete folder", "Видалити папку"],
-    ["📤 Вернуть из архива", "📤 Unarchive", "📤 Повернути з архіву"],
-    ["🗄 В архив", "🗄 Archive", "🗄 В архів"],
-    ["🔔 Включить звук", "🔔 Unmute", "🔔 Увімкнути звук"],
-    ["🔕 Без звука", "🔕 Mute", "🔕 Без звуку"],
-    ["✓ Отметить прочитанным", "✓ Mark as read", "✓ Позначити прочитаним"],
-    ["📁 Добавить в папку", "📁 Add to folder", "📁 Додати в папку"],
-    ["🗑 Очистить Избранное", "🗑 Clear Saved Messages", "🗑 Очистити Обране"],
-    ["🗑 Удалить чат", "🗑 Delete chat", "🗑 Видалити чат"],
-    ["🚪 Выйти", "🚪 Leave", "🚪 Вийти"],
-    ["Чат в архиве", "Chat archived", "Чат в архіві"],
-    ["Чат вернулся из архива", "Chat unarchived", "Чат повернувся з архіву"],
-    ["Выйти из чата?", "Leave the chat?", "Вийти з чату?"],
-    ["Добавить в папку", "Add to folder", "Додати в папку"],
-    ["новая папка", "new folder", "нова папка"],
-    ["Например: Друзья", "For example: Friends", "Наприклад: Друзі"],
-    ["Архив", "Archive", "Архів"],
-    ["назад ко всем чатам", "back to all chats", "назад до всіх чатів"],
-    ["Медиа и файлы", "Media and files", "Медіа і файли"],
-    ["Медиа", "Media", "Медіа"],
-    ["Файлы", "Files", "Файли"],
-    ["Файлов пока нет", "No files yet", "Файлів поки немає"],
-    ["Заблокировать", "Block", "Заблокувати"],
-    ["Разблокировать", "Unblock", "Розблокувати"],
-    ["Он не сможет писать тебе в личку и не увидит, когда ты в сети.", "They won't be able to message you or see when you're online.", "Він не зможе писати тобі в особисті й не побачить, коли ти в мережі."],
-    ["Разблокирован", "Unblocked", "Розблоковано"],
-    ["Заблокирован", "Blocked", "Заблоковано"],
-    ["Кто видит, когда я в сети", "Who sees when I'm online", "Хто бачить, коли я в мережі"],
-    ["Кто может написать мне первым", "Who can message me first", "Хто може написати мені першим"],
-    ["Никто", "Nobody", "Ніхто"],
-    ["Чёрный список", "Blocked users", "Чорний список"],
-    ["Тут пусто. Заблокировать можно в профиле человека.", "Empty. You can block someone from their profile.", "Тут порожньо. Заблокувати можна в профілі людини."],
-    ["был(а) недавно", "last seen recently", "був(ла) нещодавно"],
-    ["Этот человек ограничил тебе сообщения", "This person has restricted messages from you", "Ця людина обмежила тобі повідомлення"],
-    ["Этот человек не принимает новые личные сообщения", "This person doesn't accept new private messages", "Ця людина не приймає нові особисті повідомлення"],
-    ["Telegram светлая", "Telegram light", "Telegram світла"],
-    ["Избранное", "Saved Messages", "Обране"],
-    ["заметки для себя", "notes to self", "нотатки для себе"],
-    ["печатает…", "typing…", "друкує…"],
-    ["Ответ", "Reply to", "Відповідь"],
-    ["Сообщение выше, пролистай чат", "The message is further up, scroll the chat", "Повідомлення вище, прогорни чат"],
-    ["Поиск по чату", "Search in chat", "Пошук у чаті"],
-    ["В личке ищу только среди загруженных сообщений", "In private chats I only search loaded messages", "В особистих шукаю лише серед завантажених повідомлень"],
-    ["Ответить", "Reply", "Відповісти"],
-    ["Файл", "File", "Файл"],
-    ["Избранное: пересылай сюда сообщения и пиши заметки. Всё шифруется твоим ключом.", "Saved Messages: forward messages here and write notes. Everything is encrypted with your key.", "Обране: пересилай сюди повідомлення і пиши нотатки. Усе шифрується твоїм ключем."],
-    ["без тега", "no tag", "без тегу"],
-    ["Заявка отправлена · отменить", "Request sent · cancel", "Заявку надіслано · скасувати"],
-    ["Подписчики", "Subscribers", "Підписники"],
-    ["заявки", "requests", "заявки"],
-    ["Открытый", "Public", "Відкритий"],
-    ["По заявке", "By request", "За заявкою"],
-    ["Закрытый", "Private", "Закритий"],
-    ["Любой найдёт по @юзернейму и вступит сразу.", "Anyone can find it by @username and join right away.", "Будь-хто знайде за @юзернеймом і вступить одразу."],
-    ["Человек подаёт заявку, ты принимаешь или отклоняешь.", "People send a request, you accept or decline.", "Людина подає заявку, ти приймаєш або відхиляєш."],
-    ["Не виден в поиске. Попасть можно только по ссылке-приглашению.", "Hidden from search. Join only by invite link.", "Не видно в пошуку. Потрапити можна лише за посиланням-запрошенням."],
-    ["Копировать", "Copy", "Копіювати"],
-    ["Новая", "New", "Нове"],
-    ["Сначала создай ссылку", "Create a link first", "Спершу створи посилання"],
-    ["Старая ссылка больше не работает", "The old link no longer works", "Старе посилання більше не працює"],
-    ["Удалить из чата?", "Remove from chat?", "Видалити з чату?"],
-    ["тип канала", "channel type", "тип каналу"],
-    ["тип группы", "group type", "тип групи"],
-    ["ссылка-приглашение", "invite link", "посилання-запрошення"],
-    ["Это закрытый чат: войти можно только по ссылке-приглашению", "This chat is private: join only by invite link", "Це закритий чат: увійти можна лише за посиланням-запрошенням"],
-    ["Ничего не нашлось по этой ссылке", "Nothing found at this link", "За цим посиланням нічого немає"],
-    ["Тема одной кнопкой", "Theme in one tap", "Тема однією кнопкою"],
-    ["Текст", "Text", "Текст"],
-    ["Шрифт, размер, углы", "Font, size, corners", "Шрифт, розмір, кути"],
-    ["Раскладка, док, анимации, Игла", "Layout, dock, animations, Needle", "Розкладка, док, анімації, Голка"],
-    ["Для тех, кто любит покопаться", "For tinkerers", "Для тих, хто любить покопатися"],
-    ["Игла-питомец", "Needle pet", "Голка-улюбленець"],
-    ["живёт на экране, её можно таскать куда угодно", "lives on screen, drag it anywhere", "живе на екрані, її можна перетягувати куди завгодно"],
-    ["Нажми, чтобы показать", "Tap to show", "Натисни, щоб показати"],
-    ["Переслать", "Forward", "Переслати"],
-    ["↪ Переслать", "↪ Forward", "↪ Переслати"],
-    ["⧉ Копировать", "⧉ Copy", "⧉ Копіювати"],
-    ["📌 Закрепить", "📌 Pin", "📌 Закріпити"],
-    ["📌 Открепить", "📌 Unpin", "📌 Відкріпити"],
-    ["✎ Изменить", "✎ Edit", "✎ Змінити"],
-    ["🗑 Удалить", "🗑 Delete", "🗑 Видалити"],
-    ["Изменить сообщение", "Edit message", "Змінити повідомлення"],
-    ["Закреплено", "Pinned", "Закріплено"],
-    ["сообщение", "message", "повідомлення"],
-    ["Сообщение закреплено", "Message pinned", "Повідомлення закріплено"],
-    ["Откреплено", "Unpinned", "Відкріплено"],
-    ["Открепить", "Unpin", "Відкріпити"],
-    ["Переслано от", "Forwarded from", "Переслано від"],
-    ["Переслано", "Forwarded", "Переслано"],
-    ["изменено", "edited", "змінено"],
-    ["Чатов пока нет", "No chats yet", "Чатів поки немає"],
-    ["Файл удалён: прошло 30 дней", "File removed: 30 days passed", "Файл видалено: минуло 30 днів"],
-    ["Файл больше 8 МБ", "File is over 8 MB", "Файл більший за 8 МБ"],
-    ["Загружаю файл…", "Uploading file…", "Завантажую файл…"],
-    ["Файл не загрузился", "File failed to upload", "Файл не завантажився"],
-    ["Можно закрепить до 5 чатов", "You can pin up to 5 chats", "Можна закріпити до 5 чатів"],
-    ["Файл удалён", "File removed", "Файл видалено"],
-    ["Файл, фото или музыка (до 8 МБ)", "File, photo or music (up to 8 MB)", "Файл, фото або музика (до 8 МБ)"],
-    ["Действия", "Actions", "Дії"],
-    ["📌 Закрепить чат", "📌 Pin chat", "📌 Закріпити чат"],
-    ["Открепить чат", "Unpin chat", "Відкріпити чат"],
-    ["Профиль канала", "Channel profile", "Профіль каналу"],
-    ["Чат закреплён", "Chat pinned", "Чат закріплено"],
-    ["Чат откреплён", "Chat unpinned", "Чат відкріплено"],
-    ["официальный канал", "official channel", "офіційний канал"],
-    ["подписчик", "subscriber", "підписник"],
-    ["подписчика", "subscribers", "підписники"],
-    ["подписчиков", "subscribers", "підписників"],
-    ["Обычный", "Regular", "Звичайний"],
-    ["Официальный", "Official", "Офіційний"],
-    ["о канале", "about", "про канал"],
-    ["автор", "author", "автор"],
-    ["постов", "posts", "постів"],
-    ["Оформление канала", "Channel style", "Оформлення каналу"],
-    ["цвет названия", "name color", "колір назви"],
-    ["Цвет названия есть только у официальных каналов.", "Name color is only for official channels.", "Колір назви є лише в офіційних каналів."],
-    ["тег клана у ника", "clan tag next to name", "тег клану біля ніка"],
-    ["✔ Дать галочку", "✔ Give checkmark", "✔ Дати галочку"],
-    ["Забрать галочку", "Remove checkmark", "Забрати галочку"],
-    ["Галочка выдана", "Checkmark given", "Галочку видано"],
-    ["Галочка забрана", "Checkmark removed", "Галочку забрано"],
-    ["Клан подтверждён", "Verified clan", "Клан підтверджено"],
-    ["латиница, цифры, _ (можно пусто)", "latin, digits, _ (can be empty)", "латиниця, цифри, _ (можна порожньо)"],
-    ["Тут уютно 🪡", "Cozy here 🪡", "Тут затишно 🪡"],
-    ["Оп, новое место!", "Ooh, a new spot!", "Оп, нове місце!"],
-    ["Уиии!", "Wheee!", "Ііі!"],
-    ["Посижу тут", "I'll sit here", "Посиджу тут"],
-    ["А? Я не сплю!", "Huh? I'm awake!", "А? Я не сплю!"],
-    ["Доброе утро! ☀️", "Good morning! ☀️", "Доброго ранку! ☀️"],
-    ["Как день проходит?", "How's your day?", "Як минає день?"],
-    ["Вечер, самое время поболтать", "Evening, time to chat", "Вечір, саме час поговорити"],
-    ["Ночь на дворе, а ты всё в Needle 🌙", "It's night and you're still on Needle 🌙", "Ніч надворі, а ти все в Needle 🌙"],
-    ["Перетащи меня куда хочешь", "Drag me anywhere", "Перетягни мене куди хочеш"],
-    ["Сообщения можно сжечь: кнопка 🔥 в чате", "Messages can burn: the 🔥 button in a chat", "Повідомлення можна спалити: кнопка 🔥 у чаті"],
-    ["Нажми на меня, и я подскажу", "Tap me for tips", "Натисни на мене, і я підкажу"],
-    ["Слышал про кланы? Загляни во вкладку «Кланы»", "Heard of clans? Check the Clans tab", "Чув про клани? Зазирни у вкладку «Клани»"],
-    ["Сообщение можно закрепить: нажми ⋯ рядом с ним", "Pin a message: tap ⋯ next to it", "Повідомлення можна закріпити: натисни ⋯ біля нього"],
-    ["Можно отправить музыку: скрепка в чате 📎", "You can send music: the 📎 in a chat", "Можна надіслати музику: скріпка в чаті 📎"],
-    ["Я просто посижу тут…", "I'll just sit here…", "Я просто посиджу тут…"],
-    ["Шью-шью 🪡", "Stitch-stitch 🪡", "Шию-шию 🪡"],
-    ["Оформление", "Appearance", "Оформлення"],
-    ["Уведомления", "Notifications", "Сповіщення"],
-    ["Конфиденциальность", "Privacy", "Конфіденційність"],
-    ["Аккаунт", "Account", "Акаунт"],
-    ["О приложении", "About", "Про застосунок"],
-    ["Стиль, шрифт, фон, раскладка", "Style, font, background, layout", "Стиль, шрифт, фон, розкладка"],
-    ["Шифрование и ключ", "Encryption and key", "Шифрування і ключ"],
-    ["Профиль, пароль, выход", "Profile, password, sign out", "Профіль, пароль, вихід"],
-    ["Версия, клавиши, ~/.needlerc", "Version, shortcuts, ~/.needlerc", "Версія, клавіші, ~/.needlerc"],
-    ["После выбора страница перезагрузится.", "The page will reload after you pick.", "Після вибору сторінка перезавантажиться."],
-    ["короткий сигнал, когда приходит новое сообщение", "a short beep when a new message arrives", "короткий сигнал, коли приходить нове повідомлення"],
-    ["Счётчик во вкладке", "Tab counter", "Лічильник у вкладці"],
-    ["число непрочитанных в названии вкладки браузера", "unread count in the browser tab title", "кількість непрочитаних у назві вкладки браузера"],
-    ["всегда", "always", "завжди"],
-    ["Шифрование личных сообщений", "Direct message encryption", "Шифрування особистих повідомлень"],
-    ["Отпечаток ключа", "Key fingerprint", "Відбиток ключа"],
-    ["Копия ключа", "Key backup", "Копія ключа"],
-    ["✓ на сервере, закрыта паролем", "✓ on the server, locked with your password", "✓ на сервері, закрита паролем"],
-    ["🔒 не открыта на этом устройстве", "🔒 not unlocked on this device", "🔒 не відкрита на цьому пристрої"],
-    ["только на этом устройстве", "only on this device", "лише на цьому пристрої"],
-    ["Открыть переписку паролем", "Unlock chats with password", "Відкрити листування паролем"],
-    ["Сохранить ключ на сервере", "Back up key to server", "Зберегти ключ на сервері"],
-    ["Личка шифруется прямо в браузере, сервер видит только шифр. Копия ключа лежит на сервере, закрытая твоим паролем, поэтому переписка открывается на любом твоём устройстве. Сообщения, отправленные на старые ключи (до Needle v6), на новом устройстве не откроются. Если сбросишь пароль через почту, создастся новый ключ.", "DMs are encrypted right in the browser, the server sees only ciphertext. A copy of your key is stored on the server, locked with your password, so your chats open on any of your devices. Messages sent to old keys (before Needle v6) won't open on a new device. If you reset your password by email, a new key is created.", "Особисті шифруються прямо в браузері, сервер бачить лише шифр. Копія ключа лежить на сервері, закрита твоїм паролем, тому листування відкривається на будь-якому твоєму пристрої. Повідомлення на старі ключі (до Needle v6) на новому пристрої не відкриються. Якщо скинеш пароль через пошту, створиться новий ключ."],
-    ["Почта", "Email", "Пошта"],
-    ["видишь только ты", "only you see it", "бачиш лише ти"],
-    ["Версия 6 · мессенджер, где ничего не остаётся.", "Version 6 · the messenger where nothing stays.", "Версія 6 · месенджер, де нічого не лишається."],
-    ["Пароль, выход и шифрование теперь в ⚙ Настройки → Аккаунт и Конфиденциальность.", "Password, sign out and encryption are now in ⚙ Settings → Account and Privacy.", "Пароль, вихід і шифрування тепер у ⚙ Налаштування → Акаунт і Конфіденційність."],
-    ["🔒 Открыть переписку", "🔒 Unlock chats", "🔒 Відкрити листування"],
-    ["🔑 Сохранить ключ", "🔑 Back up key", "🔑 Зберегти ключ"],
-    ["Введи пароль от аккаунта, и личные сообщения откроются на этом устройстве.", "Enter your account password and your DMs will open on this device.", "Введи пароль від акаунта, і особисті повідомлення відкриються на цьому пристрої."],
-    ["Введи пароль от аккаунта: ключ шифрования сохранится на сервере, закрытый твоим паролем. Тогда переписка откроется на любом устройстве.", "Enter your account password: your encryption key will be stored on the server, locked with your password. Then your chats open on any device.", "Введи пароль від акаунта: ключ шифрування збережеться на сервері, закритий твоїм паролем. Тоді листування відкриється на будь-якому пристрої."],
-    ["Позже", "Later", "Пізніше"],
-    ["Открыть", "Unlock", "Відкрити"],
-    ["Переписка открыта", "Chats unlocked", "Листування відкрито"],
-    ["Ключ сохранён", "Key backed up", "Ключ збережено"],
-    ["Сначала открой переписку паролем", "Unlock your chats with your password first", "Спочатку відкрий листування паролем"],
-    ["🔒 Нажми и введи пароль, чтобы открыть", "🔒 Tap and enter your password to open", "🔒 Натисни і введи пароль, щоб відкрити"],
-    ["🔒 Не расшифровать: сообщение для старого ключа с другого устройства", "🔒 Can't decrypt: sent to an old key from another device", "🔒 Не розшифрувати: повідомлення для старого ключа з іншого пристрою"],
-    ["смайлики, ASCII или пара слов", "emoji, ASCII or a few words", "смайлики, ASCII або кілька слів"],
-    ["Смайлики лягут мелким узором по всему фону, текст и ASCII будут крупно по центру.", "Emoji become a small pattern over the whole background, text and ASCII go big in the center.", "Смайлики ляжуть дрібним візерунком по всьому фону, текст і ASCII будуть великими по центру."],
-    ["официальный клан", "official clan", "офіційний клан"],
-    ["Официальный клан", "Official clan", "Офіційний клан"],
-    ["Официальные", "Official", "Офіційні"],
-    ["доступ выдаёт создатель", "access is given by the creator", "доступ дає творець"],
-    ["✓ Официальный клан Needle. Вступить по заявке нельзя: доступ выдаёт создатель.", "✓ Official Needle clan. You can't apply: access is given by the creator.", "✓ Офіційний клан Needle. Вступити за заявкою не можна: доступ дає творець."],
-    ["Выдать доступ", "Give access", "Видати доступ"],
-    ["Сделать обычным", "Make regular", "Зробити звичайним"],
-    ["Сделать официальным", "Make official", "Зробити офіційним"],
-    ["Клан теперь обычный", "The clan is regular now", "Клан тепер звичайний"],
-    ["Клан теперь официальный", "The clan is official now", "Клан тепер офіційний"],
-    ["Доступ выдан", "Access given", "Доступ видано"],
-    ["Доступ забран", "Access removed", "Доступ забрано"],
-    ["доступ к официальным кланам", "access to official clans", "доступ до офіційних кланів"],
-    ["В официальный клан доступ выдаёт создатель", "Access to an official clan is given by the creator", "До офіційного клану доступ дає творець"],
-    ["Автоочистка ленты", "Feed auto-cleanup", "Автоочищення стрічки"],
-    ["сегодня", "today", "сьогодні"],
-    ["за 30 дней", "30 days", "за 30 днів"],
-    ["ссылка", "link", "посилання"],
-    ["повтор", "repeat", "повтор"],
-    ["бессмыслица", "nonsense", "нісенітниця"],
-    ["флуд", "flood", "флуд"],
-    ["Пока ничего не удалено", "Nothing removed yet", "Поки нічого не видалено"],
-    ["Спам, повторы, бессмыслица, мат и ссылки в постах и комментариях не публикуются. Автор видит «похоже на спам».", "Spam, repeats, nonsense, swearing and links in posts and comments are not published. The author sees “looks like spam”.", "Спам, повтори, нісенітниця, мат і посилання в постах і коментарях не публікуються. Автор бачить «схоже на спам»."],
-    ["Похоже на спам", "Looks like spam", "Схоже на спам"],
-    ["ссылки писать нельзя", "links are not allowed", "посилання писати не можна"],
-    ["без мата, пожалуйста", "no swearing, please", "без мату, будь ласка"],
-    ["ты уже это писал(а)", "you already posted this", "ти вже це писав(ла)"],
-    ["похоже на набор букв", "looks like random letters", "схоже на набір літер"],
-    ["слишком много подряд, передохни", "too many in a row, take a break", "забагато підряд, відпочинь"],
-    ["Комментарий", "Comment", "Коментар"],
-    ["Пост", "Post", "Пост"],
-    ["не опубликован", "not published", "не опубліковано"],
-    ["Подтверждён", "Verified", "Підтверджено"], ["только что", "just now", "щойно"],
-    ["Слишком быстро, подожди пару секунд", "Too fast, wait a couple of seconds", "Занадто швидко, зачекай кілька секунд"],
-    ["Ссылки и @ники писать нельзя", "Links and @nicknames are not allowed", "Посилання та @ніки писати не можна"],
-    ["Можно создать не больше 3 групп и каналов", "You can create up to 3 groups and channels", "Можна створити не більше 3 груп і каналів"],
-    ["Слишком длинно или пусто", "Too long or empty", "Занадто довго або порожньо"], ["Сначала вступи", "Join first", "Спочатку приєднайся"],
-    ["Писать в канал может только его автор", "Only the author can post in this channel", "Писати в канал може лише його автор"],
-    ["Нужно войти заново", "Please sign in again", "Потрібно увійти знову"], ["Аккаунт заблокирован", "Account blocked", "Акаунт заблоковано"],
-    ["Здесь нельзя писать анонимно", "Anonymous messages are off here", "Тут не можна писати анонімно"],
-    ["Неверная почта или пароль", "Wrong email or password", "Невірна пошта або пароль"],
-    ["Эта почта уже зарегистрирована", "This email is already registered", "Ця пошта вже зареєстрована"],
-    ["Подтверди почту: открой письмо и нажми ссылку", "Confirm your email: open the letter and tap the link", "Підтверди пошту: відкрий лист і натисни посилання"],
-    ["Фото не загрузилось", "Photo failed to upload", "Фото не завантажилося"], ["Пусто", "Empty", "Порожньо"],
-    ["Этот юзернейм занят или запрещён", "This username is taken or not allowed", "Цей юзернейм зайнятий або заборонений"],
-    ["Юзернейм: 3–20 символов, латиница, цифры и _", "Username: 3–20 characters, latin letters, digits and _", "Юзернейм: 3–20 символів, латиниця, цифри та _"],
-    ["Имя: до 40 символов, без ссылок и запрещённых слов", "Name: up to 40 characters, no links or banned words", "Ім'я: до 40 символів, без посилань і заборонених слів"],
-    ["Проверь дату рождения", "Check your birth date", "Перевір дату народження"],
-    ["Видео может выкладывать только владелец", "Only the owner can post videos", "Відео може викладати лише власник"],
-    ["Сообщение не зашифровалось", "The message could not be encrypted", "Повідомлення не зашифрувалося"],
-    ["Слишком много попыток, подожди немного", "Too many attempts, wait a bit", "Забагато спроб, зачекай трохи"],
-    ["Нет связи с сервером", "No connection to the server", "Немає зв'язку з сервером"], ["Ошибка:", "Error:", "Помилка:"],
-    ["Новичок", "Newbie", "Новачок"], ["Свой", "Regular", "Свій"], ["Активный", "Active", "Активний"], ["Опытный", "Experienced", "Досвідчений"],
-    ["Знаток", "Expert", "Знавець"], ["Ветеран", "Veteran", "Ветеран"], ["Мастер", "Master", "Майстер"], ["Элита", "Elite", "Еліта"],
-    ["Гуру", "Guru", "Гуру"], ["Легенда", "Legend", "Легенда"], ["Уровень", "Level", "Рівень"],
-    ["удалённый", "deleted", "видалений"], ["Удалённый", "Deleted", "Видалений"], ["Юзернейм", "Username", "Юзернейм"],
-    ["День рождения", "Birthday", "День народження"], ["год", "years", "рік"], ["года", "years", "роки"], ["лет", "years", "років"],
-    ["В Needle с", "On Needle since", "У Иглі з"], ["Аноним", "Anonymous", "Анонім"], ["Да", "Yes", "Так"], ["Отмена", "Cancel", "Скасувати"],
-    ["Мессенджер, где", "A messenger where", "Месенджер, де"], ["ничего", "nothing", "нічого"], ["не остаётся.", "is left behind.", "не залишається."],
-    ["шифрование · сгорание · без номера", "encryption · burn · no phone number", "шифрування · згорання · без номера"],
-    ["Шифр", "Cipher", "Шифр"], ["Личку читаете только вы двое. Даже сервер видит кашу.", "Only you two can read DMs. Even the server sees noise.", "Особисті читаєте лише ви двоє. Навіть сервер бачить кашу."],
-    ["Сгорание", "Burn", "Згорання"], ["Таймер в чате: минута, час, сутки. Потом пепел.", "Chat timer: a minute, an hour, a day. Then ashes.", "Таймер у чаті: хвилина, година, доба. Потім попіл."],
-    ["Без телефона. В группах можно как «Аноним #4821».", "No phone. In groups you can post as “Anonymous #4821”.", "Без телефону. У групах можна як «Анонім #4821»."],
-    ["Новый пароль", "New password", "Новий пароль"], ["Вход", "Sign in", "Вхід"], ["Регистрация", "Sign up", "Реєстрація"],
-    ["юзернейм", "username", "юзернейм"], ["латиница, цифры, _", "latin letters, digits, _", "латиниця, цифри, _"], ["почта", "email", "пошта"],
-    ["пароль", "password", "пароль"], ["Войти", "Sign in", "Увійти"], ["Создать аккаунт", "Create account", "Створити акаунт"],
-    ["Прислать ссылку", "Send link", "Надіслати посилання"], ["Сохранить", "Save", "Зберегти"], ["Забыл пароль?", "Forgot password?", "Забув пароль?"],
-    ["Назад ко входу", "Back to sign in", "Назад до входу"],
-    ["Номер телефона не нужен. Почту видишь только ты, другим виден лишь ник.", "No phone number needed. Only you see your email, others see just your name.", "Номер телефону не потрібен. Пошту бачиш лише ти, іншим видно тільки нік."],
-    ["Аккаунт со старого сайта toner работает здесь, ничего заново заводить не нужно.", "Your account from the old toner site works here, no need to sign up again.", "Акаунт зі старого сайту toner працює тут, нічого заново створювати не треба."],
-    ["Проверь адрес почты", "Check the email address", "Перевір адресу пошти"],
-    ["Пароль: минимум 8 символов, латинские буквы и цифры", "Password: at least 8 characters, latin letters and digits", "Пароль: мінімум 8 символів, латинські літери та цифри"],
-    ["Проверь почту", "Check your email", "Перевір пошту"], ["Мы отправили письмо на", "We sent a letter to", "Ми надіслали лист на"],
-    [". Открой его и нажми ссылку. Письма нет? Загляни в «Спам».", ". Open it and tap the link. No letter? Check Spam.", ". Відкрий його і натисни посилання. Листа немає? Зазирни в «Спам»."],
-    ["Если такая почта есть, мы отправили на неё ссылку", "If this email exists, we sent a link to it", "Якщо така пошта є, ми надіслали на неї посилання"],
-    ["Пароль обновлён", "Password updated", "Пароль оновлено"], ["Чаты", "Chats", "Чати"], ["Чат", "Chat", "Чат"], ["Лента", "Feed", "Стрічка"],
-    ["Поиск", "Search", "Пошук"], ["Игла", "Needle", "Игла"], ["Профиль", "Profile", "Профіль"], ["Настройки", "Settings", "Налаштування"],
-    ["Поиск (Ctrl+K)", "Search (Ctrl+K)", "Пошук (Ctrl+K)"], ["Назад", "Back", "Назад"], ["Закрыть", "Close", "Закрити"], ["Все", "All", "Усі"],
-    ["Личные", "Direct", "Особисті"], ["Группы", "Groups", "Групи"], ["Каналы", "Channels", "Канали"], ["Новый чат", "New chat", "Новий чат"],
-    ["Поиск по чатам", "Search chats", "Пошук по чатах"], ["🔒 шифрованный чат", "🔒 encrypted chat", "🔒 зашифрований чат"], ["канал", "channel", "канал"],
-    ["группа", "group", "група"], ["🔒 сообщение", "🔒 message", "🔒 повідомлення"], ["📷 фото", "📷 photo", "📷 фото"], ["Вы:", "You:", "Ви:"],
-    ["Ничего не найдено", "Nothing found", "Нічого не знайдено"], ["Пока пусто", "Nothing here yet", "Поки порожньо"],
-    ["Найди людей или каналы в поиске, или создай свою группу.", "Find people or channels in search, or create your own group.", "Знайди людей або канали в пошуку, або створи свою групу."],
-    ["Создать", "Create", "Створити"], ["Группа", "Group", "Група"], ["Канал", "Channel", "Канал"], ["Личка", "Direct", "Особисті"],
-    ["название", "title", "назва"], ["описание", "description", "опис"], ["Анонимные сообщения", "Anonymous messages", "Анонімні повідомлення"],
-    ["участники могут писать как «Аноним #N»", "members can post as “Anonymous #N”", "учасники можуть писати як «Анонім #N»"],
-    ["Можно создать до 3 групп и каналов.", "You can create up to 3 groups and channels.", "Можна створити до 3 груп і каналів."],
-    ["ник или ID", "name or ID", "нік або ID"], ["Никого не нашли", "Nobody found", "Нікого не знайшли"], ["Напиши название", "Enter a title", "Напиши назву"],
-    ["Канал создан", "Channel created", "Канал створено"], ["Группа создана", "Group created", "Групу створено"],
-    ["🔒 Сквозное шифрование. Сообщения читаете только вы двое, сервер видит только шифр. Ключ закрыт твоим паролем, поэтому переписка открывается на любом твоём устройстве.", "🔒 End-to-end encryption. Only you two can read the messages, the server sees only ciphertext. Your key is locked with your password, so the chat opens on any of your devices.", "🔒 Наскрізне шифрування. Повідомлення читаєте лише ви двоє, сервер бачить лише шифр. Ключ закритий твоїм паролем, тому листування відкривається на будь-якому твоєму пристрої."],
-    ["🔥 Сообщения сгорают через", "🔥 Messages burn after", "🔥 Повідомлення згоряють через"],
-    ["участник", "member", "учасник"], ["участника", "members", "учасники"], ["участников", "members", "учасників"],
-    ["🎭 Можно писать анонимно", "🎭 Anonymous posting is on", "🎭 Можна писати анонімно"],
-    ["ещё не заходил в Needle", "hasn't joined Needle yet", "ще не заходив у Иглу"], ["🔒 шифр", "🔒 encrypted", "🔒 шифр"], ["О чате", "About chat", "Про чат"],
-    ["Подписаться", "Subscribe", "Підписатися"], ["Вступить", "Join", "Приєднатися"], ["Отписаться", "Unsubscribe", "Відписатися"],
-    ["Собеседник ещё не заходил в Needle, ключа шифрования пока нет. Написать получится, когда он зайдёт.", "This person hasn't opened Needle yet, so there's no encryption key. You can write once they sign in.", "Співрозмовник ще не заходив у Иглу, ключа шифрування поки немає. Написати вийде, коли він зайде."],
-    ["Фото", "Photo", "Фото"], ["Анонимно", "Anonymous", "Анонімно"], ["Написать…", "Write a message…", "Написати…"],
-    ["Пост в канал…", "Post to channel…", "Пост у канал…"], ["Сообщение…", "Message…", "Повідомлення…"], ["Отправить (Enter)", "Send (Enter)", "Надіслати (Enter)"],
-    ["Анонимно…", "Anonymously…", "Анонімно…"], ["Загружаю фото…", "Uploading photo…", "Завантажую фото…"],
-    ["Шифрование недоступно в этом браузере", "Encryption isn't available in this browser", "Шифрування недоступне в цьому браузері"],
-    ["Показать раньше", "Show earlier", "Показати раніше"], ["🎭 анонимно", "🎭 anonymous", "🎭 анонімно"],
-    ["🔒 Не расшифровать: сообщение для ключа с другого устройства", "🔒 Can't decrypt: this message is for a key on another device", "🔒 Не розшифрувати: повідомлення для ключа з іншого пристрою"],
-    ["Удалить", "Delete", "Видалити"], ["🔥 Сгорание сообщений", "🔥 Burning messages", "🔥 Згорання повідомлень"],
-    ["Новые сообщения исчезнут у всех через выбранное время. Совсем, без копий на сервере.", "New messages will vanish for everyone after the chosen time. Completely, no copies on the server.", "Нові повідомлення зникнуть у всіх через обраний час. Повністю, без копій на сервері."],
-    ["Выкл", "Off", "Вимк"], ["1 минута", "1 minute", "1 хвилина"], ["1 час", "1 hour", "1 година"], ["1 день", "1 day", "1 день"], ["1 минуту", "1 minute", "1 хвилину"],
-    ["Сгорание:", "Burn:", "Згорання:"], ["Сгорание выключено", "Burn is off", "Згорання вимкнено"], ["Код безопасности", "Security code", "Код безпеки"],
-    ["Сверь этот код с собеседником лично. Если совпадает, никто не подменил ключи и не читает вашу переписку.", "Compare this code with the other person face to face. If it matches, nobody swapped the keys or reads your chat.", "Звір цей код зі співрозмовником особисто. Якщо збігається, ніхто не підмінив ключі й не читає ваше листування."],
-    ["Тип", "Type", "Тип"], ["Участники", "Members", "Учасники"], ["Описание", "Description", "Опис"], ["можно", "allowed", "можна"], ["нельзя", "not allowed", "не можна"],
-    ["Изменить", "Edit", "Змінити"], ["Выйти", "Leave", "Вийти"], ["Удалить переписку", "Delete chat", "Видалити листування"],
-    ["Удалить переписку у обоих? Её нельзя вернуть.", "Delete the chat for both of you? It can't be restored.", "Видалити листування в обох? Його не можна повернути."],
-    ["Удалить навсегда? Все сообщения пропадут.", "Delete forever? All messages will be gone.", "Видалити назавжди? Усі повідомлення зникнуть."],
-    ["Удалено", "Deleted", "Видалено"], ["Обновить", "Refresh", "Оновити"], ["Кого почитать", "Who to follow", "Кого почитати"],
-    ["Что нового?", "What's new?", "Що нового?"], ["Фото (до 4)", "Photos (up to 4)", "Фото (до 4)"], ["Видео", "Video", "Відео"],
-    ["Опубликовать", "Post", "Опублікувати"], ["Пока никого", "Nobody yet", "Поки нікого"], ["фото проверит модератор", "a moderator will check photos", "фото перевірить модератор"],
-    ["Видео больше 50 МБ", "Video is over 50 MB", "Відео більше 50 МБ"], ["Анонимный пост…", "Anonymous post…", "Анонімний пост…"],
-    ["Опубликовано", "Posted", "Опубліковано"], ["Отправлено на проверку", "Sent for review", "Надіслано на перевірку"], ["Лента пустая", "The feed is empty", "Стрічка порожня"],
-    ["Напиши первый пост!", "Write the first post!", "Напиши перший пост!"], ["Ещё", "More", "Ще"], ["на проверке", "under review", "на перевірці"],
-    ["✓ одобрить", "✓ approve", "✓ схвалити"], ["✕ отклонить", "✕ reject", "✕ відхилити"], ["Удалить пост?", "Delete post?", "Видалити пост?"],
-    ["Одобрено", "Approved", "Схвалено"], ["Отклонено", "Rejected", "Відхилено"], ["Комментарий…", "Comment…", "Коментар…"],
-    ["Ник, ID или название канала", "Name, ID or channel title", "Нік, ID або назва каналу"], ["Люди", "People", "Люди"],
-    ["Каналы и группы", "Channels and groups", "Канали та групи"], ["Популярное", "Popular", "Популярне"],
-    ["Создать группу или канал", "Create a group or channel", "Створити групу або канал"], ["Написать", "Message", "Написати"],
-    ["Разбанить", "Unban", "Розбанити"], ["Забанить", "Ban", "Забанити"], ["Постов пока нет", "No posts yet", "Постів поки немає"],
-    ["· владелец", "· owner", "· власник"], ["опыта", "XP", "досвіду"], ["опыта · максимум", "XP · max", "досвіду · максимум"],
-    ["Редактирование", "Editing", "Редагування"], ["Назад к профилю", "Back to profile", "Назад до профілю"], ["Сменить аватарку", "Change avatar", "Змінити аватарку"],
-    ["фон профиля", "profile background", "фон профілю"], ["цвет ника", "name color", "колір ніка"], ["имя", "name", "ім'я"],
-    ["Как тебя показывать", "How to show you", "Як тебе показувати"], ["дата рождения", "birth date", "дата народження"], ["о себе", "about", "про себе"],
-    ["Пара слов о тебе", "A few words about you", "Кілька слів про тебе"], ["Безопасность", "Security", "Безпека"], ["Ключ шифрования", "Encryption key", "Ключ шифрування"],
-    ["Ключ создан и хранится только в этом браузере. На другом устройстве будет новый ключ, и старые личные сообщения там не откроются. Так задумано: ничего не остаётся.", "The key was created and lives only in this browser. Another device gets a new key, and old direct messages won't open there. That's by design: nothing is left behind.", "Ключ створено, і він зберігається лише в цьому браузері. На іншому пристрої буде новий ключ, і старі особисті повідомлення там не відкриються. Так задумано: нічого не залишається."],
-    ["Пароль", "Password", "Пароль"], ["Сменить", "Change", "Змінити"], ["Выход", "Sign out", "Вихід"], ["недоступен", "unavailable", "недоступний"],
-    ["Аватарка обновлена", "Avatar updated", "Аватарку оновлено"], ["Сохранено", "Saved", "Збережено"], ["Выйти из аккаунта?", "Sign out?", "Вийти з акаунта?"],
-    ["8+ символов, буквы и цифры", "8+ characters, letters and digits", "8+ символів, літери та цифри"],
-    ["Минимум 8 символов, буквы и цифры", "At least 8 characters, letters and digits", "Мінімум 8 символів, літери та цифри"],
-    ["Пароль изменён", "Password changed", "Пароль змінено"], ["Внешний вид", "Appearance", "Зовнішній вигляд"], ["Стиль", "Style", "Стиль"],
-    ["одна кнопка меняет всё; дальше можно докрутить ниже", "one button changes everything; fine-tune below", "одна кнопка змінює все; далі можна докрутити нижче"],
-    ["Чёрная", "Black", "Чорна"], ["Белая", "White", "Біла"], ["Синяя", "Blue", "Синя"], ["Минимал", "Minimal", "Мінімал"], ["Матрица", "Matrix", "Матриця"],
-    ["Огонь", "Fire", "Вогонь"], ["Шрифт", "Font", "Шрифт"], ["Системный", "System", "Системний"], ["Размер текста", "Text size", "Розмір тексту"],
-    ["Скругление углов", "Corner radius", "Заокруглення кутів"], ["Фон", "Background", "Фон"], ["Анимация из символов", "Character animation", "Анімація із символів"],
-    ["Нитки", "Threads", "Нитки"], ["Звёзды", "Stars", "Зорі"], ["Нет", "None", "Немає"], ["Яркость фона", "Background brightness", "Яскравість фону"],
-    ["Рабочий стол", "Desktop", "Робочий стіл"], ["Раскладка", "Layout", "Розкладка"],
-    ["«Окна» можно таскать и растягивать; двойной клик по заголовку вернёт на место", "“Windows” can be dragged and resized; double-click a title to reset", "«Вікна» можна тягати й розтягувати; подвійний клік по заголовку поверне на місце"],
-    ["Окна", "Windows", "Вікна"], ["Классика", "Classic", "Класика"], ["Док", "Dock", "Док"], ["Снизу", "Bottom", "Знизу"], ["Слева", "Left", "Зліва"],
-    ["Скрыт", "Hidden", "Прихований"], ["Анимации", "Animations", "Анімації"], ["Игла в углу экрана", "Needle in the corner", "Игла в куті екрана"],
-    ["Звук сообщений", "Message sound", "Звук повідомлень"], ["Текст в списке чатов", "Text in chat list", "Текст у списку чатів"],
-    ["показывать расшифрованное начало личных сообщений", "show the decrypted start of direct messages", "показувати розшифрований початок особистих повідомлень"],
-    ["Горячие клавиши", "Hotkeys", "Гарячі клавіші"], ["поиск ·", "search ·", "пошук ·"], ["панели ·", "panels ·", "панелі ·"], ["закрыть окно ·", "close window ·", "закрити вікно ·"],
-    ["отправить ·", "send ·", "надіслати ·"], ["новая строка", "new line", "новий рядок"], ["Свой CSS", "Custom CSS", "Свій CSS"],
-    ["Как в Linux: меняй что хочешь. Например", "Like Linux: change anything. For example", "Як у Linux: змінюй що хочеш. Наприклад"], ["/* твои стили */", "/* your styles */", "/* твої стилі */"],
-    ["Все настройки одним файлом. Можно править руками, сохранить себе или вставить чужой.", "All settings in one file. Edit by hand, save it or paste someone else's.", "Усі налаштування одним файлом. Можна правити руками, зберегти собі або вставити чужий."],
-    ["Применить", "Apply", "Застосувати"], ["Скачать", "Download", "Завантажити"], ["Загрузить", "Load", "Відкрити файл"], ["Сбросить всё", "Reset all", "Скинути все"],
-    ["Настройки применены", "Settings applied", "Налаштування застосовано"], ["В файле ошибка: это должен быть JSON", "File error: it must be JSON", "У файлі помилка: це має бути JSON"],
-    ["Сбросить все настройки и положение окон?", "Reset all settings and window positions?", "Скинути всі налаштування та положення вікон?"], ["Сбросить", "Reset", "Скинути"],
-    ["Привет! Я Игла. Сшиваю людей в одну сеть. Спрашивай, если что-то непонятно в Needle.", "Hi! I'm Needle. I stitch people into one network. Ask me if something in Needle is unclear.", "Привіт! Я Игла. Зшиваю людей в одну мережу. Питай, якщо щось незрозуміло."],
-    ["Канал: «+» в чатах → «Канал» → придумай название. Писать в канал можешь только ты, остальные читают. Можно создать до 3 групп и каналов.", "Channel: “+” in chats → “Channel” → pick a title. Only you can post, others read. You can create up to 3 groups and channels.", "Канал: «+» у чатах → «Канал» → придумай назву. Писати в канал можеш лише ти, інші читають. Можна створити до 3 груп і каналів."],
-    ["Группа: «+» в чатах → «Группа». Можно включить анонимные сообщения, тогда участники пишут как «Аноним #N».", "Group: “+” in chats → “Group”. Turn on anonymous messages and members post as “Anonymous #N”.", "Група: «+» у чатах → «Група». Можна ввімкнути анонімні повідомлення, тоді учасники пишуть як «Анонім #N»."],
-    ["Сгорание: открой чат и нажми 🔥 сверху. Выбери минуту, час или день, и новые сообщения исчезнут у всех. Совсем, даже с сервера.", "Burn: open a chat and tap 🔥 at the top. Pick a minute, an hour or a day, and new messages vanish for everyone. Even from the server.", "Згорання: відкрий чат і натисни 🔥 угорі. Обери хвилину, годину або день, і нові повідомлення зникнуть у всіх. Повністю, навіть із сервера."],
-    ["Анонимно можно писать в группах, где это разрешено (кнопка-маска), и в ленте. Вместо ника все увидят «Аноним #N». Номер у тебя всегда один и тот же в одном месте.", "You can post anonymously in groups that allow it (mask button) and in the feed. Everyone sees “Anonymous #N” instead of your name. Your number stays the same in one place.", "Анонімно можна писати в групах, де це дозволено (кнопка-маска), і в стрічці. Замість ніка всі побачать «Анонім #N». Номер у тебе завжди той самий в одному місці."],
-    ["Личные сообщения шифруются прямо в твоём браузере, а сервер видит кашу из символов. Ключ хранится закрытым твоим паролем, поэтому личка открывается на любом твоём устройстве. Сверить, что никто не подменил ключ, можно по «коду безопасности» в ⓘ чата.", "Direct messages are encrypted right in your browser, the server sees gibberish. Your key is locked with your password, so DMs open on any of your devices. Check that nobody swapped the key with the “security code” in the chat's ⓘ.", "Особисті повідомлення шифруються прямо у твоєму браузері, а сервер бачить кашу із символів. Ключ зберігається закритим твоїм паролем, тому особисті відкриваються на будь-якому твоєму пристрої. Звірити, що ніхто не підмінив ключ, можна за «кодом безпеки» в ⓘ чату."],
-    ["Номер телефона в Needle не нужен вообще: только ник, почта и пароль. Почту видишь только ты.", "Needle doesn't need a phone number at all: just a name, email and password. Only you see your email.", "Номер телефону тут не потрібен узагалі: лише нік, пошта й пароль. Пошту бачиш лише ти."],
-    ["Фото можно в группы, каналы и в ленту (до 4 штук). Фото в ленте сначала смотрит модератор, чтобы не было мусора.", "Photos go to groups, channels and the feed (up to 4). Feed photos are checked by a moderator first to keep out junk.", "Фото можна в групи, канали і в стрічку (до 4 штук). Фото в стрічці спершу переглядає модератор, щоб не було сміття."],
-    ["Видео пока может выкладывать только владелец Needle.", "For now only the owner of Needle can post videos.", "Відео поки може викладати лише власник."],
-    ["Открой ⚙ Настройки → Стиль: Чёрная, Белая, Синяя, Linux, Windows, Минимал. Дальше шрифт, размер, фон из символов, раскладка («Игла», «Окна», «Классика») и даже свой CSS. А ещё файл ~/.needlerc: все настройки одним текстом.", "Open ⚙ Settings → Style: Black, White, Blue, Linux, Windows, Minimal. Then font, size, character background, layout (“Needle”, “Windows”, “Classic”) and even custom CSS. Plus the ~/.needlerc file: all settings as one text.", "Відкрий ⚙ Налаштування → Стиль: Чорна, Біла, Синя, Linux, Windows, Мінімал. Далі шрифт, розмір, фон із символів, розкладка («Игла», «Вікна», «Класика») і навіть свій CSS. А ще файл ~/.needlerc: усі налаштування одним текстом."],
-    ["Окна таскаются за заголовок и растягиваются за правый нижний угол. Двойной клик по заголовку вернёт окно на место. Окна включаются в Настройки → Раскладка → Окна.", "Drag windows by the title and resize from the bottom-right corner. Double-click a title to reset. Turn them on in Settings → Layout → Windows.", "Вікна тягаються за заголовок і розтягуються за правий нижній кут. Подвійний клік по заголовку поверне вікно на місце. Вікна вмикаються в Налаштування → Розкладка → Вікна."],
-    ["Поиск (Ctrl+K): пиши ник, ID или название канала. В профиле человека есть кнопка «Написать».", "Search (Ctrl+K): type a name, ID or channel title. A person's profile has a “Message” button.", "Пошук (Ctrl+K): пиши нік, ID або назву каналу. У профілі людини є кнопка «Написати»."],
-    ["Профиль: нажми на свой ник сверху справа. Там аватарка, «о себе» и выход. Ник сменить нельзя.", "Profile: tap your name at the top right. Tap ✏️ Edit to change the avatar, background, name color and more.", "Профіль: натисни на свій нік угорі праворуч. Через ✏️ Змінити можна поміняти аватарку, фон, колір ніка та інше."],
-    ["Забыл пароль? На экране входа нажми «Забыл пароль?», и придёт ссылка на почту. Сменить пароль можно в профиле.", "Forgot your password? Tap “Forgot password?” on the sign-in screen and a link will come to your email. You can change the password in your profile.", "Забув пароль? На екрані входу натисни «Забув пароль?», і на пошту прийде посилання. Змінити пароль можна в профілі."],
-    ["Чем Needle лучше: личка всегда зашифрована, сообщения можно сжечь, не нужен номер, есть анонимный режим, а рабочий стол настраивается как Linux.", "Why Needle: DMs are always encrypted, messages can burn, no phone number, there's an anonymous mode, and the desktop is customizable like Linux.", "Чим Игла краща: особисті завжди зашифровані, повідомлення можна спалити, не потрібен номер, є анонімний режим, а робочий стіл налаштовується як Linux."],
-    ["Мат превращается в звёздочки сам, ссылки и @ники запрещены от спама. Нарушителей банит владелец.", "Swear words turn into stars by themselves, links and @nicknames are banned against spam. The owner bans rule breakers.", "Лайка сама перетворюється на зірочки, посилання та @ніки заборонені від спаму. Порушників банить власник."],
-    ["Я Игла, талисман Needle (TAN · The Anonymous Network). Помогаю разобраться. Пока я знаю готовые ответы, но скоро стану умнее.", "I'm Needle, the mascot of TAN · The Anonymous Network. I help you find your way. For now I know ready answers, but I'll get smarter soon.", "Я Игла, талісман TAN · The Anonymous Network. Допомагаю розібратися. Поки я знаю готові відповіді, але скоро стану розумнішою."],
-    ["Пока не знаю ответа 🙈 Спроси про каналы, группы, сгорание, шифрование, анонимность, фото или настройки.", "I don't know that yet 🙈 Ask about channels, groups, burn, encryption, anonymity, photos or settings.", "Поки не знаю відповіді 🙈 Спитай про канали, групи, згорання, шифрування, анонімність, фото чи налаштування."],
-    ["Погладить", "Pet", "Погладити"], ["Игла ›", "Needle ›", "Игла ›"], ["Как создать канал?", "How do I create a channel?", "Як створити канал?"],
-    ["Что такое сгорание?", "What is burn?", "Що таке згорання?"], ["Это безопасно?", "Is it secure?", "Це безпечно?"], ["Как писать анонимно?", "How to post anonymously?", "Як писати анонімно?"],
-    ["Настройки как в Linux", "Linux-like settings", "Налаштування як у Linux"], ["Спроси Иглу…", "Ask Needle…", "Спитай Иглу…"], ["Ай, колется! 🪡", "Ouch, that pricks! 🪡", "Ай, колеться! 🪡"],
-    ["Сшиваю чаты в одну сеть.", "Stitching chats into one network.", "Зшиваю чати в одну мережу."], ["Тут ничего не остаётся, кроме нитки ✦", "Nothing is left here but a thread ✦", "Тут нічого не залишається, крім нитки ✦"],
-    ["Не загрузилась библиотека. Обнови страницу.", "A library failed to load. Refresh the page.", "Не завантажилася бібліотека. Онови сторінку."],
-    ["Ссылка устарела, войди заново", "The link expired, sign in again", "Посилання застаріло, увійди знову"],
-    ["Нет связи с сервером. Обнови страницу чуть позже.", "No connection to the server. Refresh a bit later.", "Немає зв'язку з сервером. Онови сторінку трохи пізніше."],
-    ["Профиль не найден, войди заново", "Profile not found, sign in again", "Профіль не знайдено, увійди знову"],
-    ["Аккаунт заблокирован: писать нельзя", "Account blocked: you can't post", "Акаунт заблоковано: писати не можна"],
-    ["Язык", "Language", "Мова"], ["интерфейс и имя: Игла / needle", "interface and name: Игла / needle", "інтерфейс та ім'я: Игла / needle"],
-    ["в сети", "online", "у мережі"], ["был(а)", "last seen", "був(ла)"], ["назад", "ago", "тому"], ["был(а) давно", "last seen long ago", "був(ла) давно"],
-    ["Поделиться", "Share", "Поділитися"], ["Скопировать", "Copy", "Скопіювати"], ["Скопировано", "Copied", "Скопійовано"],
-    ["день рождения сегодня", "birthday today", "день народження сьогодні"], ["день рождения", "birthday", "день народження"], ["в Needle с", "on Needle since", "у Иглі з"],
-    ["Посты", "Posts", "Пости"], ["Фото пока нет", "No photos yet", "Фото поки немає"], ["владелец", "owner", "власник"],
-    ["мин", "min", "хв"], ["ч", "h", "год"], ["с", "s", "с"], ["Привет", "Hi", "Привіт"], ["Я Игла. Чем помочь?", "I'm Needle. How can I help?", "Я Игла. Чим допомогти?"],
-    ["Кланы", "Clans", "Клани"],
-    ["Админка", "Admin", "Адмінка"],
-    ["Создатель", "Creator", "Творець"],
-    ["Премиум", "Premium", "Преміум"],
-    ["премиум", "premium", "преміум"],
-    ["ещё юзернеймы", "more usernames", "ще юзернейми"],
-    ["клан", "clan", "клан"],
-    ["лидер", "leader", "лідер"],
-    ["офицер", "officer", "офіцер"],
-    ["участник", "member", "учасник"],
-    ["надпись на фоне", "text on the banner", "напис на фоні"],
-    ["ASCII, смайлик или пара слов", "ASCII, emoji or a few words", "ASCII, смайлик або кілька слів"],
-    ["ещё один юзернейм", "one more username", "ще один юзернейм"],
-    ["Добавить", "Add", "Додати"],
-    ["Добавлено", "Added", "Додано"],
-    ["Убрать", "Remove", "Прибрати"],
-    ["Сколько угодно. По любому из них тебя найдут в поиске.", "As many as you like. Search finds you by any of them.", "Скільки завгодно. За будь-яким із них тебе знайдуть у пошуку."],
-    ["До 5 штук. По любому из них тебя найдут в поиске.", "Up to 5. Search finds you by any of them.", "До 5 штук. За будь-яким із них тебе знайдуть у пошуку."],
-    ["твой клан", "your clan", "твій клан"],
-    ["Свой клан", "Your own clan", "Свій клан"],
-    ["Создать клан", "Create a clan", "Створити клан"],
-    ["Тег клана видно рядом с ником у всех участников. У клана свой чат, уровень и место в топе недели.", "Members get the clan tag next to their name. A clan has its own chat, level and a spot in the weekly top.", "Тег клану видно поруч із ніком у всіх учасників. У клану свій чат, рівень і місце в топі тижня."],
-    ["Создать клан можно с 3 уровня. Вступить можно сразу: выбери клан ниже и подай заявку.", "You can create a clan from level 3. You can join right away: pick a clan below and send a request.", "Створити клан можна з 3 рівня. Вступити можна одразу: обери клан нижче й подай заявку."],
-    ["Топ недели", "Top of the week", "Топ тижня"],
-    ["Кланов пока нет. Будь первым!", "No clans yet. Be the first!", "Кланів поки немає. Будь першим!"],
-    ["ур.", "lvl", "рів."],
-    ["Опыт за неделю", "XP this week", "Досвід за тиждень"],
-    ["Опыт клана складывается из опыта участников. Топ обновляется каждую неделю.", "Clan XP is the sum of its members' XP. The top resets every week.", "Досвід клану складається з досвіду учасників. Топ оновлюється щотижня."],
-    ["Все кланы", "All clans", "Усі клани"],
-    ["из 50", "of 50", "з 50"],
-    ["уровень", "level", "рівень"],
-    ["за неделю", "this week", "за тиждень"],
-    ["Уровень клана", "Clan level", "Рівень клану"],
-    ["Чат клана", "Clan chat", "Чат клану"],
-    ["Отменить заявку", "Cancel request", "Скасувати заявку"],
-    ["Подать заявку", "Request to join", "Подати заявку"],
-    ["Удалить клан", "Delete clan", "Видалити клан"],
-    ["Выйти из клана", "Leave clan", "Вийти з клану"],
-    ["Заявки", "Requests", "Заявки"],
-    ["Участники", "Members", "Учасники"],
-    ["Принять", "Accept", "Прийняти"],
-    ["Отклонить", "Decline", "Відхилити"],
-    ["Снять офицера", "Remove officer", "Зняти офіцера"],
-    ["Сделать офицером", "Make officer", "Зробити офіцером"],
-    ["Исключить", "Kick", "Виключити"],
-    ["Исключить из клана?", "Kick from the clan?", "Виключити з клану?"],
-    ["Заявка отправлена", "Request sent", "Заявку надіслано"],
-    ["Чат клана тоже удалится.", "The clan chat will be deleted too.", "Чат клану теж видалиться."],
-    ["Клан удалён", "Clan deleted", "Клан видалено"],
-    ["Изменить клан", "Edit clan", "Змінити клан"],
-    ["Новый клан", "New clan", "Новий клан"],
-    ["название", "name", "назва"],
-    ["2–24 символа", "2–24 characters", "2–24 символи"],
-    ["тег у ника", "tag next to the name", "тег біля ніка"],
-    ["2–4 буквы или цифры", "2–4 letters or digits", "2–4 літери або цифри"],
-    ["цвет", "color", "колір"],
-    ["о клане", "about the clan", "про клан"],
-    ["Чем вы занимаетесь", "What your clan is about", "Чим ви займаєтесь"],
-    ["Создать", "Create", "Створити"],
-    ["Тег: 2–4 буквы или цифры", "Tag: 2–4 letters or digits", "Тег: 2–4 літери або цифри"],
-    ["Клан создан", "Clan created", "Клан створено"],
-    ["Эффекты для всех", "Effects for everyone", "Ефекти для всіх"],
-    ["сек", "sec", "сек"],
-    ["❄ Снег", "❄ Snow", "❄ Сніг"],
-    ["🎉 Конфетти", "🎉 Confetti", "🎉 Конфеті"],
-    ["✺ Салют ASCII", "✺ ASCII fireworks", "✺ Салют ASCII"],
-    ["▓ Матрица", "▓ Matrix", "▓ Матриця"],
-    ["♥ Сердечки", "♥ Hearts", "♥ Сердечка"],
-    ["✦ Звёзды", "✦ Stars", "✦ Зірки"],
-    ["■ Остановить", "■ Stop", "■ Зупинити"],
-    ["Эффект увидят все, кто сейчас на сайте, в течение 15 секунд.", "Everyone on the site will see it within 15 seconds.", "Ефект побачать усі, хто зараз на сайті, протягом 15 секунд."],
-    ["Пользователь", "User", "Користувач"],
-    ["юзернейм, можно свой", "username, yours works too", "юзернейм, можна свій"],
-    ["Найти", "Find", "Знайти"],
-    ["Премиум ✦", "Premium ✦", "Преміум ✦"],
-    ["Забрать", "Take away", "Забрати"],
-    ["Выдать", "Give", "Видати"],
-    ["Бан", "Ban", "Бан"],
-    ["эксклюзивные фоны", "exclusive banners", "ексклюзивні фони"],
-    ["эксклюзивные цвета ника", "exclusive name colors", "ексклюзивні кольори ніка"],
-    ["У создателя все фоны и цвета открыты всегда.", "The creator always has every banner and color.", "У творця всі фони й кольори відкриті завжди."],
-    ["Нажми, чтобы выдать или забрать. Выделенные уже выданы.", "Tap to give or take away. Highlighted ones are already given.", "Натисни, щоб видати або забрати. Виділені вже видано."],
-    ["Эффект остановлен", "Effect stopped", "Ефект зупинено"],
-    ["Эффект запущен для всех", "Effect started for everyone", "Ефект запущено для всіх"],
-    ["Премиум забран", "Premium removed", "Преміум забрано"],
-    ["Премиум выдан", "Premium given", "Преміум видано"],
-    ["Только для создателя", "Creator only", "Лише для творця"],
-    ["Пользователь не найден", "User not found", "Користувача не знайдено"],
-    ["Клан можно создать с 3 уровня", "You can create a clan from level 3", "Клан можна створити з 3 рівня"],
-    ["Ты уже в клане", "You're already in a clan", "Ти вже в клані"],
-    ["Такое название или тег уже заняты", "That name or tag is taken", "Така назва або тег уже зайняті"],
-    ["В клане уже 50 человек", "The clan already has 50 members", "У клані вже 50 людей"],
-    ["Это доступно с премиумом", "This needs premium", "Це доступно з преміумом"],
-    ["Можно до 5 юзернеймов", "Up to 5 usernames", "Можна до 5 юзернеймів"],
-    ["Заявка уже обработана", "The request was already handled", "Заявку вже оброблено"],
-    ["Можно подать не больше 3 заявок", "You can send up to 3 requests", "Можна подати не більше 3 заявок"],
-    ["Этот фон или цвет тебе не выдан", "You don't have this banner or color", "Цей фон або колір тобі не видано"],
-    ["Нет прав", "No permission", "Немає прав"],
-    ["Клан не найден", "Clan not found", "Клан не знайдено"],
-  ];
-  const LANGS = { ru: "ru-RU", uk: "uk-UA", en: "en-US" };
-  let LANG = "ru", TMAP = null, TRE = null;
-  const tl = s => (TMAP && TMAP.get(s)) || s;
-  const LOC = () => LANGS[LANG];
-  const I18N = (() => {
-    const SKIP = ".tx,.bio,.nk,.n,.btx,.ctag,.cchip,.lv,.cmt b,.wt .av+.tt>b,.cmt .c>div,.say,#bg,textarea,script,style,pre,code,input";
-    const ATTR = ["placeholder", "title", "aria-label"];
-    const CY = /[А-Яа-яЁё]/;
-    function tr(s) {
-      if (!TMAP || !s || !CY.test(s)) return s;
-      const k = s.trim(), h = TMAP.get(k); if (h !== undefined) return s.replace(k, h);
-      return s.replace(TRE, m => TMAP.get(m) || m);
-    }
-    function text(n) { const p = n.parentElement; if (!p || p.closest(SKIP)) return; const v = tr(n.nodeValue); if (v !== n.nodeValue) n.nodeValue = v; }
-    function attrs(el) { for (const a of ATTR) { const v = el.getAttribute(a); if (v && CY.test(v)) { const x = tr(v); if (x !== v) el.setAttribute(a, x); } } }
-    function walk(root) {
-      if (root.nodeType === 3) return text(root);
-      if (root.nodeType !== 1) return;
-      attrs(root); root.querySelectorAll("[placeholder],[title],[aria-label]").forEach(attrs);
-      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) text(n);
-    }
-    return {
-      set(l) {
-        LANG = LANGS[l] ? l : "ru"; document.documentElement.lang = LANG;
-        if (LANG === "ru") { TMAP = null; return; }
-        const i = LANG === "en" ? 1 : 2; TMAP = new Map(DICT.map(r => [r[0], r[i]]));
-        const keys = DICT.map(r => r[0]).filter(k => k.length > 3).sort((a, b) => b.length - a.length).map(k => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-        TRE = new RegExp("(?<![А-Яа-яЁёA-Za-z])(?:" + keys.join("|") + ")(?![А-Яа-яЁёA-Za-z])", "g");
-        walk(document.body);
-        new MutationObserver(ms => { for (const m of ms) { if (m.type === "characterData") text(m.target); else if (m.type === "attributes") attrs(m.target); else m.addedNodes.forEach(walk); } })
-          .observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ATTR });
-      },
-    };
-  })();
-
-  // ================= настройки «как Linux» =================
-  // ================= смайлы Fluent 3D (Microsoft, MIT) вместо системных =================
-  const Emoji = (() => {
-    const CDN = "https://cdn.jsdelivr.net/npm/@lobehub/fluent-emoji-3d@1.1.0/assets/";
-    const RE = /(?:\p{RI}\p{RI}|[#*0-9]\uFE0F?\u20E3|\p{Extended_Pictographic}(?:\uFE0F|\p{EMod})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{EMod})?)*)/gu;
-    const PLAIN = /^[\u00a9\u00ae\u203c\u2049\u2122\u2139\u2190-\u21ff\u2714\u2716\u3030\u303d\u3297\u3299]\uFE0F?$/u;
-    const SKIP = "textarea,input,pre,code,svg,script,style,.spirit,.emj,[contenteditable],.mono.code";
-    const hex = e => [...e].map(c => c.codePointAt(0).toString(16).padStart(4, "0")).join("-");
-    const bad = new Set();
-    const tries = e => { const a = hex(e), b = hex(e.replace(/\uFE0F/g, "")); return [...new Set([a, b, [...e].length === 1 ? a + "-fe0f" : a])].filter(x => !bad.has(x)); };
-    function img(e) {
-      const t = tries(e); if (!t.length) return null;
-      const i = document.createElement("img"); i.className = "emj"; i.alt = e; i.draggable = false; i.decoding = "async"; let k = 0;
-      i.onerror = () => { bad.add(t[k]); k++; if (k < t.length) i.src = CDN + t[k] + ".webp"; else i.replaceWith(document.createTextNode(e)); };
-      i.src = CDN + t[0] + ".webp"; return i;
-    }
-    function text(n) {
-      const v = n.nodeValue; if (!v || !/[\u00a9-\u{1faff}]/u.test(v)) return;
-      const p = n.parentElement; if (!p || p.closest(SKIP)) return;
-      RE.lastIndex = 0; if (!RE.test(v)) return; RE.lastIndex = 0;
-      const f = document.createDocumentFragment(); let last = 0, m, any = false;
-      while ((m = RE.exec(v))) { if (PLAIN.test(m[0])) continue; const el = img(m[0]); if (!el) continue; any = true; if (m.index > last) f.append(v.slice(last, m.index)); f.append(el); last = m.index + m[0].length; }
-      if (!any) return; if (last < v.length) f.append(v.slice(last)); n.replaceWith(f);
-    }
-    function walk(root) {
-      if (root.nodeType === 3) return text(root); if (root.nodeType !== 1 || root.closest && root.closest(SKIP)) return;
-      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), list = []; let n; while ((n = w.nextNode())) list.push(n); list.forEach(text);
-    }
-    let q = new Set(), raf = 0, on = false;
-    const flush = () => { raf = 0; const xs = [...q]; q.clear(); xs.forEach(x => x.isConnected && walk(x)); };
-    return {
-      start() {
-        if (on) return; on = true; walk(document.body);
-        new MutationObserver(ms => { for (const m of ms) { if (m.type === "characterData") q.add(m.target); else m.addedNodes.forEach(x => q.add(x)); } if (!raf) raf = requestAnimationFrame(flush); })
-          .observe(document.body, { childList: true, subtree: true, characterData: true });
-      },
-    };
-  })();
-  const DEF = { theme: "tg", font: "system", size: 15, radius: 12, bg: "none", bgLevel: 35, lang: "", layout: "app", dock: "bottom", motion: "full", helper: true, sound: true, preview: true, css: "", wins: {} };
-  const PRESET = {
-    black: { font: "grotesk", radius: 14, bg: "needle", bgLevel: 35 }, dark: { font: "grotesk", radius: 6, bg: "fire", bgLevel: 55 }, light: { font: "grotesk", radius: 10, bg: "none" },
-    blue: { font: "grotesk", radius: 12, bg: "stars", bgLevel: 60 }, linux: { font: "mono", radius: 0, bg: "matrix", bgLevel: 30 },
-    windows: { font: "system", radius: 0, bg: "none" }, minimal: { font: "system", radius: 16, bg: "none" }, matrix: { font: "mono", radius: 2, bg: "matrix", bgLevel: 55 },
+  const errText = e => {
+    const m = (e && (e.message || e.error_description || e.msg)) || String(e || "");
+    const sl = /slow:(\d+)/.exec(m); if (sl) return "Медленный режим: подожди " + sl[1] + " сек.";
+    for (const k in ERR) if (m.includes(k)) return ERR[k];
+    if (/rate limit|too many/i.test(m)) return "Слишком много попыток, подожди немного";
+    if (/fetch|network/i.test(m)) return "Нет связи с сервером";
+    return "Ошибка: " + m.slice(0, 120);
   };
-  const LIGHT = { tg: "#17212b", tgl: "#ffffff", light: "#f4f4f2", windows: "#008080", minimal: "#ffffff", blue: "#06122b" };
-  const hadCfg = !!store.get("needle-cfg", null);
-  let CFG = Object.assign({}, DEF, store.get("needle-cfg", {}));
-  if (CFG.v !== 2 && CFG.v !== 3) { if (CFG.theme === "black" && CFG.bg === "none") Object.assign(CFG, { bg: "needle", bgLevel: 35 }); }
-  if (CFG.v !== 3) { if (CFG.bg === "needle" && CFG.bgLevel >= 45) CFG.bgLevel = 35; if (CFG.layout === "tiles") CFG.layout = "app"; CFG.v = 3; store.set("needle-cfg", CFG); }
-  const saveCfg = () => store.set("needle-cfg", CFG);
-  if (CFG.v === 3) { CFG.helper = true; CFG.v = 4; saveCfg(); }   // v7: Игла-питомец включена у всех
-  if ((CFG.v || 0) < 5) { Object.assign(CFG, { theme: "tg", font: "system", bg: "none", radius: 12, v: 5 }); saveCfg(); }   // v10: вид как в Telegram
-  if (!LANGS[CFG.lang]) { const nl = navigator.language || ""; CFG.lang = hadCfg ? "ru" : /^uk/i.test(nl) ? "uk" : /^(ru|be|kk)/i.test(nl) ? "ru" : "en"; saveCfg(); }
-  I18N.set(CFG.lang);
-  function applyCfg() {
-    const r = document.documentElement;
-    r.dataset.theme = CFG.theme; r.dataset.font = CFG.font; r.dataset.motion = CFG.motion;
-    r.style.setProperty("--fs", Math.min(20, Math.max(12, +CFG.size || 15)) + "px");
-    r.style.setProperty("--r", Math.min(20, Math.max(0, +CFG.radius || 0)) + "px");
-    $('meta[name=theme-color]').content = LIGHT[CFG.theme] || "#000000";
-    $("#user-css").textContent = String(CFG.css || "").replace(/<\/?style/gi, "");
-    BG.set(CFG.bg, CFG.bgLevel);
-    document.body.classList.remove("d-bottom", "d-left", "d-hidden"); document.body.classList.add("d-" + CFG.dock);
-    layout();
-    const mini = $("#mini"); if (mini) mini.hidden = !CFG.helper;
-  }
 
-  // ================= фон из символов =================
-  const BG = (() => {
-    const el = $("#bg"); let mode = "none", W = 0, H = 0, heat, cols, stars, t0 = 0, mx = -1, my = -1, raf = 0;
-    const CW = 7.2, CH = 12;
-    function size() { W = Math.ceil(innerWidth / CW) + 1; H = Math.ceil(innerHeight / CH) + 1; heat = new Float32Array(W * H); cols = Array.from({ length: W }, () => Math.random() * H | 0); stars = Array.from({ length: Math.round(W * H / 55) }, () => [Math.random() * W | 0, Math.random() * H | 0, Math.random() * 6.3]); }
-    addEventListener("resize", size); size();
-    addEventListener("pointermove", e => { mx = e.clientX / CW | 0; my = e.clientY / CH | 0; }, { passive: true });
-    const FP = " .,:;-=+*x%#@", SP = " .·+*✦";
-    const MX = "01ｱｲｳｴｵｶｷｸｹｺ<>/\\=+*#";
-    let grid = [];
-    function frame(t) {
-      raf = requestAnimationFrame(frame);
-      if (document.hidden || t - t0 < (mode === "stars" ? 90 : 50)) return; t0 = t;
-      let out = "";
-      if (mode === "fire") {
-        const Hh = heat;
-        for (let x = 0; x < W; x++) { const n = Math.sin(x * .07 + t * .0011) * .5 + Math.sin(x * .023 - t * .0007) * .5; Hh[(H - 1) * W + x] = Math.max(0, .5 + n * .55) * (Math.random() * .5 + .6); }
-        for (let y = 0; y < H - 1; y++) for (let x = 0; x < W; x++) { const sx = Math.min(W - 1, Math.max(0, x + (Math.random() * 3 | 0) - 1)); const v = Hh[(y + 1) * W + sx] - Math.random() * .034 - .008; Hh[y * W + x] = v > 0 ? v : 0; }
-        if (mx >= 0) for (let dy = -2; dy <= 2; dy++) for (let dx = -4; dx <= 4; dx++) { const x = mx + dx, y = my + dy; if (x >= 0 && x < W && y >= 0 && y < H) Hh[y * W + x] = Math.min(1, Hh[y * W + x] + .22); }
-        for (let y = 0; y < H; y++) { let row = ""; for (let x = 0; x < W; x++) row += FP[Math.min(FP.length - 1, Hh[y * W + x] * FP.length | 0)]; out += row + "\n"; }
-      } else if (mode === "stars") {
-        if (grid.length !== H) grid = Array.from({ length: H }, () => Array(W).fill(" "));
-        for (const r of grid) r.fill(" ");
-        for (const s of stars) { const v = (Math.sin(t * .0016 + s[2]) + 1) / 2; grid[s[1]][s[0]] = SP[Math.min(SP.length - 1, v * SP.length | 0)]; }
-        out = grid.map(r => r.join("")).join("\n");
-      } else if (mode === "needle") {
-        if (grid.length !== H || (grid[0] || []).length !== W) grid = Array.from({ length: H }, () => Array(W).fill(" "));
-        for (const r of grid) r.fill(" ");
-        const n = Math.max(3, Math.min(7, H / 11 | 0)), step = t * .0035 | 0;
-        const yAt = (i, x) => { const b = (i + .6) / (n + .2) * H, a = 2 + i % 3 * 1.4; let y = b + Math.sin(x * (.045 + i * .007) + t * (.00035 + i * .00006) + i * 1.7) * a + Math.sin(x * .013 - t * .0002 + i) * a * 1.6; if (mx >= 0) { const d = (x - mx) * (x - mx) / 60 + (y - my) * (y - my) / 6; if (d < 9) y += (y < my ? -1 : 1) * 3.2 * Math.exp(-d / 3); } return y; };
-        const nx = (t * .009) % (W + 60) - 20, nt = 0;
-        for (let i = 0; i < n; i++) for (let x = 0; x < W; x++) {
-          if (i === nt && x > nx - 10) continue;
-          if ((x + i * 4 + step) % 7 === 6) continue;
-          const y = yAt(i, x), yi = Math.round(y), s = yAt(i, x + 1) - y;
-          if (yi >= 0 && yi < H) grid[yi][x] = Math.abs(s) < .35 ? "-" : s > 0 ? "\\" : "/";
-        }
-        for (let j = 0; j < 14; j++) { const x = Math.round(nx) - j, yi = Math.round(yAt(nt, x)); if (x >= 0 && x < W && yi >= 0 && yi < H) grid[yi][x] = j === 0 ? ">" : j === 11 ? "o" : j > 11 ? "-" : "="; }
-        out = grid.map(r => r.join("")).join("\n");
-      } else if (mode === "matrix") {
-        if (grid.length !== H || (grid[0] || []).length !== W) grid = Array.from({ length: H }, () => Array(W).fill(" "));
-        for (let x = 0; x < W; x++) {
-          if (Math.random() < .5) continue;
-          const y = cols[x]; if (y < H) grid[y][x] = MX[Math.random() * MX.length | 0];
-          const tail = y - 14; if (tail >= 0 && tail < H) grid[tail][x] = " ";
-          cols[x] = y > H + 14 + Math.random() * 40 ? 0 : y + 1;
-        }
-        out = grid.map(r => r.join("")).join("\n");
-      }
-      el.textContent = out;
-    }
-    return {
-      set(m, level) {
-        mode = m; grid = []; el.textContent = ""; heat && heat.fill(0);
-        el.style.opacity = m === "none" ? 0 : Math.max(.05, Math.min(1, (+level || 50) / 100));
-        if (m !== "none" && !raf) raf = requestAnimationFrame(frame);
-        if (m === "none" && raf) { cancelAnimationFrame(raf); raf = 0; }
-      },
-    };
-  })();
-
-  // текст проявляется из символов
-  const SYM = "!<>-_\\/[]{}=+*^?#@$%&01░▒▓";
-  function scramble(el, text, speed = 1) {
-    text = text ?? el.textContent; const len = text.length; let f = 0;
-    if (CFG.motion === "off") { el.textContent = text; return Promise.resolve(); }
-    return new Promise(res => (function tick() {
-      const done = Math.floor(f * speed * .7); let s = "";
-      for (let i = 0; i < len; i++) s += i < done || text[i] === " " || text[i] === "\n" ? text[i] : SYM[Math.random() * SYM.length | 0];
-      el.textContent = s; f++;
-      if (done < len) requestAnimationFrame(tick); else { el.textContent = text; res(); }
-    })());
-  }
+  // ================= устройство =================
+  // у каждого браузера свой случайный ключ; на сервере лежит только его хэш
+  const DEV = (() => { let t = store.get("needle-dev", ""); if (!/^[A-Za-z0-9_-]{43}$/.test(t)) { t = b64u(crypto.getRandomValues(new Uint8Array(32))); store.set("needle-dev", t); } return t; })();
+  const devName = () => {
+    const u = navigator.userAgent;
+    const br = /Edg\//.test(u) ? "Edge" : /OPR\//.test(u) ? "Opera" : /YaBrowser/.test(u) ? "Яндекс Браузер" : /Firefox\//.test(u) ? "Firefox" : /Chrome\//.test(u) ? "Chrome" : /Safari\//.test(u) ? "Safari" : "Браузер";
+    const os = /iPhone/.test(u) ? "iPhone" : /iPad/.test(u) ? "iPad" : /Android/.test(u) ? "Android" : /Windows/.test(u) ? "Windows" : /Mac OS X/.test(u) ? "macOS" : /Linux/.test(u) ? "Linux" : "";
+    return br + (os ? " · " + os : "");
+  };
 
   // ================= Supabase =================
   const sb = window.supabase ? window.supabase.createClient(API, KEY, {
     auth: { flowType: "pkce", persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: "nova-auth" },
+    global: { headers: { "x-needle-device": DEV } },
   }) : null;
   const rpc = async (fn, args = {}) => { const { data, error } = await sb.rpc(fn, args); if (error) throw error; return data; };
   const pub = (bucket, path) => `${API}/storage/v1/object/public/${bucket}/${path}`;
-  const PATH_RE = /^[0-9a-f-]{36}\/[0-9]{10,14}\.(webp|jpg)$/, VPATH_RE = /^[0-9a-f-]{36}\/[0-9]{10,14}\.(mp4|webm)$/;
-  let ME = null, session = null;
+  const PATH_RE = /^[0-9a-f-]{36}\/[0-9]{10,14}\.(webp|jpg)$/;
+  let ME = null, session = null, PREFS = { folders: [], priv_seen: "all", priv_dm: "all", blocked: [] };
 
+  // ================= оформление =================
+  const CFG = Object.assign({ theme: "system", size: 16, sound: true, preview: true, enter: true }, store.get("needle2-cfg", {}));
+  const saveCfg = () => { store.set("needle2-cfg", CFG); applyCfg(); };
+  const darkNow = () => CFG.theme === "dark" || (CFG.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  function applyCfg() {
+    document.documentElement.dataset.theme = darkNow() ? "dark" : "light";
+    document.documentElement.style.setProperty("--fs", CFG.size + "px");
+    const m = $('meta[name="theme-color"]'); if (m) m.content = darkNow() ? "#1c1d1f" : "#fbfbfb";
+  }
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", applyCfg);
+  applyCfg();
+
+  // ================= всплывашки =================
+  function toast(t) {
+    const box = $("#toasts"); if (!box) return;
+    const el = h(`<div class="toast">${esc(t)}</div>`); box.append(el);
+    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 250); }, 3000);
+  }
+  // окно как в Telegram: заголовок, текст, кнопки справа
+  function popup({ title = "", text = "", html = "", buttons = [], onMount, wide = false, cls = "" }) {
+    return new Promise(res => {
+      const el = h(`<div class="pop-wrap"><div class="pop${wide ? " wide" : ""} ${cls}" role="dialog" aria-modal="true">
+        ${title ? `<div class="pop-t">${esc(title)}</div>` : ""}${text ? `<div class="pop-x">${esc(text)}</div>` : ""}${html}
+        ${buttons.length ? `<div class="pop-b">${buttons.map((b, i) => `<button class="tb${b.danger ? " danger" : ""}${b.main ? " main" : ""}" data-i="${i}">${esc(b.t)}</button>`).join("")}</div>` : ""}</div></div>`);
+      const card = el.firstChild;
+      const done = v => { if (!el.isConnected) return; el.classList.add("out"); document.removeEventListener("keydown", key); setTimeout(() => el.remove(), 160); res(v); };
+      const key = e => { if (e.key === "Escape") done(null); if (e.key === "Enter" && !e.shiftKey && e.target.tagName !== "TEXTAREA") { const m = buttons.findIndex(b => b.main || b.danger); if (m >= 0 && !buttons[m].manual) { e.preventDefault(); $(`[data-i="${m}"]`, card).click(); } } };
+      el.addEventListener("pointerdown", e => { if (e.target === el) done(null); });
+      document.addEventListener("keydown", key);
+      $$(".pop-b [data-i]", card).forEach(b => b.onclick = async () => { const B = buttons[+b.dataset.i]; if (B.click) { const r = await B.click(card); if (r === false) return; done(r === undefined ? B.v ?? +b.dataset.i : r); } else done(B.v ?? +b.dataset.i); });
+      document.body.append(el);
+      onMount && onMount(card, done);
+      const f = $("input:not([type=file]):not([type=checkbox]),textarea", card); if (f && !isPhone()) setTimeout(() => f.focus(), 40);
+    });
+  }
+  const confirmBox = (title, text, yes = "Удалить", danger = true) => popup({ title, text, buttons: [{ t: "Отмена", v: false }, { t: yes, v: true, danger, main: !danger }] }).then(v => v === true);
+
+  // контекстное меню как в Telegram (правый клик / долгое нажатие)
+  let menuEl = null;
+  function ctxMenu(x, y, items, head = "") {
+    closeMenu();
+    const list = items.filter(Boolean);
+    menuEl = h(`<div class="menu-wrap"><div class="menu">${head}${list.map((it, i) => it === "-" ? `<div class="sep"></div>` : `<button class="mi${it.danger ? " danger" : ""}" data-i="${i}">${it.i || ""}<span>${esc(it.t)}</span></button>`).join("")}</div></div>`);
+    const m = menuEl.firstChild; document.body.append(menuEl);
+    const r = m.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+    m.style.left = Math.max(8, Math.min(x, W - r.width - 8)) + "px";
+    m.style.top = Math.max(8, Math.min(y, H - r.height - 8)) + "px";
+    m.style.transformOrigin = (x > W - r.width - 8 ? "right " : "left ") + (y > H - r.height - 8 ? "bottom" : "top");
+    menuEl.addEventListener("pointerdown", e => { if (e.target === menuEl) closeMenu(); });
+    menuEl.addEventListener("contextmenu", e => { e.preventDefault(); closeMenu(); });
+    $$("[data-i]", m).forEach(b => b.onclick = () => { const it = list[+b.dataset.i]; closeMenu(); it.f && it.f(); });
+    return m;
+  }
+  function closeMenu() { if (menuEl) { const e = menuEl; menuEl = null; e.classList.add("out"); setTimeout(() => e.remove(), 120); } }
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
+  // правый клик и долгое нажатие на телефоне
+  function onHold(el, fn) {
+    el.addEventListener("contextmenu", e => { e.preventDefault(); fn(e.clientX, e.clientY); });
+    let t = 0, sx = 0, sy = 0;
+    el.addEventListener("touchstart", e => { const p = e.touches[0]; sx = p.clientX; sy = p.clientY; t = setTimeout(() => { el._held = true; navigator.vibrate && navigator.vibrate(10); fn(sx, sy); }, 480); }, { passive: true });
+    el.addEventListener("touchmove", e => { const p = e.touches[0]; if (Math.abs(p.clientX - sx) + Math.abs(p.clientY - sy) > 10) clearTimeout(t); }, { passive: true });
+    ["touchend", "touchcancel"].forEach(ev => el.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+    el.addEventListener("click", e => { if (el._held) { el._held = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  }
+  const menuAt = (btn, items) => { const r = btn.getBoundingClientRect(); return ctxMenu(r.right - 220, r.bottom + 4, items); };
+
+  // поле ввода с плавающей подписью, как в Telegram
+  const field = (name, label, attrs = "", val = "") => `<label class="fld"><input name="${name}" placeholder=" " value="${esc(val)}" ${attrs}><span>${esc(label)}</span></label>`;
+  const areaField = (name, label, attrs = "", val = "") => `<label class="fld"><textarea name="${name}" placeholder=" " rows="3" ${attrs}>${esc(val)}</textarea><span>${esc(label)}</span></label>`;
+  const sw = (on, attrs = "") => `<span class="sw${on ? " on" : ""}" ${attrs}></span>`;
+
+  function lightbox(src) {
+    const el = h(`<div class="lb"><img alt=""><button class="ib lb-x" aria-label="Закрыть">${I.close}</button></div>`);
+    $("img", el).src = src; el.onclick = () => { el.classList.add("out"); setTimeout(() => el.remove(), 160); };
+    document.body.append(el);
+  }
+
+  // ================= аватарки и имена =================
+  const avUrl = p => p && p.avatar && /^[0-9a-f-]{36}\/[0-9]{10,14}\.webp$/.test(p.avatar) ? pub("avatars", p.avatar) : "";
+  const initials = s => { const w = String(s || "?").trim().split(/\s+/); return esc(((w[0] || "?")[0] + (w[1] ? w[1][0] : "")).toUpperCase()); };
+  const shade = id => { let n = 0; for (const c of String(id || "")) n = (n * 31 + c.charCodeAt(0)) >>> 0; return n % 5; };
+  function av(p, cls = "") {
+    const u = avUrl(p);
+    return `<span class="av s${shade(p && p.id)} ${cls}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : initials(p && (p.name || p.username))}</span>`;
+  }
+  const chatAv = (c, cls = "") => c.saved ? `<span class="av sv ${cls}">${I.saved}</span>` : c.kind === "dm" ? av(c.peer || {}, cls) : `<span class="av s${shade(c.id)} ${cls}">${initials(c.title)}</span>`;
+  const pname = p => p ? esc(p.name || p.username) : "Удалённый аккаунт";
+  const uname = p => p ? `<span class="nm">${pname(p)}</span>${p.verified || p.is_admin ? I.verified : ""}` : "Удалённый аккаунт";
+  const chatTitle = c => c.saved ? "Избранное" : c.kind === "dm" ? (c.peer ? pname(c.peer) : "Удалённый аккаунт") : esc(c.title);
+  const chatName = c => c.saved ? "Избранное" : c.kind === "dm" ? uname(c.peer) : `<span class="nm">${esc(c.title)}</span>${c.official ? I.verified : ""}`;
+  const anonName = x => `Аноним #${x.tag}`;
+  const seenText = t => {
+    if (t === undefined) return "";
+    if (!t) return "был(а) недавно";
+    const m = (Date.now() - new Date(t)) / 60000;
+    if (m < 7) return "в сети";
+    if (m < 60) return `был(а) ${Math.floor(m)} мин назад`;
+    if (sameDay(t, Date.now())) return `был(а) сегодня в ${hm(t)}`;
+    if (m < 2880 && sameDay(t, Date.now() - 864e5)) return `был(а) вчера в ${hm(t)}`;
+    return `был(а) ${new Date(t).toLocaleDateString("ru", { day: "numeric", month: "long" })}`;
+  };
+  const members = (c) => `${c.members} ${c.kind === "channel" ? plural(c.members, "подписчик", "подписчика", "подписчиков") : plural(c.members, "участник", "участника", "участников")}`;
+  const burnName = s => ({ 60: "1 минуту", 3600: "1 час", 86400: "1 день", 604800: "1 неделю" }[s] || s + " с");
+
+  // ================= звук =================
+  let AC = null;
+  function beep() {
+    if (!CFG.sound) return;
+    try { AC = AC || new AudioContext(); const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = 660; g.gain.setValueAtTime(.0001, AC.currentTime); g.gain.exponentialRampToValueAtTime(.06, AC.currentTime + .02); g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + .22); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + .25); } catch {}
+  }
   // ================= шифрование ЛС =================
   // Ключ создаётся в браузере. Копия лежит на сервере, зашифрованная паролем входа (PBKDF2 + AES-GCM),
   // поэтому переписка открывается на любом устройстве после входа. Сервер пароля не знает и ключ прочитать не может.
@@ -819,27 +339,24 @@
   })();
   let PW = null;   // пароль живёт в памяти только до открытия ключа
   // окошко «введи пароль», чтобы открыть переписку на этом устройстве или сохранить ключ
+  // окошко «введи пароль», чтобы открыть переписку на этом устройстве (или сохранить ключ на сервере)
   function keyPrompt(force) {
     if (!force && (E2E.backed || store.get("needle-keyask", 0) > Date.now())) return;
     const locked = E2E.locked;
-    modal(`<h2>${locked ? "🔒 Открыть переписку" : "🔑 Сохранить ключ"}</h2>
-      <p class="note" style="margin:0 0 14px">${locked ? "Введи пароль от аккаунта, и личные сообщения откроются на этом устройстве." : "Введи пароль от аккаунта: ключ шифрования сохранится на сервере, закрытый твоим паролем. Тогда переписка откроется на любом устройстве."}</p>
-      <div class="field"><input class="in" type="password" maxlength="72" autocomplete="current-password" placeholder="пароль"></div><div class="err"></div>
-      <div class="row2"><button class="btn ghost" data-n>Позже</button><button class="btn" data-y>${locked ? "Открыть" : "Сохранить"}</button></div>`, (m, closeM) => {
-      const inp = $("input", m), er = $(".err", m), y = $("[data-y]", m);
-      $("[data-n]", m).onclick = () => { if (!locked) store.set("needle-keyask", Date.now() + 3 * 864e5); closeM(); };
-      inp.onkeydown = e => { if (e.key === "Enter") y.click(); };
-      y.onclick = async () => {
-        const pw = inp.value; if (!pw) return inp.focus();
-        y.disabled = true; er.textContent = "";
+    popup({
+      title: locked ? "Открыть переписку" : "Сохранить ключ шифрования",
+      text: locked ? "Личные сообщения зашифрованы. Введи пароль от аккаунта, чтобы открыть их на этом устройстве." : "Введи пароль от аккаунта: ключ шифрования сохранится на сервере закрытым твоим паролем, и переписка откроется на любом твоём устройстве.",
+      html: `<div class="pop-f">${field("pw", "Пароль", 'type="password" maxlength="72" autocomplete="current-password"')}<div class="err"></div></div>`,
+      buttons: [{ t: "Позже", v: false, click: () => { if (!locked) store.set("needle-keyask", Date.now() + 3 * 864e5); } }, { t: locked ? "Открыть" : "Сохранить", main: true, click: async card => {
+        const pw = $("[name=pw]", card).value, er = $(".err", card); if (!pw) return false;
         try {
           const { error } = await sb.auth.signInWithPassword({ email: session.user.email, password: pw }); if (error) throw error;
-          await E2E.unlock(pw); closeM(); toast(locked ? "Переписка открыта" : "Ключ сохранён"); if (Chat.id) Chat.open(Chat.id); drawChats();
-        } catch (x) { er.textContent = errText(x); y.disabled = false; }
-      };
+          await E2E.unlock(pw); toast(locked ? "Переписка открыта" : "Ключ сохранён");
+          if (Chat.id) Chat.open(Chat.id); Chats.draw(); return true;
+        } catch (x) { er.textContent = errText(x); return false; }
+      } }],
     });
   }
-
   // ================= картинки =================
   const makeImage = (file, size, square) => new Promise((res, rej) => {
     if (!file || !/^image\//.test(file.type) || file.size > 25e6) return rej(new Error("bad photo"));
@@ -894,7 +411,7 @@
   function fileEl(f) {
     if (!f || !f.path || !/^[0-9a-f-]{36}\/[0-9]{10,14}\.bin$/.test(f.path)) return null;
     const kind = /^image\//.test(f.type) ? "img" : /^audio\//.test(f.type) ? "aud" : "doc";
-    const el = h(`<div class="fl ${kind}">${kind === "doc" ? `<button class="fdoc"><span class="fic">${I.file}</span><span><b>${esc(f.name)}</b><small>${fsize(+f.size || 0)}</small></span></button>` : `<div class="spin"></div>`}</div>`);
+    const el = h(`<div class="fl ${kind}">${kind === "doc" ? `<button class="fdoc"><span class="fic">${I.file}</span><span class="fdn"><b>${esc(f.name)}</b><small>${fsize(+f.size || 0)}</small></span></button>` : `<div class="spin"></div>`}</div>`);
     const gone = () => { el.innerHTML = `<span class="muted">${tl("Файл удалён: прошло 30 дней")}</span>`; };
     if (kind === "doc") $("button", el).onclick = async () => { try { const a = document.createElement("a"); a.href = await fileBlob(f); a.download = f.name || "file"; a.click(); } catch { gone(); } };
     else fileBlob(f).then(u => {
@@ -911,489 +428,620 @@
       if (old.length) await sb.storage.from("nova-files").remove(old);
     } catch {}
   }
-  function lightbox(src) { const el = h(`<div class="lb"><img alt=""></div>`); el.firstChild.src = src; el.onclick = () => el.remove(); document.body.append(el); }
 
-  // ================= аватарки и имена =================
-  const avUrl = p => p && p.avatar && /^[0-9a-f-]{36}\/[0-9]{10,14}\.webp$/.test(p.avatar) ? pub("avatars", p.avatar) : "";
-  function av(p, cls = "") {
-    const u = avUrl(p);
-    return `<span class="av ${cls}">${u ? `<img src="${esc(u)}" alt="" loading="lazy">` : esc((p && (p.name || p.username) || "?")[0])}</span>`;
-  }
-  const chatAv = c => c.saved ? `<span class="av sv">🔖</span>` : c.kind === "dm" ? av(c.peer || {}) : `<span class="av ${c.kind === "channel" ? "ch" : "gr"}">${c.kind === "channel" ? "✦" : "#"}</span>`;
-  const LVN = ["Новичок", "Свой", "Активный", "Опытный", "Знаток", "Ветеран", "Мастер", "Элита", "Гуру", "Легенда"];
-  const LVX = [0, 50, 150, 300, 500, 800, 1200, 1700, 2300, 3000];
-  const lvl = xp => { xp = +xp || 0; let n = 1; while (n < 10 && xp >= LVX[n]) n++; const cur = LVX[n - 1], nx = LVX[n] ?? null; return { n, name: LVN[n - 1], xp, cur, next: nx, pct: nx ? Math.round((xp - cur) / (nx - cur) * 100) : 100 }; };
-  const lvBadge = (p, full) => !p ? "" : p.is_admin ? `<i class="lv own" title="${tl("Создатель")}">67${full ? " · " + tl("Создатель") : ""}</i>` : p.xp != null ? `<i class="lv l${lvl(p.xp).n}" title="Уровень ${lvl(p.xp).n}">${lvl(p.xp).n}</i>` : "";
-  const CLC = ["#9aa0aa", "#ff6b6b", "#ffa94d", "#ffd43b", "#69db7c", "#38d9a9", "#4dabf7", "#748ffc", "#9775fa", "#f783ac", "#e8e8ea", "#ff922b"];
-  const clanTag = p => p && p.clan && p.clan.tag ? `<span class="ctag${p.clan.official ? " of" : ""}" title="${p.clan.official ? "Официальный клан" : ""}" style="--cc:${CLC[+p.clan.color] || CLC[0]}">[${esc(p.clan.tag)}]</span>` : "";
-  const clanChip = (c, big) => `<span class="cchip${big ? " big" : ""}${c.official ? " of" : ""}" style="--cc:${CLC[+c.color] || CLC[0]}">${esc(c.tag)}</span>${c.verified && big ? `<span class="cvf" title="Клан подтверждён">${I.check}</span>` : ""}`;
-  const pmBadge = p => p && p.premium && !p.is_admin ? `<i class="pm" title="Премиум">✦</i>` : "";
-  const uname = (p, full) => p ? clanTag(p) + `<span class="nk${p.nick > 0 ? " n" + (+p.nick) : ""}">${esc(p.name || p.username)}</span>` + (p.verified ? I.check : "") + pmBadge(p) + lvBadge(p, full) : "удалённый";
-  // надпись на фоне профиля: смайлики ложатся мелким узором вокруг аватарки, остальное крупно по центру
-  const EMO = /\p{Extended_Pictographic}/u;
-  const graphemes = s => { try { return [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(s)].map(x => x.segment); } catch { return [...s]; } };
-  const isSym = g => /^\p{S}+$/u.test(g) && !/^[\x00-\x7f]+$/.test(g);
-  const RINGS = [[66, 6, 21, .5], [106, 9, 18, .4], [150, 12, 16, .32], [196, 15, 14, .25], [246, 19, 13, .2], [300, 23, 12, .15], [356, 27, 11, .12]];
-  function banTx(t) {
-    if (!t) return "";
-    const g = graphemes(t), vis = g.filter(x => x.trim());
-    const isEmo = vis.some(x => EMO.test(x)) ? x => EMO.test(x) : vis.every(isSym) ? isSym : () => false;
-    const em = [...new Set(vis.filter(isEmo))];
-    const rest = em.length ? g.filter(x => !isEmo(x)).join("").replace(/\s+/g, " ").trim() : t;
-    let out = "";
-    if (em.length) {
-      let k = 0; out = `<span class="bpat" aria-hidden="true">`;
-      RINGS.forEach(([r, n, size, op], i) => { for (let j = 0; j < n; j++) {
-        const a = (j + (i % 2 ? .5 : 0)) / n * Math.PI * 2, x = Math.cos(a) * r * 1.3, y = Math.sin(a) * r * .78;
-        if (y > 18) continue;
-        out += `<i style="left:calc(50% + ${x.toFixed(1)}px);bottom:${(4 - y).toFixed(1)}px;font-size:${size}px;opacity:${op}">${esc(em[k++ % em.length])}</i>`;
-      } });
-      out += "</span>";
-    }
-    if (rest) out += `<span class="btx${[...rest].length > 12 ? " sm" : ""}">${esc(rest)}</span>`;
-    return out;
-  }
-  const handle = p => p ? "@" + esc(p.username) : "";
-  const dateRu = d => new Date(d).toLocaleDateString(LOC(), { day: "numeric", month: "long", year: "numeric" });
-  const age = d => { const b = new Date(d), n = new Date(); let a = n.getFullYear() - b.getFullYear(); if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--; return a; };
-  const infoRows = p => `<div class="kv"><span>Юзернейм</span><span class="mono">${handle(p)}</span></div><div class="kv"><span>ID</span><span class="mono">${p.num}</span></div>${p.birth ? `<div class="kv"><span>День рождения</span><span>${dateRu(p.birth)} · ${age(p.birth)} ${tl(plural(age(p.birth), "год", "года", "лет"))}</span></div>` : ""}<div class="kv"><span>В Needle с</span><span>${dateRu(p.created_at)}</span></div>`;
-  const chatName = c => c.saved ? tl("Избранное") : c.kind === "dm" ? (c.peer ? uname(c.peer) : "Удалённый") : `<span class="chn"${c.official && c.color != null ? ` style="color:${CLC[+c.color] || ""}"` : ""}>${esc(c.title)}</span>${c.official ? I.check : ""}`;
-  const anonName = (x, admin) => `Аноним #${x.tag}` + (admin && x.a && !x.mine ? ` · <span class="muted">${esc(x.a.username)}</span>` : "");
-
-  // ================= модалки =================
-  function modal(html, onMount) {
-    const el = h(`<div class="modal"><div class="card">${html}</div></div>`);
-    const close = () => { el.remove(); document.removeEventListener("keydown", k); };
-    const k = e => { if (e.key === "Escape") close(); };
-    el.addEventListener("pointerdown", e => { if (e.target === el) close(); });
-    document.addEventListener("keydown", k);
-    document.body.append(el); onMount && onMount(el.firstChild, close);
-    const f = $("input,textarea", el); f && setTimeout(() => f.focus(), 50);
-    return close;
-  }
-  const confirmBox = (text, yes = "Да") => new Promise(res => modal(`<h2>${esc(text)}</h2><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>${esc(yes)}</button></div>`,
-    (c, close) => { $("[data-n]", c).onclick = () => { close(); res(false); }; $("[data-y]", c).onclick = () => { close(); res(true); }; }));
-
-  // ================= звук =================
-  let AC = null;
-  function beep() {
-    if (!CFG.sound) return;
-    try { AC = AC || new AudioContext(); const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = 880; g.gain.setValueAtTime(.0001, AC.currentTime); g.gain.exponentialRampToValueAtTime(.08, AC.currentTime + .02); g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + .25); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + .3); } catch {}
-  }
-
-  // ================= экран входа =================
-  function authScreen(mode = "in", note = "") {
-    const root = $("#root");
-    root.innerHTML = `<div class="auth">
-      <div class="hero">
-        ${LOGO(true)}
-        <h1>Мессенджер, где <em>ничего</em> не остаётся.</h1>
-        <div class="k">шифрование · сгорание · без номера</div>
-        <div class="feats">
-          <div class="feat"><div class="k">01</div><div class="t">Шифр</div><div class="d">Личку читаете только вы двое. Даже сервер видит кашу.</div></div>
-          <div class="feat"><div class="k">02</div><div class="t">Сгорание</div><div class="d">Таймер в чате: минута, час, сутки. Потом пепел.</div></div>
-          <div class="feat"><div class="k">03</div><div class="t">Аноним</div><div class="d">Без телефона. В группах можно как «Аноним #4821».</div></div>
-        </div>
-      </div>
-      <form class="card" novalidate>
-        ${mode === "reset" ? `<h2 style="font:500 20px var(--font);margin-bottom:18px">Новый пароль</h2>` :
-          `<div class="tabs"><button type="button" data-m="in" class="${mode === "in" ? "on" : ""}">Вход</button><button type="button" data-m="up" class="${mode === "up" ? "on" : ""}">Регистрация</button></div>`}
-        ${mode === "up" ? `<div class="field"><label class="k" for="f-u">юзернейм</label><input class="in" id="f-u" name="u" maxlength="20" autocomplete="username" placeholder="латиница, цифры, _"></div>` : ""}
-        ${mode !== "reset" ? `<div class="field"><label class="k" for="f-e">почта</label><input class="in" id="f-e" name="e" type="email" maxlength="254" autocomplete="email"></div>` : ""}
-        ${mode !== "fg" ? `<div class="field"><label class="k" for="f-p">пароль</label><input class="in" id="f-p" name="p" type="password" minlength="8" maxlength="72" autocomplete="${mode === "in" ? "current-password" : "new-password"}"></div>` : ""}
-        <div class="err" id="f-err">${esc(note)}</div>
-        <button class="btn" type="submit">${{ in: "Войти", up: "Создать аккаунт", fg: "Прислать ссылку", reset: "Сохранить" }[mode]}</button>
-        ${mode === "in" ? `<button class="linkb" type="button" data-m="fg">Забыл пароль?</button>` : mode === "fg" ? `<button class="linkb" type="button" data-m="in">Назад ко входу</button>` : ""}
-        <div class="note">${mode === "up" ? "Номер телефона не нужен. Почту видишь только ты, другим виден лишь ник." : "Аккаунт со старого сайта toner работает здесь, ничего заново заводить не нужно."}</div>
-      </form>
-      <div class="copy">© 2026 Needle · TAN — The Anonymous Network</div>
-    </div>`;
-    BG.set(CFG.bg, Math.max(45, CFG.bgLevel));
-    const b = $(".logo b", root); scramble(b, b.textContent, .5);
-    $$(".hero h1, .hero .k", root).forEach((e, i) => setTimeout(() => scramble(e, e.textContent, 1.6), 200 + i * 200));
-    $$("[data-m]", root).forEach(x => x.onclick = () => authScreen(x.dataset.m));
-    const f = $("form", root), er = $("#f-err", root), btn = $("button[type=submit]", f);
-    f.onsubmit = async e => {
-      e.preventDefault(); er.textContent = "";
-      const email = f.e ? f.e.value.trim() : "", pass = f.p ? f.p.value : "";
-      if (f.e && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return er.textContent = "Проверь адрес почты";
-      if (f.p && (pass.length < 8 || (mode !== "in" && !(/[a-z]/i.test(pass) && /\d/.test(pass))))) return er.textContent = "Пароль: минимум 8 символов, латинские буквы и цифры";
-      btn.disabled = true;
-      try {
-        if (mode === "up") {
-          const u = f.u.value.trim().toLowerCase();
+  // ================= вход и регистрация (как в Telegram, по шагам) =================
+  const Auth = {
+    email: "", pass: "", qrT: 0, qrPoll: 0,
+    stop() { clearTimeout(this.qrT); clearTimeout(this.qrPoll); },
+    frame(inner, back) {
+      this.stop();
+      const root = $("#root");
+      root.innerHTML = `<div class="auth">${back ? `<button class="ib auth-back" aria-label="Назад">${I.back}</button>` : ""}<div class="auth-c">${inner}</div><div class="auth-foot">Needle · ${new Date().getFullYear()}</div></div>`;
+      if (back) $(".auth-back", root).onclick = back;
+      const f = $("input", root); if (f && !isPhone()) setTimeout(() => f.focus(), 60);
+      return root;
+    },
+    // шаг: форма с одним действием
+    step({ icon = LOGO, title, sub, body, btn, back, links = "", onSubmit }) {
+      const root = this.frame(`<div class="auth-ic">${icon}</div><h1>${title}</h1><p class="auth-sub">${sub}</p>
+        <form class="auth-f" novalidate>${body}<div class="err"></div><button class="btn wide" type="submit">${btn}</button>${links}</form>`, back);
+      const f = $("form", root), er = $(".err", f), b = $("button[type=submit]", f);
+      f.onsubmit = async e => {
+        e.preventDefault(); er.textContent = ""; b.disabled = true; b.classList.add("busy");
+        try { await onSubmit(f, er); } catch (x) { er.textContent = errText(x); }
+        if (b.isConnected) { b.disabled = false; b.classList.remove("busy"); }
+      };
+      $$("[data-eye]", f).forEach(x => x.onclick = () => { const i = $("input", x.parentElement); i.type = i.type === "password" ? "text" : "password"; x.innerHTML = i.type === "password" ? I.eye : I.eyeoff; });
+      return root;
+    },
+    start(note = "") { if (isPhone()) return this.mail(note); this.qr(note); },
+    // экран с QR-кодом: сканируешь телефоном, где уже вошёл
+    async qr(note = "") {
+      const root = this.frame(`<div class="qr-box"><div class="qr-img"><div class="spin"></div></div></div>
+        <h1>Вход по QR-коду</h1>
+        <ol class="qr-steps"><li><span>Открой Needle на телефоне, где ты уже вошёл</span></li><li><span>Зайди в <b>Настройки → Устройства → Подключить устройство</b></span></li><li><span>Наведи камеру телефона на этот код</span></li></ol>
+        ${note ? `<div class="err">${esc(note)}</div>` : ""}
+        <button class="btn wide ghost" data-mail>Войти по почте</button><button class="lnk" data-up>Создать аккаунт</button>`);
+      $("[data-mail]", root).onclick = () => this.mail();
+      $("[data-up]", root).onclick = () => this.signup();
+      const box = $(".qr-img", root);
+      const make = async () => {
+        if (!$(".qr-img")) return;
+        try {
+          const r = await rpc("nv_qr_new", { p_token: DEV, p_name: devName() });
+          const url = SITE + "?qr=" + r.id + "." + r.secret;
+          box.innerHTML = qrSvg(url) + `<span class="qr-logo">${LOGO}</span>`;
+          box.dataset.id = r.id;
+          this.qrT = setTimeout(make, 120000);
+        } catch (e) { box.innerHTML = `<div class="qr-off">QR-вход пока недоступен</div>`; return; }
+        const poll = async () => {
+          if (!$(".qr-img") || box.dataset.id === undefined) return;
+          try {
+            const st = await rpc("nv_qr_state", { p_id: box.dataset.id, p_token: DEV });
+            if (st === "ok") {
+              box.innerHTML = `<div class="spin"></div>`; this.stop();
+              const res = await fetch(API + "/functions/v1/needle-qr", { method: "POST", headers: { "content-type": "application/json", apikey: KEY }, body: JSON.stringify({ id: box.dataset.id, token: DEV }) });
+              const j = await res.json().catch(() => ({}));
+              if (!res.ok || !j.token_hash) throw new Error("qr expired");
+              const { error } = await sb.auth.verifyOtp({ token_hash: j.token_hash, type: "magiclink" }); if (error) throw error;
+              return boot();
+            }
+          } catch (e) { return this.qr(errText(e)); }
+          this.qrPoll = setTimeout(poll, 2000);
+        };
+        clearTimeout(this.qrPoll); poll();
+      };
+      make();
+    },
+    mail(note = "") {
+      this.step({
+        title: "Вход в Needle", sub: "Введи почту, на которую зарегистрирован аккаунт.",
+        body: field("e", "Почта", `type="email" maxlength="254" autocomplete="email" inputmode="email" required`, this.email) + (note ? `<div class="err">${esc(note)}</div>` : ""),
+        btn: "Далее", back: isPhone() ? null : () => this.qr(),
+        links: `${isPhone() ? "" : ""}<button type="button" class="lnk" data-qr>Войти по QR-коду</button><button type="button" class="lnk" data-up>Создать аккаунт</button>`,
+        onSubmit: async f => { const e = f.e.value.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Error("Проверь адрес почты"); this.email = e; this.password(); },
+      });
+      $("[data-qr]").onclick = () => this.qr();
+      $("[data-up]").onclick = () => this.signup();
+    },
+    password() {
+      this.step({
+        icon: `<span class="big-ic">${I.lock}</span>`, title: "Пароль", sub: `Введи пароль от аккаунта <b>${esc(this.email)}</b>.`,
+        body: `<div class="pw">${field("p", "Пароль", `type="password" maxlength="72" autocomplete="current-password"`)}<button type="button" class="ib" data-eye>${I.eye}</button></div>`,
+        btn: "Далее", back: () => this.mail(),
+        links: `<button type="button" class="lnk" data-fg>Забыли пароль?</button>`,
+        onSubmit: async f => {
+          const p = f.p.value; if (!p) throw new Error("Введи пароль");
+          const { error } = await sb.auth.signInWithPassword({ email: this.email, password: p }); if (error) throw error;
+          PW = p; await boot();
+        },
+      });
+      $("[data-fg]").onclick = async () => {
+        if (!(await confirmBox("Сбросить пароль?", `Пришлём ссылку для нового пароля на ${this.email}.`, "Прислать", false))) return;
+        const { error } = await sb.auth.resetPasswordForEmail(this.email, { redirectTo: SITE + "?reset=1" });
+        toast(error ? errText(error) : "Если такая почта есть, ссылка уже в пути");
+      };
+    },
+    // новое устройство: нужен код из Needle (с другого устройства) или ссылка на почту
+    async code(hello) {
+      const others = hello.others;
+      if (others) { try { await rpc("nv_dev_code_request"); } catch (e) { if (!/too fast/.test(e.message || "")) toast(errText(e)); } }
+      const mailLink = async () => {
+        const { error } = await sb.auth.signInWithOtp({ email: session.user.email, options: { shouldCreateUser: false, emailRedirectTo: SITE } });
+        if (error) throw error;
+        Auth.frame(`<div class="auth-ic"><span class="big-ic">${I.mail}</span></div><h1>Проверь почту</h1><p class="auth-sub">Мы отправили ссылку для входа на <b>${esc(hello.email)}</b>. Открой её <b>в этом же браузере</b>. Письма нет? Загляни в «Спам».</p><button class="lnk" data-b>Назад</button>`);
+        $("[data-b]").onclick = () => this.code(hello);
+      };
+      if (!others) {
+        const root = this.frame(`<div class="auth-ic"><span class="big-ic">${I.shield}</span></div><h1>Подтверди вход</h1>
+          <p class="auth-sub">Это новое устройство. Чтобы войти, подтверди, что почта <b>${esc(hello.email)}</b> твоя: пришлём на неё ссылку для входа.</p>
+          <div class="err"></div><button class="btn wide" data-m>Прислать ссылку на почту</button><button class="lnk" data-out>Войти в другой аккаунт</button>`);
+        $("[data-m]", root).onclick = async e => { e.target.disabled = true; try { await mailLink(); } catch (x) { $(".err", root).textContent = errText(x); e.target.disabled = false; } };
+        $("[data-out]", root).onclick = () => signOut(true);
+        return;
+      }
+      const root = this.step({
+        icon: `<span class="big-ic">${I.devices}</span>`, title: "Код из Needle",
+        sub: `Мы отправили код в Needle на другое твоё устройство, где ты уже вошёл. Он придёт как уведомление от Needle.`,
+        body: `<div class="code-in"><input name="c" inputmode="numeric" autocomplete="one-time-code" maxlength="5" placeholder="•••••"></div>`,
+        btn: "Войти",
+        links: `<button type="button" class="lnk" data-again>Отправить код ещё раз</button><button type="button" class="lnk" data-m>Нет доступа? Ссылка на почту</button><button type="button" class="lnk" data-out>Войти в другой аккаунт</button>`,
+        onSubmit: async (f) => {
+          const c = f.c.value.replace(/\D/g, ""); if (c.length !== 5) throw new Error("Код из 5 цифр");
+          const ok = await rpc("nv_dev_code_verify", { p_code: c });
+          if (!ok) { f.c.value = ""; f.c.classList.add("shake"); setTimeout(() => f.c.classList.remove("shake"), 400); throw new Error("Неверный код"); }
+          await boot();
+        },
+      });
+      const inp = $("input[name=c]", root); inp.oninput = () => { inp.value = inp.value.replace(/\D/g, "").slice(0, 5); if (inp.value.length === 5) $("form", root).requestSubmit(); };
+      $("[data-again]", root).onclick = async () => { try { await rpc("nv_dev_code_request"); toast("Новый код отправлен"); } catch (e) { toast(errText(e)); } };
+      $("[data-m]", root).onclick = async () => { try { await mailLink(); } catch (e) { toast(errText(e)); } };
+      $("[data-out]", root).onclick = () => signOut(true);
+    },
+    signup() {
+      const s = { e: this.email, p: "" };
+      const s1 = () => this.step({
+        title: "Новый аккаунт", sub: "Номер телефона не нужен. Почту видишь только ты.",
+        body: field("e", "Почта", `type="email" maxlength="254" autocomplete="email" inputmode="email"`, s.e),
+        btn: "Далее", back: () => this.start(),
+        onSubmit: async f => { const e = f.e.value.trim(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) throw new Error("Проверь адрес почты"); s.e = e; s2(); },
+      });
+      const s2 = () => this.step({
+        icon: `<span class="big-ic">${I.lock}</span>`, title: "Придумай пароль", sub: "Минимум 8 символов, латинские буквы и цифры. Им же откроется зашифрованная переписка.",
+        body: `<div class="pw">${field("p", "Пароль", `type="password" maxlength="72" autocomplete="new-password"`)}<button type="button" class="ib" data-eye>${I.eye}</button></div>`,
+        btn: "Далее", back: s1,
+        onSubmit: async f => { const p = f.p.value; if (p.length < 8 || !/[a-z]/i.test(p) || !/\d/.test(p)) throw new Error("Минимум 8 символов, латинские буквы и цифры"); s.p = p; s3(); },
+      });
+      const s3 = () => { const root = this.step({
+        icon: `<span class="big-ic">${I.user}</span>`, title: "Как тебя зовут?", sub: "Имя и юзернейм увидят другие. Поменять можно в любой момент.",
+        body: field("n", "Имя", `maxlength="40" autocomplete="nickname"`) + `<div class="at-f">${field("u", "Юзернейм", `maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false"`)}</div><p class="hint">Латиница, цифры и _. По нему тебя найдут: needle-net.github.io/<i data-uh>юзернейм</i></p>`,
+        btn: "Создать аккаунт", back: s2,
+        onSubmit: async f => {
+          const n = f.n.value.trim(), u = f.u.value.trim().replace(/^@/, "").toLowerCase();
           if (!/^[a-z0-9_]{3,20}$/.test(u)) throw new Error("bad username");
           if (!(await rpc("sn_username_free", { p_name: u }))) throw new Error("reserved username");
-          const { data, error } = await sb.auth.signUp({ email, password: pass, options: { data: { username: u }, emailRedirectTo: SITE } });
+          const { data, error } = await sb.auth.signUp({ email: s.e, password: s.p, options: { data: { username: u }, emailRedirectTo: SITE } });
           if (error) throw error;
-          PW = pass;
-          if (!data.session) { $(".card", root).innerHTML = `<h2 style="font:500 20px var(--font);margin-bottom:12px">Проверь почту</h2><p class="note" style="margin:0">Мы отправили письмо на <b>${esc(email)}</b>. Открой его и нажми ссылку. Письма нет? Загляни в «Спам».</p>`; return; }
-        } else if (mode === "fg") {
-          const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: SITE + "?reset=1" });
-          if (error) throw error;
-          er.textContent = "Если такая почта есть, мы отправили на неё ссылку"; btn.disabled = false; return;
-        } else if (mode === "reset") {
-          const { error } = await sb.auth.updateUser({ password: pass }); if (error) throw error; PW = pass;
-          history.replaceState(null, "", SITE); toast("Пароль обновлён");
-        } else {
-          const { error } = await sb.auth.signInWithPassword({ email, password: pass }); if (error) throw error; PW = pass;
-        }
-        await boot();
-      } catch (x) { er.textContent = errText(x); btn.disabled = false; }
-    };
-  }
-
-  // ================= рабочий стол =================
-  const PANELS = {
-    chats: { t: "Чаты", i: "chats", w: 330, h: 600 },
-    chat: { t: "Чат", w: 540, h: 640 },
-    feed: { t: "Лента", i: "feed", w: 460, h: 660 },
-    find: { t: "Поиск", i: "find", w: 400, h: 560 },
-    spark: { t: "Игла", i: "spark", w: 300, h: 520 },
-    me: { t: "Профиль", i: "me", w: 400, h: 600 },
-    clans: { t: "Кланы", i: "clan", w: 440, h: 640 },
-    admin: { t: "Админка", i: "crown", w: 460, h: 660 },
-    user: { t: "Профиль", w: 400, h: 600 },
-    cfg: { t: "Настройки", i: "cfg", w: 460, h: 640 },
-  };
-  const DOCK = ["chats", "feed", "find", "spark", "me", "cfg"];
-  const SPLIT = l => l === "tiles" || l === "app";
-  let Z = 10, MAIN = "chats";
-  const isPhone = () => innerWidth <= 760;
-  const L = () => isPhone() ? "phone" : CFG.layout;
-
-  let PREFS = { folders: [], priv_seen: "all", priv_dm: "all", blocked: [] };
-  const Menu = {
-    open() {
-      if ($(".drawer")) return this.close();
-      const dark = CFG.theme !== "tgl" && CFG.theme !== "light" && CFG.theme !== "minimal";
-      const it = (k, icon, t) => `<button data-mk="${k}">${icon}<span>${tl(t)}</span></button>`;
-      const bg = h(`<div class="drawer-bg"></div>`), d = h(`<aside class="drawer">
-        <div class="dh" data-mk="me">${av(ME, "big")}<b>${esc(ME.name || ME.username)}</b><small>@${esc(ME.username)}</small></div>
-        <nav>${it("me", I.me, "Мой профиль")}${it("group", I.chats, "Создать группу")}${it("channel", I.spark, "Создать канал")}${it("find", I.find, "Люди и поиск")}
-          ${it("saved", `<span class="ic">🔖</span>`, "Избранное")}${it("feed", I.feed, "Лента")}${it("clans", I.clan, "Кланы")}${it("cfg", I.cfg, "Настройки")}
-          <button data-mk="night"><span class="ic">🌙</span><span>${tl("Ночной режим")}</span><i class="sw${dark ? " on" : ""}"></i></button></nav>
-        <div class="dv">Needle v10 · TAN</div></aside>`);
-      document.body.append(bg, d); requestAnimationFrame(() => { bg.classList.add("on"); d.classList.add("on"); });
-      bg.onclick = () => this.close();
-      $$("[data-mk]", d).forEach(b => b.onclick = () => {
-        const k = b.dataset.mk; if (k !== "night") this.close();
-        if (k === "group" || k === "channel") { newChatDialog(); setTimeout(() => { const x = $(`.modal .seg [data-k=${k}]`); if (x) x.click(); }, 30); }
-        else if (k === "saved") openSaved();
-        else if (k === "night") { const on = !$(".sw", b).classList.contains("on"); $(".sw", b).classList.toggle("on", on); CFG.theme = on ? (CFG.darkTheme || "tg") : "tgl"; if (on) delete CFG.darkTheme; saveCfg(); applyCfg(); }
-        else open(k);
+          PW = s.p; Auth.newName = n;
+          if (!data.session) {
+            this.frame(`<div class="auth-ic"><span class="big-ic">${I.mail}</span></div><h1>Проверь почту</h1><p class="auth-sub">Мы отправили письмо на <b>${esc(s.e)}</b>. Открой его в этом браузере и нажми ссылку. Письма нет? Загляни в «Спам».</p><button class="lnk" data-b>Ко входу</button>`);
+            $("[data-b]").onclick = () => this.start(); return;
+          }
+          await boot();
+        },
       });
-      addEventListener("keydown", this.esc = e => { if (e.key === "Escape") this.close(); });
+        const u = $("[name=u]", root), uh = $("[data-uh]", root); u.oninput = () => { uh.textContent = u.value.replace(/^@/, "").toLowerCase() || "юзернейм"; };
+      };
+      s1();
     },
-    close() { const d = $(".drawer"), bg = $(".drawer-bg"); removeEventListener("keydown", this.esc); [d, bg].forEach(x => { if (!x) return; x.classList.remove("on"); setTimeout(() => x.remove(), 250); }); },
+    reset() {
+      this.step({
+        icon: `<span class="big-ic">${I.key}</span>`, title: "Новый пароль", sub: "Минимум 8 символов, латинские буквы и цифры.",
+        body: `<div class="pw">${field("p", "Новый пароль", `type="password" maxlength="72" autocomplete="new-password"`)}<button type="button" class="ib" data-eye>${I.eye}</button></div>`,
+        btn: "Сохранить",
+        onSubmit: async f => {
+          const p = f.p.value; if (p.length < 8 || !/[a-z]/i.test(p) || !/\d/.test(p)) throw new Error("Минимум 8 символов, латинские буквы и цифры");
+          const { error } = await sb.auth.updateUser({ password: p }); if (error) throw error;
+          PW = p; history.replaceState(null, "", SITE); toast("Пароль обновлён"); await boot();
+        },
+      });
+    },
   };
-  function desk() {
-    const root = $("#root");
-    root.innerHTML = `<header class="topbar"><button class="ib burger" data-menu title="${tl("Меню")}">${I.menu}</button>
-        ${LOGO(false)}<div class="sp"></div>
-        <span class="clk" id="clk"></span>
-        <button class="ib" data-open="find" title="Поиск (Ctrl+K)">${I.find}</button>
-      </header>
-      <nav class="ttabs" id="ttabs"><button data-k="all">${I.chats}<span>Чаты</span><i></i></button><button data-k="feed">${I.feed}<span>Лента</span></button><button data-k="clans">${I.clan}<span>Кланы</span></button><button data-k="me" title="Профиль">${I.me}<span>Профиль</span></button><button data-k="cfg" title="Настройки">${I.cfg}<span>Настройки</span></button></nav>
-      <main class="desk" id="desk"></main>
-      <nav class="dock" id="dock">${DOCK.map(id => `<button data-dock="${id}" title="${PANELS[id].t}">${I[PANELS[id].i]}<span class="dl">${PANELS[id].t}</span></button>`).join("")}</nav>
-      <button id="mini" title="Игла">${'<div class="spirit"></div>'}</button>`;
-    $$("[data-open]", root).forEach(b => b.onclick = () => open(b.dataset.open));
-    $("[data-menu]", root).onclick = () => Menu.open();
-    Emoji.start();
-    rpc("nv_prefs_get").then(p => { if (p) { PREFS = p; if ($(".win[data-id=chats]")) { drawTabs(); drawChats(); } } }).catch(() => {});
-    $$("[data-dock]", root).forEach(b => b.onclick = () => {
-      const id = b.dataset.dock, w = $(`.win[data-id=${id}]`);
-      if (L() === "windows" && w && w.classList.contains("shown") && w.classList.contains("top")) close(id); else open(id);
-    });
-    Pet.mount();
-    $$("#ttabs button").forEach(b => b.onclick = () => {
-      if (b.dataset.k !== "all") return open(b.dataset.k);
-      topPick = "chat";
-      if (L() === "phone" || L() === "windows") return open("chats");
-      if (Chat.id && $(".win[data-id=chat]")) return open("chat");
-      MAIN = "chats"; focus("chats");
-    });
-    const clk = $("#clk"); const tick = () => clk.textContent = new Date().toLocaleTimeString(LOC(), { hour: "2-digit", minute: "2-digit" }); tick(); setInterval(tick, 10000);
-    applyCfg();
-    const start = store.get("needle-open", ["chats", "feed"]);
-    if (L() === "windows") start.forEach(id => PANELS[id] && id !== "chat" && id !== "user" && open(id, true)); else open("chats", true);
-    if (!$(".win.shown")) open("chats", true);
-    Spark.mount();
-    let act = Date.now(); ["pointerdown", "keydown", "wheel"].forEach(ev => addEventListener(ev, () => act = Date.now(), { passive: true }));
-    const ping = () => { if (!document.hidden && Date.now() - act < 300000) rpc("nv_ping").then(x => { if (typeof x === "number") ME.xp = x; }).catch(() => {}); };
-    ping(); setInterval(ping, 300000);
-    FX.poll(); setInterval(() => FX.poll(), 15000);
+  async function signOut(quiet) {
+    if (!quiet && !(await confirmBox("Выйти из аккаунта?", "Чтобы войти снова на этом устройстве, понадобится код или QR.", "Выйти"))) return;
+    try { await sb.auth.signOut({ scope: "local" }); } catch {}
+    location.replace(SITE);
   }
 
-  function defaultPos(id) {
-    const p = PANELS[id], dw = innerWidth, dh = innerHeight - 52;
-    const pos = { chats: [20, 18], chat: [370, 18], feed: [Math.max(370, dw - 500), 18], spark: [dw - 330, dh - 560], find: [dw / 2 - 200, 40], me: [dw / 2 - 160, 60], clans: [dw / 2 - 220, 30], admin: [dw / 2 - 230, 24], user: [dw / 2 - 120, 80], cfg: [dw / 2 - 230, 30] }[id] || [60, 40];
-    const w = Math.min(p.w, dw - 40), hh = Math.min(p.h, dh - 100);
-    return { x: Math.max(10, Math.min(pos[0], dw - w - 10)), y: Math.max(10, Math.min(pos[1], dh - hh - 10)), w, h: hh };
+  // QR-код рисуем сами (библиотека qrcode-generator, MIT)
+  function qrSvg(text) {
+    if (!window.qrcode) return `<div class="qr-off">QR не загрузился</div>`;
+    const q = window.qrcode(0, "M"); q.addData(text); q.make();
+    const n = q.getModuleCount(); let d = "";
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) {
+      const fin = (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7);
+      if (!fin) d += `M${c} ${r}h1v1h-1z`;
+    }
+    const eye = (x, y) => `<rect x="${x + .5}" y="${y + .5}" width="6" height="6" rx="1.6" class="qe"/><rect x="${x + 2}" y="${y + 2}" width="3" height="3" rx=".8" class="qd"/>`;
+    return `<svg class="qr-svg" viewBox="-1 -1 ${n + 2} ${n + 2}"><path d="${d}" class="qp"/>${eye(0, 0)}${eye(n - 7, 0)}${eye(0, n - 7)}</svg>`;
   }
 
-  function win(id) {
-    let w = $(`.win[data-id=${id}]`);
-    if (w) return w;
-    w = h(`<section class="win" data-id="${id}" aria-label="${PANELS[id].t}">
-      <header class="wh"><button class="ib back" title="Назад">${I.back}</button><div class="wt"><span class="tt"><b>${PANELS[id].t}</b></span></div><span class="wa"></span><button class="ib wx" data-x="${id}" title="Закрыть">${I.x}</button></header>
-      <div class="wb"></div><span class="rz"></span></section>`);
-    const pos = Object.assign(defaultPos(id), CFG.wins[id] || {});
-    pos.x = Math.min(pos.x, innerWidth - 120); pos.y = Math.min(Math.max(0, pos.y), innerHeight - 140);
-    Object.assign(w.style, { left: pos.x + "px", top: pos.y + "px", width: pos.w + "px", height: pos.h + "px" });
-    $("#desk").append(w);
-    $(".wx", w).onclick = () => close(id);
-    $(".back", w).onclick = () => open(id === "chat" || id === "user" ? "chats" : "chats");
-    w.addEventListener("pointerdown", () => focus(id));
-    // перетаскивание и размер
-    const drag = (e, resize) => {
-      if (L() !== "windows" || e.button !== 0 || (!resize && e.target.closest("button,input,textarea,a"))) return;
-      e.preventDefault();
-      const sx = e.clientX, sy = e.clientY, r = { x: w.offsetLeft, y: w.offsetTop, w: w.offsetWidth, h: w.offsetHeight };
-      w.classList.add("drag");
-      const mv = ev => {
-        const dx = ev.clientX - sx, dy = ev.clientY - sy;
-        if (resize) { w.style.width = Math.max(260, r.w + dx) + "px"; w.style.height = Math.max(200, r.h + dy) + "px"; }
-        else { w.style.left = Math.min(innerWidth - 80, Math.max(-r.w + 120, r.x + dx)) + "px"; w.style.top = Math.min(innerHeight - 110, Math.max(0, r.y + dy)) + "px"; }
-      };
-      const up = () => {
-        removeEventListener("pointermove", mv); removeEventListener("pointerup", up); w.classList.remove("drag");
-        CFG.wins[id] = { x: w.offsetLeft, y: w.offsetTop, w: w.offsetWidth, h: w.offsetHeight }; saveCfg();
-      };
-      addEventListener("pointermove", mv); addEventListener("pointerup", up);
-    };
-    $(".wh", w).addEventListener("pointerdown", e => drag(e, false));
-    $(".rz", w).addEventListener("pointerdown", e => drag(e, true));
-    $(".wh", w).addEventListener("dblclick", e => { if (L() !== "windows" || e.target.closest("button")) return; delete CFG.wins[id]; saveCfg(); const p = defaultPos(id); Object.assign(w.style, { left: p.x + "px", top: p.y + "px", width: p.w + "px", height: p.h + "px" }); });
-    return w;
+  // ссылка ?qr=... открыта на устройстве, где уже вошли: подтвердить вход на новом
+  async function approveQr(raw) {
+    const m = /^([0-9a-f-]{36})\.([0-9a-f]{64})$/.exec(raw || ""); if (!m) return toast("Неверный QR-код");
+    try {
+      const info = await rpc("nv_qr_info", { p_id: m[1], p_secret: m[2] });
+      const ok = await popup({
+        title: "Войти на новом устройстве?",
+        html: `<div class="qr-ask"><span class="big-ic">${I.laptop}</span><b>${esc(info.name || "Устройство")}</b><small>запрос ${ago(info.created_at)}</small></div>
+          <p class="pop-x">Подтверждай, только если <b>ты сам</b> сейчас сканируешь QR-код со своего компьютера. Никогда не сканируй коды, которые тебе прислали другие.</p>`,
+        buttons: [{ t: "Отмена", v: false }, { t: "Подтвердить", v: true, main: true }],
+      });
+      if (ok !== true) return;
+      await rpc("nv_qr_approve", { p_id: m[1], p_secret: m[2] }); toast("Готово: устройство вошло в аккаунт");
+    } catch (e) { toast(errText(e)); }
   }
-  function focus(id) {
-    const w = $(`.win[data-id=${id}]`); if (!w) return;
-    $$(".win.top").forEach(x => x !== w && x.classList.remove("top"));
-    w.classList.add("top"); w.style.zIndex = ++Z;
-    if (id !== "chats" || L() === "phone") MAIN = id;
-    if (L() !== "windows") { $$(".win").forEach(x => x.classList.toggle("main", x.dataset.id === MAIN)); }
-    dockState();
+  // сканер QR в самом Needle (камера телефона)
+  async function scanQr() {
+    if (!("BarcodeDetector" in window) || !navigator.mediaDevices) {
+      return popup({ title: "Подключить устройство", html: `<p class="pop-x">Наведи обычную камеру телефона на QR-код на экране компьютера. Откроется ссылка: открой её в браузере, где ты вошёл в Needle, и подтверди вход.</p>`, buttons: [{ t: "Понятно", main: true }] });
+    }
+    let stream = null, raf = 0, stop = false;
+    const det = new BarcodeDetector({ formats: ["qr_code"] });
+    popup({
+      title: "Наведи камеру на QR-код", cls: "scan",
+      html: `<div class="scan-v"><video playsinline muted></video><i></i></div><p class="pop-x">QR-код показан на экране входа в Needle на компьютере.</p>`,
+      buttons: [{ t: "Отмена" }],
+      onMount: async (card, done) => {
+        try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } }); } catch { done(); return toast("Нет доступа к камере"); }
+        const v = $("video", card); v.srcObject = stream; await v.play().catch(() => {});
+        const tick = async () => {
+          if (stop || !card.isConnected) { stream.getTracks().forEach(t => t.stop()); return; }
+          try { const r = await det.detect(v); const hit = r.map(x => x.rawValue).find(x => /[?&]qr=/.test(x)); if (hit) { stop = true; stream.getTracks().forEach(t => t.stop()); done(); return approveQr(new URL(hit).searchParams.get("qr")); } } catch {}
+          raf = setTimeout(tick, 250);
+        };
+        tick();
+      },
+    }).then(() => { stop = true; clearTimeout(raf); if (stream) stream.getTracks().forEach(t => t.stop()); });
   }
-  let topPick = "chat";
-  function open(id, quiet) {
-    if (["feed", "clans", "me", "cfg", "admin"].includes(id)) topPick = id === "admin" ? "me" : id; else if (id === "chats" || id === "chat") topPick = "chat";
-    const w = win(id);
-    if (!w.dataset.ready) { w.dataset.ready = 1; RENDER[id] && RENDER[id](w); }
-    else if (id === "feed" && !quiet && w.classList.contains("shown") === false) RENDER.feed(w);
-    requestAnimationFrame(() => w.classList.add("shown"));
-    if (L() !== "windows" && id !== "chats") MAIN = id;
-    if (L() === "phone") MAIN = id;
-    focus(id); saveOpen();
-    return w;
-  }
-  function close(id) {
-    const w = $(`.win[data-id=${id}]`); if (!w) return;
-    if (L() !== "windows") { MAIN = "chats"; focus("chats"); return; }
-    w.classList.remove("shown", "top"); saveOpen(); dockState();
-    if (id === "chat") Chat.leave();
-  }
-  const saveOpen = () => store.set("needle-open", $$(".win.shown").map(w => w.dataset.id).filter(id => id !== "chat" && id !== "user"));
-  function dockState() {
-    const l = L();
-    $$("[data-dock]").forEach(b => {
-      const w = $(`.win[data-id=${b.dataset.dock}]`);
-      b.classList.toggle("on", !!w && (l === "windows" ? w.classList.contains("shown") && w.classList.contains("top") : (MAIN === b.dataset.dock || (b.dataset.dock === "chats" && (MAIN === "chat" || MAIN === "chats")))));
-    });
-    $$(".tnav button").forEach(b => b.classList.toggle("on", MAIN === b.dataset.go));
-    const tk = topPick === "chat" ? "all" : topPick; $$("#ttabs button").forEach(b => b.classList.toggle("on", b.dataset.k === tk));
-    document.body.classList.toggle("sec-feed", topPick === "feed");
-  }
-  function layout() {
-    const l = L(); document.body.classList.remove("l-windows", "l-tiles", "l-phone", "l-app"); document.body.classList.add("l-" + l); if (l === "app") document.body.classList.add("l-tiles");
-    if (!$("#desk")) return;
-    if (l === "windows") { $$(".win").forEach(w => { const p = Object.assign(defaultPos(w.dataset.id), CFG.wins[w.dataset.id] || {}); Object.assign(w.style, { left: p.x + "px", top: p.y + "px", width: p.w + "px", height: p.h + "px" }); }); }
-    else { const c = win("chats"); if (!c.dataset.ready) open("chats", true); c.classList.add("shown"); if (MAIN !== "chats" && !$(`.win[data-id=${MAIN}]`)) MAIN = "chats"; if (SPLIT(l) && MAIN === "chats") { const o = $(".win.shown:not([data-id=chats])"); if (o) MAIN = o.dataset.id; } focus(MAIN); }
-    dockState();
-  }
-  let lastW = innerWidth; addEventListener("resize", () => { if ((lastW <= 760) !== (innerWidth <= 760)) layout(); lastW = innerWidth; });
-  const setTitle = (w, html, sub) => { $(".wt", w).innerHTML = `<span class="tt"><b>${html}</b>${sub ? `<small>${sub}</small>` : ""}</span>`; };
 
-  const RENDER = {};
+  // ================= каркас: слева список, справа чат, сбоку информация =================
+  const App = {
+    mount() {
+      $("#root").innerHTML = `<div class="app">
+        <aside class="left"><div class="lstack">
+          <section class="lp lmain">
+            <header class="lh"><button class="ib" data-menu aria-label="Меню">${I.menu}</button>
+              <label class="srch">${I.search}<input type="search" placeholder="Поиск" maxlength="40" autocomplete="off"><button type="button" class="ib sm" data-sx hidden>${I.close}</button></label></header>
+            <nav class="folders"></nav>
+            <div class="lbody"><div class="codes"></div><div class="list"><div class="spin"></div></div><div class="sres" hidden></div></div>
+            <button class="fab" data-new aria-label="Новое сообщение">${I.pen}</button>
+          </section>
+        </div></aside>
+        <main class="right"><div class="r-empty"><span class="pill">Выбери чат, чтобы начать общение</span></div></main>
+        <aside class="side"></aside>
+      </div><div class="drawer-wrap"><nav class="drawer"></nav></div>`;
+      const lm = $(".lmain");
+      $("[data-menu]", lm).onclick = () => Drawer.open();
+      $("[data-new]", lm).onclick = e => newMenu(e.currentTarget);
+      const inp = $(".srch input", lm), sx = $("[data-sx]", lm);
+      const go = debounce(() => Search.run(inp.value.trim()), 250);
+      inp.oninput = () => { sx.hidden = !inp.value; if (!inp.value) Search.close(); else go(); };
+      inp.onkeydown = e => { if (e.key === "Escape") { inp.value = ""; sx.hidden = true; Search.close(); inp.blur(); } };
+      sx.onclick = () => { inp.value = ""; sx.hidden = true; Search.close(); };
+      Drawer.draw();
+      Chats.load(true);
+      rpc("nv_prefs_get").then(p => { if (p) { PREFS = Object.assign(PREFS, p); Chats.drawFolders(); Chats.draw(); } }).catch(() => {});
+      Codes.poll();
+      // «в сети»
+      let act = Date.now(); ["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, () => { act = Date.now(); }, { passive: true }));
+      const ping = () => { if (!document.hidden && Date.now() - act < 300000) rpc("nv_ping").catch(() => {}); };
+      ping(); setInterval(ping, 60000);
+      window.addEventListener("popstate", () => { if (document.querySelector(".app.r-open") && isPhone()) R.close(true); });
+    },
+  };
+  // левая колонка: страницы поверх списка чатов (настройки и т.п.), как в Telegram
+  const L = {
+    push(title, render, actions = "") {
+      const st = $(".lstack"); if (!st) return;
+      const pg = h(`<section class="lp sub"><header class="lh"><button class="ib" data-back aria-label="Назад">${I.back}</button><h2>${esc(title)}</h2><div class="lh-a">${actions}</div></header><div class="lbody"></div></section>`);
+      st.append(pg); requestAnimationFrame(() => pg.classList.add("in"));
+      $("[data-back]", pg).onclick = () => L.pop(pg);
+      render($(".lbody", pg), pg);
+      return pg;
+    },
+    pop(pg) { pg = pg || $$(".lstack .lp.sub").pop(); if (!pg) return; pg.classList.remove("in"); pg.classList.add("out"); setTimeout(() => pg.remove(), 220); },
+    clear() { $$(".lstack .lp.sub").forEach(p => p.remove()); },
+    top() { return $$(".lstack .lp.sub").pop() || null; },
+  };
+  // правая часть: чат, лента или профиль
+  const R = {
+    kind: "",
+    show(kind, node) {
+      const r = $(".right"); if (!r) return;
+      if (this.kind === "chat" && kind !== "chat") Chat.leave();
+      this.kind = kind; r.innerHTML = ""; r.append(node);
+      const app = $(".app"); if (isPhone() && !app.classList.contains("r-open")) history.pushState({ r: 1 }, ""); app.classList.add("r-open");
+      Side.close();
+    },
+    close(fromPop) {
+      const app = $(".app"); if (!app) return;
+      if (this.kind === "chat") Chat.leave();
+      this.kind = ""; app.classList.remove("r-open");
+      $(".right").innerHTML = `<div class="r-empty"><span class="pill">Выбери чат, чтобы начать общение</span></div>`;
+      Side.close(); Chats.draw();
+      if (isPhone() && !fromPop && history.state && history.state.r) history.back();
+    },
+  };
+  // боковая панель справа (информация о чате)
+  const Side = {
+    open(title, render) {
+      const s = $(".side"); if (!s) return;
+      s.innerHTML = `<header class="lh"><button class="ib" data-x aria-label="Закрыть">${isPhone() ? I.back : I.close}</button><h2>${esc(title)}</h2><div class="lh-a"></div></header><div class="sbody"></div>`;
+      $("[data-x]", s).onclick = () => this.close();
+      $(".app").classList.add("side-open");
+      render($(".sbody", s), s);
+    },
+    close() { const a = $(".app"); if (a) a.classList.remove("side-open"); },
+    get on() { const a = $(".app"); return a && a.classList.contains("side-open"); },
+  };
+  const backBtn = () => `<button class="ib only-phone" data-rback aria-label="Назад">${I.back}</button>`;
+  const wireBack = node => { const b = $("[data-rback]", node); if (b) b.onclick = () => R.close(); };
+
+  // ================= меню ☰ =================
+  const Drawer = {
+    draw() {
+      const d = $(".drawer"); if (!d) return;
+      d.innerHTML = `<div class="dr-h">${av(ME, "lg")}<button class="ib dr-theme" data-theme title="Ночной режим">${darkNow() ? I.sun : I.moon}</button>
+          <div class="dr-n">${uname(ME)}</div><div class="dr-u">@${esc(ME.username)}</div></div>
+        <div class="dr-l">
+          ${[["me", I.user, "Мой профиль"], ["feed", I.feed, "Лента"], ["saved", I.saved, "Избранное"], "-", ["group", I.users, "Создать группу"], ["channel", I.channel, "Создать канал"], ["people", I.search, "Найти людей и каналы"], "-", ["devices", I.devices, "Устройства"], ["settings", I.gear, "Настройки"]]
+            .map(x => x === "-" ? `<div class="sep"></div>` : `<button class="dr-i" data-go="${x[0]}">${x[1]}<span>${x[2]}</span></button>`).join("")}
+          <div class="dr-i dr-night" data-night>${I.moon}<span>Ночной режим</span>${sw(darkNow())}</div>
+        </div><div class="dr-f">Needle · версия 2</div>`;
+      $("[data-theme]", d).onclick = $("[data-night]", d).onclick = () => { CFG.theme = darkNow() ? "light" : "dark"; saveCfg(); this.draw(); };
+      $$("[data-go]", d).forEach(b => b.onclick = () => { this.close(); setTimeout(() => this.go(b.dataset.go), 120); });
+    },
+    go(k) {
+      if (k === "me") Profile.open(ME.id);
+      else if (k === "feed") Feed.open();
+      else if (k === "saved") openSaved();
+      else if (k === "group" || k === "channel") createChat(k);
+      else if (k === "people") { const i = $(".lmain .srch input"); L.clear(); i.focus(); toast("Начни вводить имя, @юзернейм или название"); }
+      else if (k === "devices") { L.clear(); Settings.open(); Settings.devices(); }
+      else if (k === "settings") { L.clear(); Settings.open(); }
+    },
+    open() { this.draw(); const w = $(".drawer-wrap"); w.classList.add("on"); w.onpointerdown = e => { if (e.target === w) this.close(); }; },
+    close() { const w = $(".drawer-wrap"); if (w) w.classList.remove("on"); },
+  };
+
+  // ================= коды для входа (приходят сюда, как сообщение от Telegram) =================
+  const Codes = {
+    seen: new Set(), t: 0,
+    async poll() {
+      clearTimeout(this.t);
+      try {
+        const list = await rpc("nv_dev_codes");
+        const box = $(".lmain .codes");
+        if (box) box.innerHTML = list.map(c => `<div class="code-note">${I.shield}<div><b>Код для входа: <span class="mono">${esc(c.code)}</span></b><small>${esc(c.device || "Новое устройство")} просит вход. Никому не сообщай этот код. Если это не ты, смени пароль.</small></div></div>`).join("");
+        for (const c of list) { const k = c.code + c.created_at; if (this.seen.has(k)) continue; this.seen.add(k); beep();
+          popup({ title: "Код для входа", html: `<div class="code-big mono">${esc(c.code)}</div><p class="pop-x"><b>${esc(c.device || "Новое устройство")}</b> просит вход в твой аккаунт. Введи этот код там. Никому его не сообщай, даже «поддержке». Если это не ты, сразу смени пароль в настройках.</p>`, buttons: [{ t: "Понятно", main: true }] }); }
+      } catch {}
+      this.t = setTimeout(() => this.poll(), document.hidden ? 15000 : 5000);
+    },
+  };
 
   // ================= список чатов =================
-  const Chats = { list: [], q: "", timer: 0, unread: 0, kind: store.get("needle-tab", "all") };
-  const TABS = [["all", "Все"], ["dm", "Личные"], ["group", "Группы"], ["channel", "Каналы"]];
-  function setKind(k) { Chats.kind = k; if (k !== "archive") store.set("needle-tab", k); $$(".ftabs button").forEach(x => x.classList.toggle("on", x.dataset.k === k)); if ($(".win[data-id=chats] .list")) drawChats(); dockState(); }
-  const inKind = (c, k) => k === "archive" ? c.archived : k[0] === "f" ? ((PREFS.folders[+k.slice(1)] || {}).c || []).includes(c.id) : !c.archived && (k === "all" || c.kind === k || (k === "dm" && c.saved));
-  function drawTabs() {
-    const nav = $(".win[data-id=chats] .ftabs"); if (!nav) return;
-    if (Chats.kind[0] === "f" && !PREFS.folders[+Chats.kind.slice(1)]) Chats.kind = "all";
-    nav.innerHTML = [...TABS, ...PREFS.folders.map((f, i) => ["f" + i, f.n])].map(([k, t]) => `<button data-k="${k}" class="${Chats.kind === k ? "on" : ""}">${k[0] === "f" ? esc(t) : t}<i></i></button>`).join("");
-    $$("button", nav).forEach(b => {
-      b.onclick = () => setKind(b.dataset.k);
-      if (b.dataset.k[0] === "f") b.oncontextmenu = async e => { e.preventDefault(); const i = +b.dataset.k.slice(1); if (!(await confirmBox(tl("Удалить папку") + " «" + PREFS.folders[i].n + "»?", tl("Удалить")))) return; const f = PREFS.folders.filter((_, j) => j !== i); try { await rpc("nv_prefs_set", { p_folders: f }); PREFS.folders = f; if (Chats.kind === "f" + i) Chats.kind = "all"; drawTabs(); drawChats(); } catch (x) { toast(errText(x)); } };
-    });
-  }
-  const ChatMenu = {
-    open(c) {
-      const items = [[c.pin ? "unpin" : "pin", c.pin ? "Открепить" : "📌 Закрепить"], [c.archived ? "unarch" : "arch", c.archived ? "📤 Вернуть из архива" : "🗄 В архив"],
-        [c.muted ? "unmute" : "mute", c.muted ? "🔔 Включить звук" : "🔕 Без звука"], +c.unread ? ["read", "✓ Отметить прочитанным"] : null, ["folder", "📁 Добавить в папку"],
-        c.kind === "dm" ? ["del", c.saved ? "🗑 Очистить Избранное" : "🗑 Удалить чат"] : c.owner ? null : ["leave", "🚪 Выйти"]].filter(Boolean);
-      modal(`<h2 class="mmh">${chatName(c)}</h2><div class="mmenu">${items.map(([k, t]) => `<button data-a="${k}">${tl(t)}</button>`).join("")}</div>`, (box, closeM) => {
-        $$("[data-a]", box).forEach(b => b.onclick = async () => {
-          closeM(); const a = b.dataset.a;
-          try {
-            if (a === "pin" || a === "unpin") { await rpc("nv_pin_chat", { p_chat: c.id, p_on: a === "pin" }); toast(a === "pin" ? tl("Чат закреплён") : tl("Чат откреплён")); }
-            else if (a === "arch" || a === "unarch") { await rpc("nv_chat_flag", { p_chat: c.id, p_key: "archived", p_on: a === "arch" }); toast(a === "arch" ? tl("Чат в архиве") : tl("Чат вернулся из архива")); }
-            else if (a === "mute" || a === "unmute") await rpc("nv_chat_flag", { p_chat: c.id, p_key: "muted", p_on: a === "mute" });
-            else if (a === "read") await rpc("nv_read_all", { p_chat: c.id });
-            else if (a === "folder") return this.folder(c);
-            else if (a === "leave") { if (!(await confirmBox(tl("Выйти из чата?"), tl("Выйти")))) return; await rpc("nv_leave", { p_chat: c.id }); if (Chat.id === c.id) close("chat"); }
-            else if (a === "del") { if (!(await confirmBox(c.saved ? "Очистить Избранное? Все заметки пропадут." : "Удалить переписку у обоих? Её нельзя вернуть.", "Удалить"))) return; await rpc("nv_delete_chat", { p_chat: c.id }); if (Chat.id === c.id) { close("chat"); Chat.leave(); } }
-            loadChats();
-          } catch (e) { toast(errText(e)); }
-        });
+  const KINDS = [["all", "Все"], ["dm", "Личные"], ["group", "Группы"], ["channel", "Каналы"]];
+  const Chats = {
+    list: [], kind: store.get("needle-tab", "all"), timer: 0, unread: 0, seq: 0,
+    inKind(c, k) { return k === "archive" ? c.archived : k[0] === "f" ? ((PREFS.folders[+k.slice(1)] || {}).c || []).includes(c.id) : !c.archived && (k === "all" || c.kind === k || (k === "dm" && c.saved)); },
+    setKind(k) { this.kind = k; if (k !== "archive") store.set("needle-tab", k); this.drawFolders(); this.draw(); },
+    drawFolders() {
+      const nav = $(".lmain .folders"); if (!nav) return;
+      if (this.kind[0] === "f" && !PREFS.folders[+this.kind.slice(1)]) this.kind = "all";
+      const tabs = [...KINDS, ...PREFS.folders.map((f, i) => ["f" + i, f.n])];
+      nav.innerHTML = this.kind === "archive" ? `<button class="on" data-k="all">${I.back}<span>Архив</span></button>` : tabs.map(([k, t]) => `<button data-k="${k}" class="${this.kind === k ? "on" : ""}"><span>${esc(t)}</span><i></i></button>`).join("");
+      $$("button", nav).forEach(b => {
+        b.onclick = () => this.setKind(b.dataset.k);
+        if (b.dataset.k[0] === "f") onHold(b, (x, y) => { const i = +b.dataset.k.slice(1); ctxMenu(x, y, [{ i: I.pen, t: "Переименовать", f: () => Folders.rename(i) }, { i: I.trash, t: "Удалить папку", danger: true, f: () => Folders.remove(i) }]); });
       });
+      this.counts();
     },
-    folder(c) {
-      modal(`<h2>${tl("Добавить в папку")}</h2><div class="mmenu">${PREFS.folders.map((f, i) => `<button data-f="${i}">${f.c.includes(c.id) ? "✓ " : "📁 "}${esc(f.n)}</button>`).join("")}</div>
-        ${PREFS.folders.length < 10 ? `<div class="field"><label class="k">${tl("новая папка")}</label><div class="invl"><input class="in" maxlength="20" placeholder="${tl("Например: Друзья")}"><button class="btn sm" data-nf>${tl("Создать")}</button></div></div>` : ""}
-        <div class="row2"><button class="btn ghost" data-n>${tl("Закрыть")}</button></div>`, (box, closeM) => {
-        $("[data-n]", box).onclick = closeM;
-        const save = async f => { try { await rpc("nv_prefs_set", { p_folders: f }); PREFS.folders = f; drawTabs(); drawChats(); closeM(); } catch (e) { toast(errText(e)); } };
-        $$("[data-f]", box).forEach(b => b.onclick = () => { const f = PREFS.folders.map(x => ({ n: x.n, c: [...x.c] })), x = f[+b.dataset.f]; x.c = x.c.includes(c.id) ? x.c.filter(i => i !== c.id) : [...x.c, c.id].slice(-200); save(f); });
-        const nf = $("[data-nf]", box); if (nf) nf.onclick = () => { const n = $("input", box).value.trim().slice(0, 20); if (!n) return; save([...PREFS.folders.map(x => ({ n: x.n, c: x.c })), { n, c: [c.id] }]); };
+    counts() { $$(".lmain .folders button[data-k] i").forEach(i => { const k = i.parentElement.dataset.k; const n = this.list.filter(c => this.inKind(c, k) && c.id !== Chat.id && !c.muted).reduce((s, c) => s + (+c.unread || 0), 0); i.textContent = n ? (n > 99 ? "99+" : n) : ""; }); },
+    async load(first) {
+      clearTimeout(this.timer);
+      try {
+        const list = await rpc("nv_my_chats");
+        if (first && !list.length) { try { const f = await rpc("nv_find", { p_q: "needle" }); const off = (f.chats || []).find(c => c.kind === "channel" && c.official); if (off) { await rpc("nv_join", { p_chat: off.id }); return this.load(false); } } catch {} }
+        const before = this.unread;
+        this.list = list; this.unread = list.reduce((s, c) => s + (c.id === Chat.id || c.muted ? 0 : +c.unread || 0), 0);
+        if (this.unread > before && !first) beep();
+        document.title = (this.unread ? `(${this.unread}) ` : "") + "Needle";
+        await this.draw();
+      } catch (e) { if (/not signed in|device not trusted/.test(e.message || "")) return boot(); }
+      this.timer = setTimeout(() => this.load(), document.hidden ? 15000 : 5000);
+    },
+    async preview(c) {
+      const m = c.last; if (!m) return c.kind === "dm" ? (c.saved ? "Сохраняй сюда сообщения и заметки" : "Зашифрованный чат") : esc(c.about || (c.kind === "channel" ? "Канал" : "Группа"));
+      let t;
+      if (m.iv) { t = CFG.preview ? (await E2E.dec(m)) ?? "Зашифрованное сообщение" : "Сообщение"; if (t[0] === "\u0001") { try { const o = JSON.parse(t.slice(1)); t = o.t || "Файл: " + (o.f && o.f.name || ""); } catch { t = "Файл"; } } }
+      else t = m.poll ? "Опрос: " + m.body : m.file && !m.body.trim() ? "Файл: " + (m.file.name || "") : m.photo && !m.body.trim() ? "Фото" : m.body;
+      const who = c.kind === "group" ? (m.mine ? "Вы" : m.anon ? `Аноним #${m.tag}` : m.a ? (m.a.name || m.a.username) : "") : m.mine && c.kind === "dm" && !c.saved ? "Вы" : "";
+      return (who ? `<span class="who">${esc(who)}: </span>` : "") + esc(t);
+    },
+    row: async function (c) {
+      const un = +c.unread && c.id !== Chat.id;
+      return `<div class="row${c.id === Chat.id ? " on" : ""}" data-c="${c.id}">${chatAv(c)}
+        <div class="rc"><div class="r1"><span class="rn">${chatName(c)}${c.muted ? `<span class="mi-s">${I.mute}</span>` : ""}</span><span class="rt">${c.last && c.last.mine && c.kind !== "channel" && !c.saved ? `<span class="tk">${I.check2}</span>` : ""}${c.last ? fmtTime(c.last.created_at) : ""}</span></div>
+        <div class="r2"><span class="rp">${await this.preview(c)}</span>${c.mention && c.id !== Chat.id ? `<span class="bd at">@</span>` : ""}${un ? `<span class="bd${c.muted ? " mu" : ""}">${c.unread}</span>` : c.pin ? `<span class="pin-s">${I.pin}</span>` : ""}</div></div></div>`;
+    },
+    async draw() {
+      const box = $(".lmain .list"); if (!box) return; const seq = ++this.seq;
+      const arch = this.list.filter(c => c.archived);
+      const list = this.list.filter(c => this.inKind(c, this.kind));
+      let html = "";
+      if (this.kind === "all" && arch.length) html += `<div class="row arch" data-arch><span class="av sv">${I.archive}</span><div class="rc"><div class="r1"><span class="rn">Архив</span></div><div class="r2"><span class="rp">${arch.slice(0, 4).map(c => esc(c.saved ? "Избранное" : c.kind === "dm" ? (c.peer && (c.peer.name || c.peer.username)) || "" : c.title || "")).join(", ")}</span>${arch.some(c => +c.unread) ? `<span class="bd mu">${arch.reduce((s, c) => s + (+c.unread || 0), 0)}</span>` : ""}</div></div></div>`;
+      const rows = await Promise.all(list.map(c => this.row(c)));
+      if (seq !== this.seq) return;
+      html += rows.join("");
+      if (!list.length) html += this.kind === "all" ? `<div class="l-empty"><b>Здесь пока пусто</b><span>Найди людей или каналы через поиск сверху или создай свою группу.</span><button class="btn" data-n>Новый чат</button></div>` : `<div class="l-empty"><span>${this.kind === "archive" ? "В архиве пусто" : "В этой папке пока нет чатов"}</span></div>`;
+      box.innerHTML = html;
+      const a = $("[data-arch]", box); if (a) a.onclick = () => this.setKind("archive");
+      const n = $("[data-n]", box); if (n) n.onclick = e => newMenu(e.currentTarget);
+      $$(".row[data-c]", box).forEach(r => {
+        const c = this.list.find(x => x.id === +r.dataset.c);
+        r.onclick = () => Chat.open(c.id);
+        onHold(r, (x, y) => this.menu(c, x, y));
       });
+      this.counts();
+    },
+    menu(c, x, y) {
+      ctxMenu(x, y, [
+        +c.unread ? { i: I.read, t: "Отметить прочитанным", f: () => this.act(c, "read") } : null,
+        { i: c.pin ? I.unpin : I.pin, t: c.pin ? "Открепить" : "Закрепить", f: () => this.act(c, c.pin ? "unpin" : "pin") },
+        { i: c.muted ? I.bell : I.mute, t: c.muted ? "Включить звук" : "Без звука", f: () => this.act(c, c.muted ? "unmute" : "mute") },
+        { i: c.archived ? I.unarchive : I.archive, t: c.archived ? "Вернуть из архива" : "В архив", f: () => this.act(c, c.archived ? "unarch" : "arch") },
+        { i: I.folder, t: "Добавить в папку", f: () => Folders.pick(c) },
+        c.kind === "dm" ? { i: I.trash, t: c.saved ? "Очистить Избранное" : "Удалить чат", danger: true, f: () => this.act(c, "del") } : c.owner ? null : { i: I.logout, t: c.kind === "channel" ? "Покинуть канал" : "Покинуть группу", danger: true, f: () => this.act(c, "leave") },
+      ]);
+    },
+    async act(c, a) {
+      try {
+        if (a === "pin" || a === "unpin") await rpc("nv_pin_chat", { p_chat: c.id, p_on: a === "pin" });
+        else if (a === "arch" || a === "unarch") { await rpc("nv_chat_flag", { p_chat: c.id, p_key: "archived", p_on: a === "arch" }); toast(a === "arch" ? "Чат в архиве" : "Чат вернулся из архива"); }
+        else if (a === "mute" || a === "unmute") await rpc("nv_chat_flag", { p_chat: c.id, p_key: "muted", p_on: a === "mute" });
+        else if (a === "read") await rpc("nv_read_all", { p_chat: c.id });
+        else if (a === "leave") { if (!(await confirmBox(c.kind === "channel" ? "Покинуть канал" : "Покинуть группу", `Ты точно хочешь покинуть «${c.title}»?`, "Покинуть"))) return; await rpc("nv_leave", { p_chat: c.id }); if (Chat.id === c.id) R.close(); }
+        else if (a === "del") { if (!(await confirmBox(c.saved ? "Очистить Избранное" : "Удалить чат", c.saved ? "Все заметки пропадут." : "Переписка удалится у вас обоих. Вернуть её будет нельзя.", c.saved ? "Очистить" : "Удалить"))) return; await rpc("nv_delete_chat", { p_chat: c.id }); if (Chat.id === c.id) R.close(); }
+        this.load();
+      } catch (e) { toast(errText(e)); }
     },
   };
-  function drawChatsWrap() {}
-  RENDER.chats = w => {
-    $(".wa", w).innerHTML = `<button class="ib sv" title="${tl("Избранное")}" data-saved>🔖</button><button class="ib" title="Новый чат" data-new>${I.plus}</button>`;
-    $("[data-new]", w).onclick = newChatDialog;
-    $("[data-saved]", w).onclick = openSaved;
-    $(".wb", w).innerHTML = `<nav class="tnav">${["chats", "feed", "find", "spark", "me", "cfg"].map(id => `<button data-go="${id}" title="${PANELS[id].t}">${PANELS[id].t}</button>`).join("")}</nav>
-      <nav class="ftabs"></nav>
-      <div class="srch"><input class="box" placeholder="Поиск по чатам" maxlength="40"></div><div class="list"><div class="spin"></div></div>`;
-    drawTabs();
-    $$(".tnav button", w).forEach(b => b.onclick = () => open(b.dataset.go));
-    $(".srch input", w).oninput = e => { Chats.q = e.target.value.toLowerCase(); drawChats(); };
-    loadChats(true);
+  const Folders = {
+    save: async f => { await rpc("nv_prefs_set", { p_folders: f }); PREFS.folders = f; Chats.drawFolders(); Chats.draw(); },
+    copy: () => PREFS.folders.map(x => ({ n: x.n, c: [...(x.c || [])] })),
+    async create(first) {
+      const n = await popup({ title: "Новая папка", html: `<div class="pop-f">${field("n", "Название папки", 'maxlength="20"')}</div>`, buttons: [{ t: "Отмена", v: null }, { t: "Создать", main: true, click: card => $("[name=n]", card).value.trim() || false }] });
+      if (!n || PREFS.folders.length >= 10) return null;
+      const f = [...this.copy(), { n: n.slice(0, 20), c: first ? [first] : [] }]; try { await this.save(f); return f.length - 1; } catch (e) { toast(errText(e)); return null; }
+    },
+    pick(c) {
+      popup({ title: "Добавить в папку", html: `<div class="plist">${PREFS.folders.map((f, i) => `<button class="prow" data-f="${i}">${I.folder}<span>${esc(f.n)}</span>${(f.c || []).includes(c.id) ? I.check : ""}</button>`).join("")}${PREFS.folders.length < 10 ? `<button class="prow" data-new>${I.plus}<span>Новая папка</span></button>` : ""}</div>`, buttons: [{ t: "Закрыть" }],
+        onMount: (card, done) => {
+          $$("[data-f]", card).forEach(b => b.onclick = async () => { const f = this.copy(), x = f[+b.dataset.f]; x.c = x.c.includes(c.id) ? x.c.filter(i => i !== c.id) : [...x.c, c.id].slice(-200); try { await this.save(f); done(); toast(`Папка «${x.n}» обновлена`); } catch (e) { toast(errText(e)); } });
+          const nb = $("[data-new]", card); if (nb) nb.onclick = async () => { done(); await this.create(c.id); };
+        } });
+    },
+    async rename(i) {
+      const n = await popup({ title: "Переименовать папку", html: `<div class="pop-f">${field("n", "Название", 'maxlength="20"', PREFS.folders[i].n)}</div>`, buttons: [{ t: "Отмена", v: null }, { t: "Сохранить", main: true, click: card => $("[name=n]", card).value.trim() || false }] });
+      if (!n) return; const f = this.copy(); f[i].n = n.slice(0, 20); try { await this.save(f); } catch (e) { toast(errText(e)); }
+    },
+    async remove(i) {
+      if (!(await confirmBox("Удалить папку", `Папка «${PREFS.folders[i].n}» исчезнет, а чаты останутся.`))) return;
+      try { await this.save(this.copy().filter((_, j) => j !== i)); if (Chats.kind === "f" + i) Chats.setKind("all"); } catch (e) { toast(errText(e)); }
+    },
   };
-  async function loadChats(first) {
-    clearTimeout(Chats.timer);
-    try {
-      const list = await rpc("nv_my_chats");
-      if (first && !list.length) {
-        try { const f = await rpc("nv_find", { p_q: "needle" }); const off = (f.chats || []).find(c => c.kind === "channel" && c.title === "Needle"); if (off) { await rpc("nv_join", { p_chat: off.id }); return loadChats(false); } } catch {}
-      }
-      const before = Chats.unread;
-      Chats.list = list; Chats.unread = list.reduce((s, c) => s + (c.id === Chat.id || c.muted ? 0 : +c.unread || 0), 0);
-      if (Chats.unread > before && !first) beep();   // заглушённые чаты не считаются
-      document.title = (Chats.unread ? `(${Chats.unread}) ` : "") + BRAND();
-      const bd = $('[data-dock=chats]'); if (bd) { let x = $(".bd", bd); if (Chats.unread) { if (!x) { x = h('<span class="bd"></span>'); bd.append(x); } x.textContent = Chats.unread > 99 ? "99+" : Chats.unread; } else if (x) x.remove(); }
-      await drawChats();
-    } catch (e) { if (/not signed in/.test(e.message || "")) return boot(); }
-    Chats.timer = setTimeout(loadChats, document.hidden ? 15000 : 5000);
-  }
-  async function preview(c) {
-    const m = c.last; if (!m) return c.kind === "dm" ? "🔒 шифрованный чат" : esc(c.about || (c.kind === "channel" ? "канал" : "группа"));
-    let t;
-    if (m.iv) { t = CFG.preview ? (await E2E.dec(m)) ?? "🔒 сообщение" : "🔒 сообщение"; if (t[0] === "\u0001") { try { const o = JSON.parse(t.slice(1)); t = o.t || "📎 " + (o.f && o.f.name || "файл"); } catch { t = "📎"; } } }
-    else t = m.file && m.body.trim() === "" ? "📎 " + (m.file.name || "файл") : m.photo && m.body.trim() === "" ? "📷 фото" : m.body;
-    const who = c.kind === "group" ? (m.mine ? "Вы: " : m.anon ? `Аноним #${m.tag}: ` : m.a ? (m.a.name || m.a.username) + ": " : "") : m.mine && c.kind === "dm" ? "Вы: " : "";
-    return (m.expires_at ? "🔥 " : "") + esc(who + t);
-  }
-  let drawSeq = 0;
-  async function drawChats() {
-    const w = $(`.win[data-id=chats]`); if (!w) return; const box = $(".list", w), seq = ++drawSeq;
-    const arch = Chats.list.filter(c => c.archived);
-    const list = Chats.list.filter(c => inKind(c, Chats.kind)).filter(c => !Chats.q || (c.kind === "dm" ? (c.peer && (c.peer.name || "") + " " + c.peer.username || "") : c.title || "").toLowerCase().includes(Chats.q));
-    const archRow = Chats.kind === "archive" ? `<div class="row arch" data-arch="0"><span class="av sv">←</span><div class="c"><div class="n">${tl("Архив")}</div><div class="p">${tl("назад ко всем чатам")}</div></div></div>`
-      : Chats.kind === "all" && arch.length && !Chats.q ? `<div class="row arch" data-arch="1"><span class="av ar">🗄</span><div class="c"><div class="n">${tl("Архив")}</div><div class="p">${arch.slice(0, 4).map(c => c.saved ? tl("Избранное") : esc(c.kind === "dm" ? (c.peer && (c.peer.name || c.peer.username)) || "" : c.title || "")).join(", ")}</div></div>${arch.some(c => +c.unread) ? `<div class="m"><span></span><span class="badge mu">${arch.reduce((s, c) => s + (+c.unread || 0), 0)}</span></div>` : ""}</div>` : "";
-    const wireArch = () => { const a = $("[data-arch]", box); if (a) a.onclick = () => setKind(a.dataset.arch === "1" ? "archive" : "all"); };
-    if (!list.length) { if (archRow) { box.innerHTML = archRow + `<div class="empty">${tl("Ничего не найдено")}</div>`; return wireArch(); } box.innerHTML = Chats.q || Chats.kind !== "all" ? `<div class="empty">Ничего не найдено</div>` : `<div class="empty"><b>Пока пусто</b>Найди людей или каналы в поиске, или создай свою группу.<div class="fab" style="justify-content:center"><button class="btn sm" data-o="find">Поиск</button><button class="btn sm ghost" data-n>Создать</button></div></div>`;
-      $("[data-o]", box) && ($("[data-o]", box).onclick = () => open("find")); $("[data-n]", box) && ($("[data-n]", box).onclick = newChatDialog); return; }
-    const rows = await Promise.all(list.map(async c => `<div class="row${c.id === Chat.id ? " on" : ""}" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${chatName(c)}${c.muted ? ` <span class="mut">🔕</span>` : ""}${c.kind === "dm" && !c.saved ? ` <span class="lock">${I.lock.replace("<svg", '<svg style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2"')}</span>` : ""}</div><div class="p">${await preview(c)}</div></div>
-      <div class="m"><span>${c.pin ? "📌 " : ""}${c.last ? fmtTime(c.last.created_at) : ""}</span>${c.mention && c.id !== Chat.id ? `<span class="badge at">@</span>` : ""}${+c.unread && c.id !== Chat.id ? `<span class="badge${c.muted ? " mu" : ""}">${c.unread}</span>` : ""}</div></div>`));
-    if (seq !== drawSeq) return;
-    box.innerHTML = archRow + rows.join(""); wireArch();
-    $$(".ftabs button, #ttabs button[data-k=all]").forEach(b => { const n = Chats.list.filter(c => inKind(c, b.dataset.k) && c.id !== Chat.id && !c.muted).reduce((s, c) => s + (+c.unread || 0), 0); $("i", b).textContent = n ? n : ""; });
-    $$(".row[data-c]", box).forEach(r => {
-      const c = Chats.list.find(x => x.id === +r.dataset.c);
-      r.onclick = () => { if (r._lp) { r._lp = false; return; } Chat.open(c.id); };
-      r.oncontextmenu = e => { e.preventDefault(); ChatMenu.open(c); };
-      let t = 0; r.addEventListener("touchstart", () => { t = setTimeout(() => { r._lp = true; ChatMenu.open(c); }, 520); }, { passive: true });
-      ["touchend", "touchmove", "touchcancel"].forEach(ev => r.addEventListener(ev, () => clearTimeout(t), { passive: true }));
-    });
-  }
 
-  async function openSaved() { try { const id = await rpc("nv_saved"); await loadChats(); Chat.open(id); } catch (e) { toast(errText(e)); } }
-  function newChatDialog() {
-    modal(`<h2>Создать</h2>
-      <div class="seg" style="margin-bottom:16px"><button class="on" data-k="group">Группа</button><button data-k="channel">Канал</button><button data-k="dm">Личка</button></div>
-      <div data-f="gc"><div class="field"><label class="k">название</label><input class="in" name="t" maxlength="40"></div>
-      <div class="field"><label class="k">описание</label><input class="in" name="a" maxlength="200"></div>
-      <div class="opt" data-an><span>Анонимные сообщения<small>участники могут писать как «Аноним #N»</small></span><button class="sw" type="button"></button></div>
-      <p class="note">Можно создать до 3 групп и каналов.</p></div>
-      <div data-f="dm" hidden><div class="field"><label class="k">ник или ID</label><input class="in" name="u" maxlength="20"></div><div data-res></div></div>
-      <div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Создать</button></div>`, (c, closeM) => {
-      let kind = "group";
-      $$(".seg button", c).forEach(b => b.onclick = () => { kind = b.dataset.k; $$(".seg button", c).forEach(x => x.classList.toggle("on", x === b)); $("[data-f=gc]", c).hidden = kind === "dm"; $("[data-f=dm]", c).hidden = kind !== "dm"; $("[data-an]", c).hidden = kind !== "group"; $("[data-y]", c).hidden = kind === "dm"; if (kind === "dm") $("[name=u]", c).focus(); });
-      const sw = $(".sw", c); sw.onclick = () => sw.classList.toggle("on");
-      $("[data-n]", c).onclick = closeM;
-      let tq = 0; $("[name=u]", c).oninput = e => { clearTimeout(tq); tq = setTimeout(async () => {
-        const q = e.target.value.trim(); const res = $("[data-res]", c); if (!q) return res.innerHTML = "";
-        try { const r = await rpc("nv_find", { p_q: q }); res.innerHTML = (r.people || []).filter(p => p.id !== ME.id).map(p => `<div class="row" data-u="${p.id}">${av(p)}<div class="c"><div class="n">${uname(p)}</div><div class="p">@${esc(p.username)} · ID ${p.num}</div></div></div>`).join("") || `<div class="note">Никого не нашли</div>`;
-          $$("[data-u]", res).forEach(r2 => r2.onclick = async () => { closeM(); try { Chat.open(await rpc("nv_open_dm", { p_user: r2.dataset.u })); } catch (er) { toast(errText(er)); } });
-        } catch (er) { res.innerHTML = `<div class="err">${esc(errText(er))}</div>`; }
-      }, 300); };
-      $("[data-y]", c).onclick = async () => {
-        const t = $("[name=t]", c).value.trim(), a = $("[name=a]", c).value.trim(), er = $(".err", c);
+  // ================= поиск =================
+  const Search = {
+    seq: 0,
+    close() { const s = $(".lmain .sres"), l = $(".lmain .list"); if (s) { s.hidden = true; s.innerHTML = ""; } if (l) l.hidden = false; },
+    async run(q) {
+      const s = $(".lmain .sres"), l = $(".lmain .list"); if (!s) return; const seq = ++this.seq;
+      s.hidden = false; l.hidden = true;
+      const lq = q.toLowerCase();
+      const local = Chats.list.filter(c => (c.saved ? "избранное" : c.kind === "dm" ? (c.peer ? (c.peer.name || "") + " " + c.peer.username : "") : c.title || "").toLowerCase().includes(lq));
+      s.innerHTML = (local.length ? `<div class="sec">Чаты</div>` + (await Promise.all(local.map(c => Chats.row(c)))).join("") : "") + `<div class="sec">Глобальный поиск</div><div class="glob"><div class="spin"></div></div>`;
+      $$(".row[data-c]", s).forEach(r => r.onclick = () => Chat.open(+r.dataset.c));
+      try {
+        const r = await rpc("nv_find", { p_q: q }); if (seq !== this.seq) return;
+        const known = new Set(local.map(c => c.id));
+        const ppl = (r.people || []).filter(p => p.id !== ME.id), chs = (r.chats || []).filter(c => !known.has(c.id));
+        const g = $(".glob", s); if (!g) return;
+        g.innerHTML = ppl.map(p => `<div class="row" data-u="${p.id}">${av(p)}<div class="rc"><div class="r1"><span class="rn">${uname(p)}</span></div><div class="r2"><span class="rp">@${esc(p.username)}</span></div></div></div>`).join("")
+          + chs.map(c => `<div class="row" data-g="${c.id}">${chatAv(c)}<div class="rc"><div class="r1"><span class="rn">${chatName(c)}</span></div><div class="r2"><span class="rp">${c.handle ? "@" + esc(c.handle) + ", " : ""}${members(c)}</span></div></div></div>`).join("")
+          || `<div class="l-empty"><span>Ничего не найдено</span></div>`;
+        $$("[data-u]", g).forEach(x => x.onclick = () => Profile.open(x.dataset.u));
+        $$("[data-g]", g).forEach(x => x.onclick = () => Chat.open(+x.dataset.g));
+      } catch (e) { const g = $(".glob", s); if (g) g.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; }
+    },
+  };
+
+  // ================= новый чат =================
+  function newMenu(btn) {
+    const r = btn.getBoundingClientRect();
+    const m = ctxMenu(r.right - 230, r.top - 150, [
+      { i: I.channel, t: "Новый канал", f: () => createChat("channel") },
+      { i: I.users, t: "Новая группа", f: () => createChat("group") },
+      { i: I.user, t: "Новое сообщение", f: () => { const i = $(".lmain .srch input"); i.focus(); toast("Найди человека по имени или @юзернейму"); } },
+    ]);
+    m.style.top = Math.max(8, r.top - m.offsetHeight - 8) + "px";
+  }
+  function createChat(kind) {
+    L.clear();
+    L.push(kind === "channel" ? "Новый канал" : "Новая группа", body => {
+      body.innerHTML = `<div class="pad"><div class="new-av">${kind === "channel" ? I.channel : I.users}</div>
+        ${field("t", kind === "channel" ? "Название канала" : "Название группы", 'maxlength="40"')}
+        ${areaField("a", "Описание (необязательно)", 'maxlength="200" rows="2"')}
+        <p class="hint">${kind === "channel" ? "Канал: публикуешь посты ты, остальные читают." : "Группа: общий чат для нескольких людей."} Можно создать до 3 групп и каналов.</p>
+        <div class="err"></div><button class="btn wide" data-y>Создать</button></div>`;
+      $("[name=t]", body).focus();
+      $("[data-y]", body).onclick = async e => {
+        const t = $("[name=t]", body).value.trim(), a = $("[name=a]", body).value.trim(), er = $(".err", body);
         if (!t) return er.textContent = "Напиши название";
-        try { const id = await rpc("nv_create", { p_kind: kind, p_title: t, p_about: a, p_anon: kind === "group" && sw.classList.contains("on") }); closeM(); await loadChats(); Chat.open(id); toast(kind === "channel" ? "Канал создан" : "Группа создана"); }
-        catch (x) { er.textContent = errText(x); }
+        e.target.disabled = true;
+        try { const id = await rpc("nv_create", { p_kind: kind, p_title: t, p_about: a, p_anon: false }); L.clear(); await Chats.load(); Chat.open(id); toast(kind === "channel" ? "Канал создан" : "Группа создана"); }
+        catch (x) { er.textContent = errText(x); e.target.disabled = false; }
       };
     });
+  }
+  async function openSaved() { try { const id = await rpc("nv_saved"); await Chats.load(); Chat.open(id); } catch (e) { toast(errText(e)); } }
+  async function openDm(uid) { try { const id = await rpc("nv_open_dm", { p_user: uid }); await Chats.load(); Chat.open(id); } catch (e) { toast(errText(e)); } }
+  // ссылки needle-net.github.io/имя и /+приглашение
+  async function goLink(name) {
+    try {
+      const r = await rpc("nv_resolve", { p_name: name }); if (!r) throw new Error("no chat");
+      if (r.user) return Profile.open(r.user);
+      Chats.load(); Chat.open(r.chat);
+    } catch (e) { toast(errText(e)); }
   }
 
   // ================= чат =================
+  const RX = ["👍", "❤️", "🔥", "😂", "😮", "😢", "🙏", "👎"];
+  const can = (c, r) => !!c && (ME.is_admin || c.owner || (c.rights || []).includes(r));
+  const isAdm = c => !!c && (ME.is_admin || c.owner || c.role === "admin");
   const Chat = {
-    id: 0, c: null, msgs: new Map(), last: 0, first: 0, poll: 0, anon: false, burnT: new Map(), reply: null, since: null, read: 0, typT: 0, sub: "",
-    leave() { clearTimeout(this.poll); this.burnT.forEach(t => clearTimeout(t)); this.burnT.clear(); this.id = 0; this.c = null; drawChats(); },
+    id: 0, c: null, msgs: new Map(), last: 0, first: 0, timer: 0, burnT: new Map(), reply: null, editing: null, since: null, read: 0, typT: 0, sub: "",
+    get box() { return $(".right .msgs"); },
+    leave() { clearTimeout(this.timer); this.burnT.forEach(t => clearTimeout(t)); this.burnT.clear(); this.id = 0; this.c = null; },
     async open(id) {
-      this.leave(); this.id = id; this.msgs.clear(); this.last = 0; this.first = 0; this.anon = false; this.reply = null; this.since = null; this.read = 0;
-      const w = open("chat"); const body = $(".wb", w);
-      body.innerHTML = `<div class="chat"><div class="msgs"><div class="spin"></div></div></div>`;
-      setTitle(w, "…"); $(".wa", w).innerHTML = "";
-      drawChats();
+      Search.close(); const si = $(".lmain .srch input"); if (si && si.value) { si.value = ""; $(".lmain [data-sx]").hidden = true; }
+      if (this.id === id && R.kind === "chat") return;
+      this.leave(); this.id = id; this.msgs.clear(); this.last = this.first = 0; this.reply = this.editing = null; this.since = null; this.read = 0;
+      const node = h(`<section class="chat"><header class="ch">${backBtn()}<div class="ch-t"></div><div class="ch-a"></div></header>
+        <div class="pinbar" hidden></div><div class="ch-search" hidden></div>
+        <div class="msgs-w"><div class="msgs"><div class="spin"></div></div><button class="down" hidden aria-label="Вниз">${I.back}</button></div><div class="bottom"></div></section>`);
+      R.show("chat", node); wireBack(node);
+      Chats.draw();
+      const box = $(".msgs", node), down = $(".down", node);
+      box.addEventListener("scroll", () => { down.hidden = box.scrollHeight - box.scrollTop - box.clientHeight < 300; if (box.scrollTop < 80 && this.first && !this.loadingOld && !this.noOlder) this.older(); }, { passive: true });
+      down.onclick = () => box.scrollTo({ top: box.scrollHeight, behavior: "smooth" });
       try {
-        this.c = await rpc("nv_chat", { p_chat: id });
-        if (this.id !== id) return;
-        $(".chat", w).classList.toggle("chan", this.c.kind === "channel");
-        this.head(w); this.composer(w); this.pinBar(w);
-        const list = await rpc("nv_messages", { p_chat: id });
-        if (this.id !== id) return;
-        $(".msgs", w).innerHTML = this.intro();
+        this.c = await rpc("nv_chat", { p_chat: id }); if (this.id !== id) return;
+        node.classList.toggle("is-chan", this.c.kind === "channel");
+        this.head(); this.composer(); this.pinBar();
+        const list = await rpc("nv_messages", { p_chat: id }); if (this.id !== id) return;
+        box.innerHTML = this.intro(); this.noOlder = list.length < 60; this.loadingOld = false;
         await this.add(list, true);
         this.schedule();
-      } catch (e) { $(".msgs", w).innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
+      } catch (e) { box.innerHTML = `<div class="sys"><span>${esc(errText(e))}</span></div>`; }
     },
     intro() {
       const c = this.c;
-      if (c.saved) return `<div class="sys">🔖 ${tl("Избранное: пересылай сюда сообщения и пиши заметки. Всё шифруется твоим ключом.")}</div>`;
-      if (c.kind === "dm") return `<div class="sys">🔒 Сквозное шифрование. Сообщения читаете только вы двое, сервер видит только шифр. Ключ закрыт твоим паролем, поэтому переписка открывается на любом твоём устройстве.${c.burn ? `<br>🔥 Сообщения сгорают через ${burnName(c.burn)}.` : ""}</div>`;
-      return `<div class="sys">${c.kind === "channel" ? "Канал" : "Группа"} «${esc(c.title)}» · ${c.members} ${c.kind === "channel" ? plural(c.members, "подписчик", "подписчика", "подписчиков") : plural(c.members, "участник", "участника", "участников")}${c.about ? "<br>" + esc(c.about) : ""}${c.anon_ok ? "<br>🎭 Можно писать анонимно" : ""}${c.burn ? `<br>🔥 Сообщения сгорают через ${burnName(c.burn)}` : ""}</div>`;
+      if (c.saved) return `<div class="intro">${I.saved}<b>Избранное</b><span>Пересылай сюда сообщения и пиши заметки. Видишь их только ты.</span></div>`;
+      if (c.kind === "dm") return `<div class="intro">${I.lock}<b>Сквозное шифрование</b><span>Сообщения в этом чате читаете только вы двое. Сервер хранит лишь зашифрованный текст.</span></div>`;
+      return "";
     },
-    head(w) {
+    status() {
       const c = this.c;
-      const sub = c.saved ? tl("заметки для себя") : c.kind === "dm" ? (c.peer && !c.peer.pubkey ? "ещё не заходил в Needle" : seenAt(c.peer && c.peer.seen_at) + (c.burn ? " · 🔥 " + burnName(c.burn) : "")) : `${c.members} ${c.kind === "channel" ? plural(c.members, "подписчик", "подписчика", "подписчиков") : plural(c.members, "участник", "участника", "участников")}${c.burn ? " · 🔥 " + burnName(c.burn) : ""}`;
-      this.sub = sub; $(".wt", w).innerHTML = `${chatAv(c)}<span class="tt"><b>${chatName(c)}</b><small>${sub}</small></span>`;
-      $(".wt .av", w).style.cssText = "width:30px;height:30px;font-size:11px";
-      const canBurn = c.kind === "dm" || c.owner || ME.is_admin;
-      $(".wa", w).innerHTML = `${canBurn ? `<button class="ib${c.burn ? " on" : ""}" data-burn title="Сгорание">${I.fire}</button>` : ""}<button class="ib" data-srch title="${tl("Поиск")}">${I.find}</button><button class="ib" data-info title="О чате">${I.info}</button>`;
-      $("[data-srch]", w).onclick = () => this.search(w);
-      $("[data-burn]", w) && ($("[data-burn]", w).onclick = () => this.burnMenu());
-      $("[data-info]", w).onclick = () => this.info();
-      if (c.kind === "dm" && c.peer && !c.saved) $(".wt", w).style.cursor = "pointer", $(".wt", w).onclick = () => Profile.open(c.peer.id);
-      else if (c.kind === "channel") $(".wt", w).style.cursor = "pointer", $(".wt", w).onclick = () => Channel.open(c.id);
-      else $(".wt", w).onclick = null;
+      if (c.saved) return "";
+      if (c.kind === "dm") return c.peer && !c.peer.pubkey ? "ещё не заходил(а) в Needle" : seenText(c.peer && c.peer.seen_at);
+      return members(c);
+    },
+    head() {
+      const c = this.c, node = $(".right .chat"); if (!node) return;
+      this.sub = this.status();
+      const t = $(".ch-t", node);
+      t.innerHTML = `${chatAv(c, "sm")}<div class="ch-n"><b>${chatName(c)}</b><small class="${this.sub === "в сети" ? "on" : ""}">${esc(this.sub)}${c.burn ? ` · ${I.timer} ${burnName(c.burn)}` : ""}</small></div>`;
+      t.onclick = () => this.info();
+      $(".ch-a", node).innerHTML = `<button class="ib" data-s aria-label="Поиск">${I.search}</button><button class="ib" data-m aria-label="Ещё">${I.more}</button>`;
+      $("[data-s]", node).onclick = () => this.search();
+      $("[data-m]", node).onclick = e => this.headMenu(e.currentTarget);
+    },
+    headMenu(btn) {
+      const c = this.c, lc = Chats.list.find(x => x.id === c.id) || {};
+      menuAt(btn, [
+        { i: I.info, t: c.kind === "dm" ? "Профиль" : c.kind === "channel" ? "Информация о канале" : "Информация о группе", f: () => this.info() },
+        c.joined ? { i: lc.muted ? I.bell : I.mute, t: lc.muted ? "Включить звук" : "Без звука", f: () => Chats.act(lc.id ? lc : c, lc.muted ? "unmute" : "mute").then(() => {}) } : null,
+        c.kind === "dm" || c.owner || ME.is_admin ? { i: I.timer, t: "Автоудаление сообщений", f: () => this.burnMenu() } : null,
+        { i: I.photo, t: "Медиа и файлы", f: () => this.info("media") },
+        c.kind === "dm" && !c.saved ? { i: I.key, t: "Код шифрования", f: () => this.keyCode() } : null,
+        c.kind !== "dm" && can(c, "edit") ? { i: I.pen, t: "Изменить", f: () => this.editChat() } : null,
+        "-",
+        c.kind === "dm" ? { i: I.trash, t: c.saved ? "Очистить Избранное" : "Удалить чат", danger: true, f: () => Chats.act(c, "del") }
+          : c.owner || ME.is_admin ? { i: I.trash, t: c.kind === "channel" ? "Удалить канал" : "Удалить группу", danger: true, f: () => this.deleteChat() }
+          : c.joined ? { i: I.logout, t: c.kind === "channel" ? "Покинуть канал" : "Покинуть группу", danger: true, f: () => Chats.act(c, "leave") } : null,
+      ].filter((x, i, a) => !(x === "-" && (!a[i + 1] || i === 0))));
+    },
+    async deleteChat() {
+      const c = this.c;
+      if (!(await confirmBox(c.kind === "channel" ? "Удалить канал" : "Удалить группу", "Все сообщения пропадут у всех участников. Вернуть будет нельзя."))) return;
+      try { await rpc("nv_delete_chat", { p_chat: c.id }); R.close(); Chats.load(); toast("Удалено"); } catch (e) { toast(errText(e)); }
+    },
+    async keyCode() {
+      const c = this.c, code = await E2E.code(E2E.pub, c.peer && c.peer.pubkey);
+      popup({ title: "Код шифрования", html: `<div class="code-big mono sm">${esc(code)}</div><p class="pop-x">Сверь этот код с собеседником лично или по звонку. Если он совпадает, никто не подменил ключи и переписку читаете только вы двое.</p>`, buttons: [{ t: "Закрыть", main: true }] });
     },
     // текст и файл сообщения (в личке всё лежит внутри шифра)
     async decode(m) {
@@ -1403,143 +1051,108 @@
       else { t = (m.body || "").trim(); f = m.file || null; }
       return (m._d = { t, f });
     },
-    canReply() { const c = this.c; return c.joined && (c.kind !== "channel" || c.owner || ME.is_admin); },
-    canPin() { const c = this.c; return c.kind === "dm" || c.owner || ME.is_admin; },
-    async pinBar(w) {
-      const c = this.c, root = $(".chat", w); let bar = $(".pinbar", root); if (bar) bar.remove();
-      if (!c.pinned) return;
+    canWrite() { const c = this.c; return c.joined && (c.kind !== "channel" || can(c, "post")); },
+    canPin() { const c = this.c; return c.kind === "dm" || can(c, "pin"); },
+    async pinBar() {
+      const c = this.c, bar = $(".right .pinbar"); if (!bar) return;
+      if (!c.pinned) { bar.hidden = true; return; }
       const d = await this.decode(c.pinned);
-      bar = h(`<div class="pinbar"><span class="pi">📌</span><div><small>${tl("Закреплено")}</small><span>${esc(d.t || (d.f ? d.f.name : "") || tl("сообщение"))}</span></div>${this.canPin() ? `<button class="ib" title="Открепить">${I.x}</button>` : ""}</div>`);
-      root.prepend(bar);
-      bar.onclick = e => { if (e.target.closest("button")) return; const x = $(`.m[data-id="${c.pinned.id}"]`, root); if (x) { x.scrollIntoView({ block: "center", behavior: "smooth" }); x.classList.add("flash"); setTimeout(() => x.classList.remove("flash"), 1200); } };
+      bar.hidden = false;
+      bar.innerHTML = `<i class="pl"></i><div class="pb-t"><b>Закреплённое сообщение</b><span>${esc(d.t || (d.f ? d.f.name : "") || (c.pinned.photo ? "Фото" : "Сообщение"))}</span></div>${this.canPin() ? `<button class="ib" aria-label="Открепить">${I.close}</button>` : ""}`;
+      bar.onclick = e => { if (e.target.closest("button")) return; this.jump(c.pinned.id); };
       const b = $("button", bar); if (b) b.onclick = () => this.pin(null);
     },
     async pin(m) {
-      try { await rpc("nv_pin_msg", { p_chat: this.c.id, p_msg: m ? m.id : null }); this.c.pinned = m; this.pinBar($(`.win[data-id=chat]`)); toast(m ? tl("Сообщение закреплено") : tl("Откреплено")); } catch (e) { toast(errText(e)); }
+      if (!m && !(await confirmBox("Открепить сообщение", "Сообщение пропадёт из закреплённых у всех.", "Открепить"))) return;
+      try { await rpc("nv_pin_msg", { p_chat: this.c.id, p_msg: m ? m.id : null }); this.c.pinned = m; this.pinBar(); toast(m ? "Сообщение закреплено" : "Сообщение откреплено"); } catch (e) { toast(errText(e)); }
     },
-    async menu(m, el) {
-      const c = this.c, d = await this.decode(m), canDel = m.mine || ME.is_admin || c.owner;
-      const items = [this.canReply() ? ["reply", "↩ " + tl("Ответить")] : null, ["fwd", "↪ Переслать"], d.t ? ["copy", "⧉ Копировать"] : null, this.canPin() ? ["pin", c.pinned && c.pinned.id === m.id ? "📌 Открепить" : "📌 Закрепить"] : null,
-        m.mine && d.t && !m.expires_at ? ["edit", "✎ Изменить"] : null, canDel ? ["del", "🗑 Удалить"] : null].filter(Boolean);
-      modal(`${c.joined && !c.saved ? `<div class="rxpick">${RX.map(e => `<button data-e="${e}" class="${m.my === e ? "on" : ""}">${e}</button>`).join("")}</div>` : ""}<div class="mmenu">${items.map(([k, t]) => `<button data-a="${k}">${t}</button>`).join("")}</div>`, (box, closeM) => {
-        $$("[data-e]", box).forEach(b => b.onclick = () => { closeM(); this.react(m, b.dataset.e); });
-        $$("[data-a]", box).forEach(b => b.onclick = async () => {
-          closeM(); const a = b.dataset.a;
-          if (a === "copy") { try { await navigator.clipboard.writeText(d.t); toast(tl("Скопировано")); } catch {} }
-          else if (a === "pin") this.pin(c.pinned && c.pinned.id === m.id ? null : m);
-          else if (a === "del") { try { await rpc("nv_delete_msg", { p_id: m.id }); this.burn(el, m.id); } catch (e) { toast(errText(e)); } }
-          else if (a === "edit") this.edit(m, el, d);
-          else if (a === "fwd") this.forward(m, d);
-          else if (a === "reply") this.setReply(m, d);
-        });
-      });
-    },
-    edit(m, el, d) {
-      modal(`<h2>${tl("Изменить сообщение")}</h2><textarea class="box" rows="4" maxlength="2000">${esc(d.t)}</textarea><div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (box, closeM) => {
-        $("[data-n]", box).onclick = closeM;
-        $("[data-y]", box).onclick = async () => {
-          const t = $("textarea", box).value.trim(); if (!t) return;
-          try {
-            let args = { p_id: m.id, p_body: t };
-            if (this.c.kind === "dm") { const e = await E2E.enc(d.f ? "\u0001" + JSON.stringify({ t, f: d.f }) : t, this.c.peer.pubkey); args = { p_id: m.id, p_body: e.p_body, p_iv: e.p_iv, p_kp: e.p_kp, p_kr: e.p_kr }; }
-            const nm = await rpc("nv_edit_msg", args); closeM();
-            this.msgs.set(m.id, nm); el.replaceWith(await this.el(nm));
-          } catch (e) { $(".err", box).textContent = errText(e); }
-        };
-      });
-    },
-    forward(m, d) {
-      const from = this.c.kind === "channel" ? this.c.title : m.mine ? (ME.name || ME.username) : m.anon ? "Аноним" : m.a ? (m.a.name || m.a.username) : "";
-      const list = Chats.list.filter(c => c.kind !== "channel" || c.owner || ME.is_admin);
-      modal(`<h2>${tl("Переслать")}</h2><div class="fwdl">${list.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${chatName(c)}</div></div></div>`).join("") || `<div class="empty">${tl("Чатов пока нет")}</div>`}</div>
-        <div class="row2"><button class="btn ghost" data-n>Отмена</button></div>`, (box, closeM) => {
-        $("[data-n]", box).onclick = closeM;
-        $$("[data-c]", box).forEach(r => r.onclick = async () => {
-          const c = list.find(x => x.id === +r.dataset.c); closeM();
-          const t = (d.t || "") + (d.f && !d.f.k && !m.mine ? "" : "");
-          try {
-            let args;
-            if (c.kind === "dm") {
-              if (!c.peer || !c.peer.pubkey) throw new Error("no key");
-              const fileOk = d.f && m.mine;   // свой файл можно переслать как есть
-              const payload = fileOk ? "\u0001" + JSON.stringify({ t, f: d.f }) : (t || (d.f ? "📎 " + d.f.name : ""));
-              args = Object.assign({ p_chat: c.id, p_fwd: from }, await E2E.enc(payload, c.peer.pubkey), fileOk ? { p_file: { path: d.f.path } } : {});
-            } else {
-              const fileOk = d.f && m.mine && !d.f.k;
-              args = { p_chat: c.id, p_body: t || (d.f && !fileOk ? "📎 " + d.f.name : ""), p_fwd: from };
-              if (fileOk) args.p_file = { path: d.f.path, name: d.f.name, size: d.f.size, type: d.f.type };
-            }
-            await rpc("nv_send", args); toast(tl("Переслано")); loadChats();
-          } catch (e) { toast(errText(e)); }
-        });
-      });
-    },
-    composer(w) {
-      const c = this.c, root = $(".chat", w); $(".comp,.joinbar", root) && $$(".comp,.joinbar", root).forEach(x => x.remove());
-      if (!c.joined) {
-        const lbl = c.requested ? tl("Заявка отправлена · отменить") : c.access === "request" ? tl("Подать заявку") : c.kind === "channel" ? "Подписаться" : "Вступить";
-        const bar = h(`<div class="joinbar"><button class="btn${c.requested ? " ghost" : ""}">${lbl}</button></div>`); root.append(bar);
-        $("button", bar).onclick = async () => { try {
-          if (c.requested) { await rpc("nv_unrequest", { p_chat: c.id }); this.c.requested = false; return this.composer(w); }
-          const r = await rpc("nv_join", { p_chat: c.id });
-          if (r === "requested") { this.c.requested = true; toast(tl("Заявка отправлена")); return this.composer(w); }
-          this.c.joined = true; this.c.members++; this.head(w); this.composer(w); loadChats(); } catch (e) { toast(errText(e)); } };
-        return;
+    // ---------- сообщения ----------
+    async el(m) {
+      const c = this.c, mine = m.mine, ch = c.kind === "channel", d = await this.decode(m);
+      let body = m.iv && d.t == null ? (E2E.locked ? `<span class="muted unlock">${I.lock} Нажми, чтобы открыть переписку паролем</span>` : `<span class="muted">${I.lock} Сообщение для ключа с другого устройства</span>`) : esc(d.t || "");
+      if (body && !m.iv) body = body.replace(/(^|[^a-z0-9_])@([a-z0-9_]{3,20})/gi, (x, a, n) => `${a}<span class="mn" data-mn="${n}">@${n}</span>`);
+      body = body.replace(/(https?:\/\/[^\s<]+)/g, u => `<a href="${u}" target="_blank" rel="noopener noreferrer nofollow">${u}</a>`);
+      const rd = m.rp ? await this.decode(m.rp) : null;
+      const rq = m.rp ? `<div class="rq" data-rq="${m.rp.id}"><b>${m.rp.name ? esc(m.rp.name) : chatTitle(c)}</b><span>${esc(rd.t && rd.t.trim() ? rd.t.slice(0, 120) : rd.f ? "Файл: " + (rd.f.name || "") : m.rp.photo ? "Фото" : rd.t == null ? "Зашифрованное сообщение" : "Сообщение")}</span></div>` : "";
+      const rx = m.rx ? `<div class="rx">${Object.entries(m.rx).sort((a, b) => b[1] - a[1]).map(([e, n]) => `<button class="${m.my === e ? "on" : ""}" data-rx="${e}">${e}<i>${n}</i></button>`).join("")}</div>` : "";
+      const tick = mine && !ch && !c.saved ? `<span class="tk${m.id <= this.read ? " rd" : ""}">${m.id <= this.read ? I.check2 : I.check}</span>` : "";
+      const meta = `<span class="meta">${m.expires_at ? I.timer : ""}${m.edited ? "изменено " : ""}${ch && m.views != null ? `${I.eye}${fmtN(m.views)} ` : ""}${hm(m.created_at)}${tick}</span>`;
+      const mw = 42 + (tick ? 20 : 0) + (m.edited ? 62 : 0) + (ch && m.views != null ? 14 + 8 * String(fmtN(m.views)).length : 0) + (m.expires_at ? 16 : 0), fe0 = !!d.f;
+      const who = c.kind === "group" && !mine ? (m.anon ? `<span class="nm">${anonName(m)}</span>` : m.a ? `<span class="nm" data-p="${m.a.id}">${pname(m.a)}</span>` : "") : "";
+      const photo = m.photo && PATH_RE.test(m.photo) ? `<img class="ph" src="${esc(pub("nova", m.photo))}" alt="" loading="lazy">` : "";
+      const pl = m.poll ? this.pollHtml(m) : "";
+      const text = m.poll ? "" : body;
+      const el = h(`<div class="m ${mine && !ch ? "out" : "in"}${photo && !text ? " media" : ""}" data-id="${m.id}" data-a="${m.anon ? "anon" + m.tag : m.a ? m.a.id : mine ? "me" : "x"}" data-t="${m.created_at}">
+        ${c.kind === "group" && !mine ? `<span class="m-av" ${m.a && !m.anon ? `data-p="${m.a.id}"` : ""}>${m.anon ? `<span class="av s0 sm">?</span>` : av(m.a, "sm")}</span>` : ""}
+        <div class="bb">${who ? `<div class="au">${who}</div>` : ""}${m.fwd ? `<div class="fwd">Переслано от <b>${esc(m.fwd)}</b></div>` : ""}${rq}${photo}<span class="fslot"></span>${pl}
+          ${text ? `<div class="tx">${text}<i class="msp" style="width:${mw}px"></i>${meta}</div>` : meta.replace('class="meta"', 'class="meta' + (photo && !pl && !fe0 ? " on-ph" : " st") + '"')}${rx}
+          ${ch && (c.comments !== false || +m.cm) ? `<button class="cmb" data-cm>${I.comment}<span>${+m.cm ? m.cm + " " + plural(+m.cm, "комментарий", "комментария", "комментариев") : "Прокомментировать"}</span>${I.back}</button>` : ""}
+        </div></div>`);
+      const fe = fileEl(d.f); if (fe) $(".fslot", el).replaceWith(fe); else $(".fslot", el).remove();
+      const img = $("img.ph", el); if (img) img.onclick = () => lightbox(img.src);
+      const ul = $(".unlock", el); if (ul) ul.onclick = () => keyPrompt(true);
+      $$("[data-p]", el).forEach(x => x.onclick = () => Profile.open(x.dataset.p));
+      $$("[data-mn]", el).forEach(x => x.onclick = e => { e.stopPropagation(); goLink(x.dataset.mn); });
+      const q = $("[data-rq]", el); if (q) q.onclick = () => this.jump(+q.dataset.rq);
+      const cmb = $("[data-cm]", el); if (cmb) cmb.onclick = e => { e.stopPropagation(); Comments.open(c, m); };
+      $$("[data-vo]", el).forEach(b => b.onclick = e => { e.stopPropagation(); if (!c.joined) return toast(errText("join first")); const o = +b.dataset.vo, my = m.poll.my || [];
+        if (m.poll.x) return; if (m.poll.m) this.vote(m, my.includes(o) ? my.filter(x => x !== o) : [...my, o]); else if (!my.length) this.vote(m, [o]); });
+      $$("[data-rx]", el).forEach(b => b.onclick = e => { e.stopPropagation(); if (c.joined) this.react(m, b.dataset.rx); });
+      const bb = $(".bb", el);
+      onHold(bb, (x, y) => this.menu(m, el, x, y));
+      if (this.canWrite() && !isPhone()) bb.addEventListener("dblclick", e => { if (e.target.closest("a,button,audio,video,img")) return; getSelection().removeAllRanges(); this.setReply(m, d); });
+      if (this.canWrite()) {   // свайп влево = ответить
+        let sx = null, sy = 0, dx = 0;
+        bb.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; }, { passive: true });
+        bb.addEventListener("touchmove", e => { if (sx == null) return; if (Math.abs(e.touches[0].clientY - sy) > 20) { sx = null; bb.style.transform = ""; return; } dx = Math.min(0, e.touches[0].clientX - sx); if (dx < -8) bb.style.transform = `translateX(${Math.max(dx, -64)}px)`; }, { passive: true });
+        bb.addEventListener("touchend", () => { bb.style.transform = ""; if (dx < -50 && sx != null) this.setReply(m, d); sx = null; });
       }
-      if (c.kind === "channel" && !c.owner && !ME.is_admin) { const bar = h(`<div class="joinbar"><button class="btn ghost sm">Отписаться</button></div>`); root.append(bar); $("button", bar).onclick = () => this.leaveChat(); return; }
-      if (c.blocked) { const bar = h(`<div class="joinbar"><button class="btn ghost">${tl("Разблокировать")}</button></div>`); root.append(bar); $("button", bar).onclick = async () => { try { await rpc("nv_block", { p_user: c.peer.id, p_on: false }); this.c.blocked = false; this.composer(w); } catch (e) { toast(errText(e)); } }; return; }
-      if (c.kind === "dm" && (!c.peer || !c.peer.pubkey)) { root.append(h(`<div class="joinbar"><span class="note" style="margin:0">Собеседник ещё не заходил в Needle, ключа шифрования пока нет. Написать получится, когда он зайдёт.</span></div>`)); return; }
-      const f = h(`<form class="comp">
-        ${c.kind !== "dm" ? `<label class="ib" title="Фото">${I.img}<input type="file" accept="image/*" hidden data-ph></label>` : ""}
-        <label class="ib" title="Файл, фото или музыка (до 8 МБ)">${I.clip}<input type="file" hidden data-fl></label>
-        ${c.kind === "group" && c.anon_ok ? `<button type="button" class="ib" data-anon title="Анонимно">${I.mask}</button>` : ""}
-        <textarea class="box" rows="1" maxlength="2000" placeholder="${c.kind === "dm" ? "Написать…" : c.kind === "channel" ? "Пост в канал…" : "Сообщение…"}"></textarea>
-        <button class="send" title="Отправить (Enter)">${I.send}</button></form>`);
-      root.append(f);
-      const ta = $("textarea", f);
-      const fit = () => { ta.style.height = "auto"; ta.style.height = Math.min(160, ta.scrollHeight + 2) + "px"; };
-      ta.oninput = () => {
-        fit();
-        if (c.kind !== "channel" && Date.now() - this.typT > 3500 && ta.value.trim()) { this.typT = Date.now(); rpc("nv_typing", { p_chat: c.id }).catch(() => {}); }
-        if (c.kind === "group") this.mentionPop(ta, f);
-      };
-      ta.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); f.requestSubmit(); } };
-      const an = $("[data-anon]", f); if (an) an.onclick = () => { this.anon = !this.anon; an.classList.toggle("on", this.anon); ta.placeholder = this.anon ? "Анонимно…" : "Сообщение…"; };
-      const fi = $("[data-ph]", f), fl = $("[data-fl]", f);
-      fl.onchange = async () => { const file = fl.files[0]; fl.value = ""; if (!file) return; if (file.size > FMAX) return toast(tl("Файл больше 8 МБ")); try { toast(tl("Загружаю файл…")); const meta = await upFile(file, c.kind === "dm"); await this.send(ta.value.trim(), null, meta); ta.value = ""; fit(); } catch (e) { toast(errText(e)); } };
-      if (fi) fi.onchange = async () => { const file = fi.files[0]; fi.value = ""; if (!file) return; try { const im = await makeImage(file, 1600); toast("Загружаю фото…"); const path = await upload("nova", im.blob, im.ext, im.type); await this.send("", path); } catch (e) { toast(errText(e)); } };
-      f.onsubmit = async e => { e.preventDefault(); const t = ta.value.trim(); if (!t) return; ta.value = ""; fit(); try { await this.send(t); } catch (x) { ta.value = t; fit(); toast(errText(x)); } };
-      if (!isPhone()) setTimeout(() => ta.focus(), 60);
+      if (m.expires_at) { const left = new Date(m.expires_at) - Date.now(); this.burnT.set(m.id, setTimeout(() => this.burn(el, m.id), Math.max(0, left))); }
+      return el;
     },
-    async send(text, photo, file) {
-      const c = this.c, rp = this.reply ? this.reply.id : undefined; let args = { p_chat: c.id, p_body: text };
-      if (file) {
-        if (c.kind === "dm") { if (!E2E.pub) throw new Error("locked"); args = Object.assign({ p_chat: c.id, p_file: { path: file.path } }, await E2E.enc("\u0001" + JSON.stringify({ t: text, f: file }), c.peer.pubkey)); }
-        else args.p_file = { path: file.path, name: file.name, size: file.size, type: file.type };
-        if (rp) args.p_reply = rp; this.clearReply();
-        const m = await rpc("nv_send", args); if (this.id === c.id) await this.add([m]); loadChats(); return;
+    // хвостики, аватарки и даты как в Telegram
+    regroup() {
+      const box = this.box; if (!box) return;
+      $$(".day", box).forEach(x => x.remove());
+      const ms = $$(".m", box); let prev = null;
+      ms.forEach((el, i) => {
+        const nx = ms[i + 1], t = new Date(el.dataset.t);
+        if (!prev || !sameDay(prev.dataset.t, t)) el.before(h(`<div class="day"><span>${dayLabel(t)}</span></div>`));
+        const same = (a, b) => a && b && a.dataset.a === b.dataset.a && a.className.includes(" out") === b.className.includes(" out") && sameDay(a.dataset.t, b.dataset.t) && Math.abs(new Date(b.dataset.t) - new Date(a.dataset.t)) < 600000;
+        el.classList.toggle("first", !same(prev, el)); el.classList.toggle("last", !same(el, nx));
+        prev = el;
+      });
+    },
+    async add(list, initial) {
+      const box = this.box; if (!box) return;
+      const near = box.scrollHeight - box.scrollTop - box.clientHeight < 160;
+      for (const m of list) {
+        if (this.msgs.has(m.id)) continue;
+        this.msgs.set(m.id, m); this.last = Math.max(this.last, m.id); this.first = this.first ? Math.min(this.first, m.id) : m.id;
+        box.append(await this.el(m));
       }
-      if (c.kind === "dm") { if (!E2E.pub) { if (E2E.locked) { keyPrompt(true); throw new Error("Сначала открой переписку паролем"); } throw new Error("Шифрование недоступно в этом браузере"); } args = Object.assign({ p_chat: c.id }, await E2E.enc(text, c.peer.pubkey)); }
-      else { if (photo) args.p_photo = photo; if (this.anon) args.p_anon = true; }
-      if (rp) args.p_reply = rp; this.clearReply();
-      const m = await rpc("nv_send", args);
-      if (this.id === c.id) await this.add([m]);
-      loadChats();
+      this.regroup();
+      if (initial && !list.length && this.c && !this.c.saved && this.c.kind !== "dm") box.insertAdjacentHTML("beforeend", `<div class="sys"><span>Сообщений пока нет</span></div>`);
+      if (initial || near || list.some(m => m.mine)) box.scrollTop = box.scrollHeight;
+      if (this.last) rpc("nv_read", { p_chat: this.id, p_id: this.last }).catch(() => {});
     },
-    mentionPop(ta, f) {
-      clearTimeout(this.mt); const pop0 = $(".mpop", f.parentElement);
-      const mt = ta.value.slice(0, ta.selectionStart).match(/(^|\s)@([a-z0-9_]{0,20})$/i);
-      if (!mt) { if (pop0) pop0.remove(); return; }
-      this.mt = setTimeout(async () => {
-        let list = []; try { list = await rpc("nv_mention", { p_chat: this.c.id, p_q: mt[2] }); } catch {}
-        let pop = $(".mpop", f.parentElement); if (!list.length) { if (pop) pop.remove(); return; }
-        if (!pop) { pop = h(`<div class="mpop"></div>`); f.before(pop); }
-        pop.innerHTML = list.map(u => `<div class="row" data-un="${esc(u.username)}">${av(u, "xs")}<div class="c"><div class="n">${uname(u)}</div><div class="p">@${esc(u.username)}</div></div></div>`).join("");
-        $$("[data-un]", pop).forEach(r => r.onmousedown = e => { e.preventDefault(); const pos = ta.selectionStart, before = ta.value.slice(0, pos).replace(/@([a-z0-9_]{0,20})$/i, "@" + r.dataset.un + " "); ta.value = before + ta.value.slice(pos); ta.selectionStart = ta.selectionEnd = before.length; pop.remove(); ta.focus(); });
-      }, 200);
+    async older() {
+      this.loadingOld = true; const box = this.box;
+      try {
+        const list = await rpc("nv_messages", { p_chat: this.id, p_before: this.first }); if (!box.isConnected) return;
+        const sh = box.scrollHeight, els = [];
+        for (const m of list) { if (this.msgs.has(m.id)) continue; this.msgs.set(m.id, m); this.first = Math.min(this.first, m.id); els.push(await this.el(m)); }
+        const firstM = $(".m", box); if (firstM) firstM.before(...els); else box.append(...els);
+        this.regroup(); box.scrollTop += box.scrollHeight - sh;
+        if (list.length < 60) this.noOlder = true;
+      } catch {}
+      this.loadingOld = false;
     },
-    clearReply() { this.reply = null; const b = $(`.win[data-id=chat] .rbar`); if (b) b.remove(); },
-    schedule() { clearTimeout(this.poll); this.poll = setTimeout(() => this.tick(), document.hidden ? 8000 : 2000); },
+    async swap(m) {
+      const old = $(`.right .m[data-id="${m.id}"]`); if (!old) return;
+      delete m._d; this.msgs.set(m.id, m); const cls = old.className; const n = await this.el(m); n.className = cls; old.replaceWith(n);
+    },
+    schedule() { clearTimeout(this.timer); this.timer = setTimeout(() => this.tick(), document.hidden ? 8000 : 2000); },
     async tick() {
       const id = this.id; if (!id) return;
       try {
@@ -1547,1009 +1160,684 @@
         if (this.id === id) {
           this.since = r.now;
           if (r.new.length) { await this.add(r.new); if (r.new.some(m => !m.mine) && !(Chats.list.find(x => x.id === id) || {}).muted) beep(); }
-          for (const m of r.changed) await this.swap(m);
+          for (const m of r.changed) { if (m.deleted) { const el = $(`.right .m[data-id="${m.id}"]`); if (el) this.burn(el, m.id); } else await this.swap(m); }
           this.state(r);
         }
       } catch {}
       if (this.id === id) this.schedule();
     },
-    async add(list, initial) {
-      const w = $(`.win[data-id=chat]`); const box = $(".msgs", w); if (!box) return;
-      const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
-      for (const m of list) {
-        if (this.msgs.has(m.id)) continue;
-        this.msgs.set(m.id, m); this.last = Math.max(this.last, m.id); this.first = this.first ? Math.min(this.first, m.id) : m.id;
-        box.append(await this.el(m));
-      }
-      if (initial && list.length >= 60 && !$(".more", box)) { const more = h(`<button class="btn ghost sm more">Показать раньше</button>`); box.prepend(more); more.onclick = () => this.older(more); }
-      if (initial || nearBottom || list.some(m => m.mine)) box.scrollTop = box.scrollHeight;
-      if (this.last) rpc("nv_read", { p_chat: this.id, p_id: this.last }).catch(() => {});
-    },
-    async swap(m) {
-      const old = $(`.win[data-id=chat] .m[data-id="${m.id}"]`); if (!old) return;
-      this.msgs.set(m.id, m); old.replaceWith(await this.el(m));
-    },
     state(r) {
-      const w = $(`.win[data-id=chat]`); if (!w) return; const c = this.c;
-      if (r.read != null && +r.read !== this.read) { this.read = +r.read; $$(".m.me[data-id]", w).forEach(x => { const t = $(".tk", x); if (t && +x.dataset.id <= this.read) { t.classList.add("rd"); t.textContent = "✓✓"; } }); }
-      if (c.kind === "dm" && c.peer && r.seen) c.peer.seen_at = r.seen;
+      const node = $(".right .chat"); if (!node) return; const c = this.c;
+      if (r.read != null && +r.read !== this.read) { this.read = +r.read; $$(".m.out[data-id]", node).forEach(x => { const t = $(".tk", x); if (t && +x.dataset.id <= this.read && !t.classList.contains("rd")) { t.classList.add("rd"); t.innerHTML = I.check2; } }); }
+      if (c.kind === "dm" && c.peer && r.seen !== undefined) c.peer.seen_at = r.seen;
       const typing = (r.typing || []).length;
-      const sub = typing ? (c.kind === "dm" ? tl("печатает…") : r.typing.slice(0, 2).join(", ") + " " + tl("печатает…")) : c.kind === "dm" && !c.saved && c.peer && c.peer.pubkey ? seenAt(c.peer.seen_at) + (c.burn ? " · 🔥 " + burnName(c.burn) : "") : this.sub;
-      const sm = $(".wt small", w); if (sm && sm.textContent !== sub) { sm.textContent = sub; sm.classList.toggle("typ", !!typing); }
+      const sub = typing ? (c.kind === "dm" ? "печатает…" : r.typing.slice(0, 2).join(", ") + " печатает…") : this.status();
+      const sm = $(".ch-n small", node); if (sm && sm.dataset.v !== sub) { sm.dataset.v = sub; sm.innerHTML = esc(sub) + (c.burn && !typing ? ` · ${I.timer} ${burnName(c.burn)}` : ""); sm.classList.toggle("on", !!typing || sub === "в сети"); }
     },
-    setReply(m, d) {
-      const w = $(`.win[data-id=chat]`); const comp = $(".comp", w); if (!comp) return;
-      this.reply = m; $(".rbar", w) && $(".rbar", w).remove();
-      const name = this.c.kind === "channel" ? chatName(this.c) : m.mine ? esc(ME.name || ME.username) : m.anon ? tl("Аноним") : m.a ? esc(m.a.name || m.a.username) : "";
-      const bar = h(`<div class="rbar"><span class="ri">↩</span><div><b>${tl("Ответ")} ${name}</b><span>${esc(d.t || (d.f ? "📎 " + d.f.name : m.photo ? "🖼 " + tl("Фото") : tl("сообщение")))}</span></div><button class="ib" title="${tl("Отмена")}">${I.x}</button></div>`);
-      comp.before(bar); $("button", bar).onclick = () => { this.reply = null; bar.remove(); };
-      const ta = $("textarea", comp); if (ta) ta.focus();
+    async menu(m, el, x, y) {
+      const c = this.c, d = await this.decode(m), canDel = m.mine || ME.is_admin || can(c, "del");
+      const head = c.joined && !c.saved ? `<div class="rxpick">${RX.map(e => `<button data-e="${e}" class="${m.my === e ? "on" : ""}">${e}</button>`).join("")}</div>` : "";
+      const menu = ctxMenu(x, y, [
+        this.canWrite() ? { i: I.reply, t: "Ответить", f: () => this.setReply(m, d) } : null,
+        m.mine && d.t && !m.expires_at && !m.poll ? { i: I.pen, t: "Изменить", f: () => this.startEdit(m, d) } : null,
+        d.t ? { i: I.copy, t: "Копировать текст", f: () => copy(d.t) } : null,
+        this.canPin() ? { i: c.pinned && c.pinned.id === m.id ? I.unpin : I.pin, t: c.pinned && c.pinned.id === m.id ? "Открепить" : "Закрепить", f: () => this.pin(c.pinned && c.pinned.id === m.id ? null : m) } : null,
+        { i: I.forward, t: "Переслать", f: () => this.forward(m, d) },
+        m.poll && !m.poll.x && (m.poll.my || []).length && !m.poll.m ? { i: I.retry, t: "Отменить голос", f: () => this.vote(m, []) } : null,
+        m.poll && !m.poll.x && (m.mine || can(c, "del")) ? { i: I.stop, t: "Остановить опрос", f: async () => { try { await this.swap(await rpc("nv_poll_stop", { p_msg: m.id })); } catch (e) { toast(errText(e)); } } } : null,
+        canDel ? { i: I.trash, t: "Удалить", danger: true, f: () => this.del(m, el) } : null,
+      ], head);
+      $$("[data-e]", menu).forEach(b => b.onclick = () => { closeMenu(); this.react(m, b.dataset.e); });
     },
+    async del(m, el) {
+      const c = this.c;
+      if (!(await confirmBox("Удалить сообщение", c.kind === "dm" && !c.saved ? "Сообщение удалится у вас обоих." : "Сообщение удалится у всех."))) return;
+      try { await rpc("nv_delete_msg", { p_id: m.id }); this.burn(el, m.id); } catch (e) { toast(errText(e)); }
+    },
+    burn(el, id) {
+      this.burnT.delete(id); this.msgs.delete(id);
+      el.classList.add("gone"); setTimeout(() => { el.remove(); this.regroup(); }, 260);
+    },
+    async react(m, e) { try { await this.swap(await rpc("nv_react", { p_msg: m.id, p_emoji: m.my === e ? null : e })); } catch (x) { toast(errText(x)); } },
     jump(id) {
-      const x = $(`.win[data-id=chat] .m[data-id="${id}"]`); if (!x) return toast(tl("Сообщение выше, пролистай чат"));
-      x.scrollIntoView({ block: "center", behavior: "smooth" }); x.classList.add("hl"); setTimeout(() => x.classList.remove("hl"), 1600);
+      const x = $(`.right .m[data-id="${id}"]`); if (!x) return toast("Сообщение выше, пролистай чат");
+      x.scrollIntoView({ block: "center", behavior: "smooth" }); x.classList.add("hl"); setTimeout(() => x.classList.remove("hl"), 1500);
     },
-    async react(m, e) {
-      try { const nm = await rpc("nv_react", { p_msg: m.id, p_emoji: m.my === e ? null : e }); await this.swap(nm); } catch (x) { toast(errText(x)); }
+    // ---------- поле ввода ----------
+    composer() {
+      const c = this.c, bot = $(".right .chat .bottom"); if (!bot) return;
+      bot.innerHTML = "";
+      const bar = (label, fn, ghost) => { const b = h(`<div class="joinbar"><button class="${ghost ? "ghost" : ""}">${esc(label)}</button></div>`); bot.append(b); $("button", b).onclick = fn; };
+      if (!c.joined) {
+        return bar(c.requested ? "Заявка отправлена · отменить" : c.access === "request" ? "Подать заявку" : c.kind === "channel" ? "Подписаться" : "Вступить в группу", async () => { try {
+          if (c.requested) { await rpc("nv_unrequest", { p_chat: c.id }); c.requested = false; return this.composer(); }
+          const r = await rpc("nv_join", { p_chat: c.id });
+          if (r === "requested") { c.requested = true; toast("Заявка отправлена"); return this.composer(); }
+          c.joined = true; c.members++; this.head(); this.composer(); Chats.load(); } catch (e) { toast(errText(e)); } }, c.requested);
+      }
+      if (c.kind === "channel" && !can(c, "post")) { const lc = Chats.list.find(x => x.id === c.id) || c; return bar(lc.muted ? "Включить звук" : "Выключить звук", async () => { await Chats.act(lc, lc.muted ? "unmute" : "mute"); setTimeout(() => this.composer(), 600); }, true); }
+      if (c.blocked) return bar("Разблокировать", async () => { try { await rpc("nv_block", { p_user: c.peer.id, p_on: false }); c.blocked = false; this.composer(); } catch (e) { toast(errText(e)); } });
+      if (c.kind === "dm" && !c.saved && (!c.peer || !c.peer.pubkey)) { bot.append(h(`<div class="joinbar"><span>Собеседник ещё не заходил в Needle. Написать получится, когда он зайдёт.</span></div>`)); return; }
+      const f = h(`<form class="comp"><div class="extra"></div><div class="comp-r">
+        <button type="button" class="ib" data-at aria-label="Прикрепить">${I.clip}</button>
+        <textarea rows="1" maxlength="2000" placeholder="${c.kind === "channel" ? "Новый пост" : +c.slow && !isAdm(c) ? "Медленный режим: раз в " + slowName(c.slow) : "Сообщение"}"></textarea>
+        <button class="send" aria-label="Отправить">${I.send}</button></div>
+        <input type="file" hidden data-ph accept="image/*"><input type="file" hidden data-fl></form>`);
+      bot.append(f);
+      const ta = $("textarea", f);
+      const fit = () => { ta.style.height = "auto"; ta.style.height = Math.min(180, ta.scrollHeight) + "px"; f.classList.toggle("has", !!ta.value.trim()); };
+      ta.oninput = () => { fit(); if (c.kind !== "channel" && Date.now() - this.typT > 3500 && ta.value.trim()) { this.typT = Date.now(); rpc("nv_typing", { p_chat: c.id }).catch(() => {}); } if (c.kind === "group") this.mentionPop(ta, f); };
+      ta.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && (CFG.enter || e.ctrlKey) && !isPhone()) { e.preventDefault(); f.requestSubmit(); } if (e.key === "Escape") { this.clearExtra(); } if (e.key === "ArrowUp" && !ta.value) { const last = [...this.msgs.values()].reverse().find(m => m.mine && !m.poll && !m.expires_at); if (last) this.decode(last).then(d => d.t && this.startEdit(last, d)); } };
+      const fi = $("[data-ph]", f), fl = $("[data-fl]", f);
+      $("[data-at]", f).onclick = e => menuAt(e.currentTarget, [
+        { i: I.photo, t: c.kind === "dm" ? "Фото (зашифровано)" : "Фото", f: () => (c.kind === "dm" ? fl : fi).click() },
+        { i: I.file, t: "Файл до 8 МБ", f: () => fl.click() },
+        c.kind !== "dm" ? { i: I.poll, t: "Опрос", f: () => this.pollNew() } : null,
+      ]).parentElement.classList.add("up");
+      fl.onchange = async () => { const file = fl.files[0]; fl.value = ""; if (!file) return; if (file.size > FMAX) return toast("Файл больше 8 МБ"); try { toast("Загружаю файл…"); const meta = await upFile(file, c.kind === "dm"); await this.send(ta.value.trim(), null, meta); ta.value = ""; fit(); } catch (e) { toast(errText(e)); } };
+      fi.onchange = async () => { const file = fi.files[0]; fi.value = ""; if (!file) return; try { const im = await makeImage(file, 1600); toast("Загружаю фото…"); const path = await upload("nova", im.blob, im.ext, im.type); await this.send(ta.value.trim(), path); ta.value = ""; fit(); } catch (e) { toast(errText(e)); } };
+      f.onsubmit = async e => {
+        e.preventDefault(); const t = ta.value.trim(); if (!t) return;
+        if (this.editing) { const ed = this.editing; try { await this.saveEdit(ed.m, ed.d, t); ta.value = ""; fit(); this.clearExtra(); } catch (x) { toast(errText(x)); } return; }
+        ta.value = ""; fit();
+        try { await this.send(t); } catch (x) { ta.value = t; fit(); toast(errText(x)); }
+      };
+      if (!isPhone()) setTimeout(() => ta.focus(), 60);
     },
-    search(w) {
-      const root = $(".chat", w); let bar = $(".sbar", root); if (bar) { bar.remove(); return; }
-      bar = h(`<div class="sbar"><input class="in" placeholder="${tl("Поиск по чату")}" maxlength="60"><div class="sres"></div></div>`); root.prepend(bar);
-      const inp = $("input", bar), res = $(".sres", bar); let t = 0; inp.focus();
-      inp.onkeydown = e => { if (e.key === "Escape") bar.remove(); };
-      inp.oninput = () => { clearTimeout(t); t = setTimeout(async () => {
+    extra(icon, title, text) {
+      const ex = $(".right .comp .extra"); if (!ex) return;
+      ex.innerHTML = `<div class="ex">${icon}<div class="ex-t"><b>${title}</b><span>${esc(text)}</span></div><button type="button" class="ib" aria-label="Отмена">${I.close}</button></div>`;
+      $("button", ex).onclick = () => this.clearExtra();
+      const ta = $(".right .comp textarea"); if (ta) ta.focus();
+    },
+    clearExtra() { this.reply = null; if (this.editing) { const ta = $(".right .comp textarea"); if (ta) { ta.value = ""; ta.dispatchEvent(new Event("input")); } } this.editing = null; const ex = $(".right .comp .extra"); if (ex) ex.innerHTML = ""; },
+    setReply(m, d) {
+      if (!$(".right .comp")) return; this.editing = null; this.reply = m;
+      const name = this.c.kind === "channel" ? chatTitle(this.c) : m.mine ? "себе" : m.anon ? anonName(m) : m.a ? pname(m.a) : "";
+      this.extra(I.reply, "Ответ " + (m.mine ? "себе" : name), d.t || (d.f ? "Файл: " + d.f.name : m.photo ? "Фото" : "Сообщение"));
+    },
+    startEdit(m, d) {
+      if (!$(".right .comp")) return; this.reply = null; this.editing = { m, d };
+      this.extra(I.pen, "Редактирование", d.t);
+      const ta = $(".right .comp textarea"); ta.value = d.t; ta.dispatchEvent(new Event("input")); ta.focus();
+    },
+    async saveEdit(m, d, t) {
+      let args = { p_id: m.id, p_body: t };
+      if (this.c.kind === "dm") { const e = await E2E.enc(d.f ? "\u0001" + JSON.stringify({ t, f: d.f }) : t, this.c.saved ? E2E.pub : this.c.peer.pubkey); args = { p_id: m.id, p_body: e.p_body, p_iv: e.p_iv, p_kp: e.p_kp, p_kr: e.p_kr }; }
+      const nm = await rpc("nv_edit_msg", args); await this.swap(nm);
+    },
+    async send(text, photo, file) {
+      const c = this.c, rp = this.reply ? this.reply.id : undefined; let args = { p_chat: c.id, p_body: text };
+      const peerKey = () => c.saved ? E2E.pub : c.peer.pubkey;
+      if (c.kind === "dm") {
+        if (!E2E.pub) { if (E2E.locked) { keyPrompt(true); throw new Error("Сначала открой переписку паролем"); } throw new Error("Шифрование недоступно в этом браузере"); }
+        args = Object.assign({ p_chat: c.id }, await E2E.enc(file ? "\u0001" + JSON.stringify({ t: text, f: file }) : text, peerKey()), file ? { p_file: { path: file.path } } : {});
+      } else { if (photo) args.p_photo = photo; if (file) args.p_file = { path: file.path, name: file.name, size: file.size, type: file.type }; }
+      if (rp) args.p_reply = rp; this.clearExtra();
+      const m = await rpc("nv_send", args);
+      if (this.id === c.id) await this.add([m]);
+      Chats.load();
+    },
+    mentionPop(ta, f) {
+      clearTimeout(this.mt); const pop0 = $(".mpop", f);
+      const mt = ta.value.slice(0, ta.selectionStart).match(/(^|\s)@([a-z0-9_]{0,20})$/i);
+      if (!mt) { if (pop0) pop0.remove(); return; }
+      this.mt = setTimeout(async () => {
+        let list = []; try { list = await rpc("nv_mention", { p_chat: this.c.id, p_q: mt[2] }); } catch {}
+        let pop = $(".mpop", f); if (!list.length) { if (pop) pop.remove(); return; }
+        if (!pop) { pop = h(`<div class="mpop"></div>`); f.prepend(pop); }
+        pop.innerHTML = list.map(u => `<div class="row sm" data-un="${esc(u.username)}">${av(u, "sm")}<div class="rc"><div class="r1"><span class="rn">${uname(u)}</span></div><div class="r2"><span class="rp">@${esc(u.username)}</span></div></div></div>`).join("");
+        $$("[data-un]", pop).forEach(r => r.onmousedown = e => { e.preventDefault(); const pos = ta.selectionStart, before = ta.value.slice(0, pos).replace(/@([a-z0-9_]{0,20})$/i, "@" + r.dataset.un + " "); ta.value = before + ta.value.slice(pos); ta.selectionStart = ta.selectionEnd = before.length; pop.remove(); ta.focus(); });
+      }, 200);
+    },
+    forward(m, d) {
+      const from = this.c.kind === "channel" ? this.c.title : m.mine ? (ME.name || ME.username) : m.anon ? "Аноним" : m.a ? (m.a.name || m.a.username) : "";
+      const list = Chats.list.filter(c => c.kind !== "channel" || can(c, "post"));
+      popup({ title: "Переслать", cls: "tall", html: `<div class="plist">${list.map(c => `<div class="row sm" data-c="${c.id}">${chatAv(c, "sm")}<div class="rc"><div class="r1"><span class="rn">${chatName(c)}</span></div></div></div>`).join("") || `<p class="pop-x">Чатов пока нет</p>`}</div>`, buttons: [{ t: "Отмена" }],
+        onMount: (card, done) => $$("[data-c]", card).forEach(r => r.onclick = async () => {
+          const c = list.find(x => x.id === +r.dataset.c); done();
+          const t = d.t || "";
+          try {
+            let args;
+            if (c.kind === "dm") {
+              const key = c.saved ? E2E.pub : c.peer && c.peer.pubkey; if (!key) throw new Error("no key");
+              const fileOk = d.f && m.mine;
+              args = Object.assign({ p_chat: c.id, p_fwd: from }, await E2E.enc(fileOk ? "\u0001" + JSON.stringify({ t, f: d.f }) : (t || (d.f ? "Файл: " + d.f.name : "")), key), fileOk ? { p_file: { path: d.f.path } } : {});
+            } else {
+              const fileOk = d.f && m.mine && !d.f.k;
+              args = { p_chat: c.id, p_body: t || (d.f && !fileOk ? "Файл: " + d.f.name : ""), p_fwd: from };
+              if (fileOk) args.p_file = { path: d.f.path, name: d.f.name, size: d.f.size, type: d.f.type };
+              if (m.photo && !d.f) args.p_photo = m.photo;
+            }
+            await rpc("nv_send", args); toast("Переслано"); Chats.load();
+          } catch (e) { toast(errText(e)); }
+        }) });
+    },
+    search() {
+      const bar = $(".right .ch-search"); if (!bar) return;
+      if (!bar.hidden) { bar.hidden = true; bar.innerHTML = ""; return; }
+      bar.hidden = false;
+      bar.innerHTML = `<label class="srch">${I.search}<input placeholder="Поиск в чате" maxlength="60"></label><button class="ib" data-x>${I.close}</button><div class="sres2"></div>`;
+      const inp = $("input", bar), res = $(".sres2", bar); inp.focus();
+      $("[data-x]", bar).onclick = () => { bar.hidden = true; bar.innerHTML = ""; };
+      inp.onkeydown = e => { if (e.key === "Escape") $("[data-x]", bar).click(); };
+      inp.oninput = debounce(async () => {
         const q = inp.value.trim(); if (q.length < 2) { res.innerHTML = ""; return; }
         let found = [];
         try {
           if (this.c.kind === "dm") { for (const m of [...this.msgs.values()].reverse()) { const d = await this.decode(m); if (d.t && d.t.toLowerCase().includes(q.toLowerCase())) found.push(m); if (found.length >= 50) break; } }
           else found = await rpc("nv_search_msgs", { p_chat: this.c.id, p_q: q });
-        } catch (e) { res.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; return; }
-        if (!found.length) { res.innerHTML = `<div class="empty">${tl("Ничего не найдено")}${this.c.kind === "dm" ? "<br><small>" + tl("В личке ищу только среди загруженных сообщений") + "</small>" : ""}</div>`; return; }
-        res.innerHTML = ""; for (const m of found) { const d = await this.decode(m); const who = this.c.kind === "channel" ? "" : m.mine ? ME.name || ME.username : m.a ? m.a.name || m.a.username : tl("Аноним");
-          const r = h(`<div class="sr"><div><b>${esc(who)}</b><small>${ago(m.created_at)}</small></div><span>${esc((d.t || "").slice(0, 140))}</span></div>`); r.onclick = () => this.jump(m.id); res.append(r); }
-      }, 300); };
-    },
-    async older(btn) {
-      btn.disabled = true;
-      try {
-        const list = await rpc("nv_messages", { p_chat: this.id, p_before: this.first }); const box = btn.parentElement, sh = box.scrollHeight;
-        const els = []; for (const m of list) { if (this.msgs.has(m.id)) continue; this.msgs.set(m.id, m); this.first = Math.min(this.first, m.id); els.push(await this.el(m)); }
-        btn.after(...els); box.scrollTop += box.scrollHeight - sh;
-        if (list.length < 60) btn.remove(); else btn.disabled = false;
-      } catch (e) { toast(errText(e)); btn.disabled = false; }
-    },
-    async el(m) {
-      const c = this.c, mine = m.mine, d = await this.decode(m);
-      const author = c.kind === "group" && !mine ? `<div class="au">${m.anon ? anonName(m, ME.is_admin) : m.a ? `<span style="cursor:pointer" data-p="${m.a.id}">${uname(m.a)}</span>` : ""}</div>` : (m.anon && mine ? `<div class="au">🎭 анонимно #${m.tag}</div>` : "");
-      let body = m.iv && d.t == null ? (E2E.locked ? `<span class="muted unlockm" style="cursor:pointer">🔒 Нажми и введи пароль, чтобы открыть</span>` : `<span class="muted">🔒 Не расшифровать: сообщение для старого ключа с другого устройства</span>`) : esc(d.t || "");
-      if (c.kind === "group" && body) body = body.replace(/(^|[^a-z0-9_])@([a-z0-9_]{3,20})/gi, (x, a, n) => `${a}<span class="mn${n.toLowerCase() === ME.username ? " me" : ""}" data-mn="${n}">@${n}</span>`);
-      const rd = m.rp ? await this.decode(m.rp) : null;
-      const rq = m.rp ? `<div class="rq" data-rq="${m.rp.id}"><b>${m.rp.name ? esc(m.rp.name) : chatName(c)}</b><span>${esc(rd.t && rd.t.trim() ? rd.t.slice(0, 120) : rd.f ? "📎 " + (rd.f.name || tl("Файл")) : m.rp.photo ? "🖼 " + tl("Фото") : rd.t == null ? "🔒" : tl("сообщение"))}</span></div>` : "";
-      const rx = m.rx ? `<div class="rx">${Object.entries(m.rx).sort((a, b) => b[1] - a[1]).map(([e, n]) => `<button class="${m.my === e ? "on" : ""}" data-rx="${e}">${e}<i>${n}</i></button>`).join("")}</div>` : "";
-      const tick = mine && c.kind !== "channel" && !c.saved ? `<span class="tk${m.id <= this.read ? " rd" : ""}">${m.id <= this.read ? "✓✓" : "✓"}</span>` : "";
-      const ch = c.kind === "channel";
-      const el = h(`<div class="m${mine && !ch ? " me" : ""}${ch ? " cp" : ""}" data-id="${m.id}">
-        ${c.kind === "group" && !mine ? (m.anon ? `<span class="av an xs">?</span>` : av(m.a, "xs")) : ""}
-        <div class="bb">${ch ? `<div class="cph">${chatAv(c)}<b>${chatName(c)}</b></div>` : author}${m.fwd ? `<div class="fwd">↪ ${tl("Переслано от")} <b>${esc(m.fwd)}</b></div>` : ""}${rq}${m.photo && PATH_RE.test(m.photo) ? `<img class="ph" src="${esc(pub("nova", m.photo))}" alt="" loading="lazy">` : ""}<span class="fslot"></span>${body ? `<div class="tx">${body}</div>` : ""}
-        ${rx}<div class="ft">${m.edited ? `<span class="ed">${tl("изменено")}</span> ` : ""}${m.expires_at ? "🔥 " : ""}${ch ? ago(m.created_at) : hm(m.created_at)}${tick}</div>
-        <button class="mm" title="Действия">⋯</button></div></div>`);
-      const fe = fileEl(d.f); if (fe) $(".fslot", el).replaceWith(fe); else $(".fslot", el).remove();
-      const img = $("img.ph", el); if (img && !fe) img.onclick = () => lightbox(img.src);
-      const ul = $(".unlockm", el); if (ul) ul.onclick = () => keyPrompt(true);
-      const p = $("[data-p]", el); if (p) p.onclick = () => Profile.open(p.dataset.p);
-      $$("[data-mn]", el).forEach(x => x.onclick = e => { e.stopPropagation(); goLink(x.dataset.mn); });
-      const q = $("[data-rq]", el); if (q) q.onclick = () => this.jump(+q.dataset.rq);
-      $$("[data-rx]", el).forEach(b => b.onclick = e => { e.stopPropagation(); if (c.joined) this.react(m, b.dataset.rx); });
-      const bb = $(".bb", el);
-      if (this.canReply()) {
-        bb.addEventListener("dblclick", e => { if (e.target.closest("a,button,audio,video,img")) return; getSelection().removeAllRanges(); this.setReply(m, d); });
-        let sx = null, dx = 0;   // свайп влево на телефоне = ответить
-        bb.addEventListener("touchstart", e => { sx = e.touches[0].clientX; dx = 0; }, { passive: true });
-        bb.addEventListener("touchmove", e => { if (sx == null) return; dx = Math.min(0, e.touches[0].clientX - sx); if (dx < -8) bb.style.transform = `translateX(${Math.max(dx, -70)}px)`; }, { passive: true });
-        bb.addEventListener("touchend", () => { bb.style.transform = ""; if (dx < -55) this.setReply(m, d); sx = null; });
-      }
-      $(".mm", el).onclick = e => { e.stopPropagation(); this.menu(m, el); };
-      $(".bb", el).addEventListener("contextmenu", e => { e.preventDefault(); this.menu(m, el); });
-      if (m.expires_at) { const left = new Date(m.expires_at) - Date.now(); this.burnT.set(m.id, setTimeout(() => this.burn(el, m.id), Math.max(0, left))); }
-      return el;
-    },
-    burn(el, id) {
-      this.burnT.delete(id); this.msgs.delete(id);
-      const tx = $(".tx", el);
-      if (!tx || CFG.motion === "off") { el.classList.add("gone"); return setTimeout(() => el.remove(), 500); }
-      el.classList.add("burning");
-      let arr = [...tx.textContent], step = 0;
-      const iv = setInterval(() => {
-        step++;
-        arr = arr.map(ch => ch === " " || ch === "\n" ? ch : Math.random() < step * .06 ? (Math.random() < step * .035 ? " " : "░▒▓#*+;:."[Math.random() * 9 | 0]) : ch);
-        tx.textContent = arr.join(""); $(".bb", el).style.opacity = Math.max(.1, 1 - step / 30);
-        if (step > 28) { clearInterval(iv); el.classList.add("gone"); setTimeout(() => el.remove(), 520); }
-      }, 55);
+        } catch (e) { res.innerHTML = `<div class="sr-e">${esc(errText(e))}</div>`; return; }
+        if (!found.length) { res.innerHTML = `<div class="sr-e">Ничего не найдено${this.c.kind === "dm" ? ". В личке ищу среди загруженных сообщений." : ""}</div>`; return; }
+        res.innerHTML = "";
+        for (const m of found) { const d = await this.decode(m); const who = this.c.kind === "channel" ? chatTitle(this.c) : m.mine ? "Вы" : m.a ? pname(m.a) : "Аноним";
+          const r = h(`<div class="sr"><div><b>${who}</b><small>${fmtTime(m.created_at)}</small></div><span>${esc((d.t || "").slice(0, 140))}</span></div>`); r.onclick = () => this.jump(m.id); res.append(r); }
+      }, 300);
     },
     burnMenu() {
       const c = this.c;
-      modal(`<h2>🔥 Сгорание сообщений</h2><p class="note" style="margin:0 0 14px">Новые сообщения исчезнут у всех через выбранное время. Совсем, без копий на сервере.</p>
-        <div class="seg">${[[null, "Выкл"], [60, "1 минута"], [3600, "1 час"], [86400, "1 день"]].map(([v, t]) => `<button data-v="${v ?? ""}" class="${(c.burn ?? null) === v ? "on" : ""}">${t}</button>`).join("")}</div>
-        <div class="row2"><button class="btn ghost" data-n>Закрыть</button></div>`, (m, closeM) => {
-        $("[data-n]", m).onclick = closeM;
-        $$("[data-v]", m).forEach(b => b.onclick = async () => {
-          const v = b.dataset.v ? +b.dataset.v : null;
-          try { await rpc("nv_set_burn", { p_chat: c.id, p_sec: v }); c.burn = v; this.head($(`.win[data-id=chat]`)); closeM(); toast(v ? "Сгорание: " + burnName(v) : "Сгорание выключено"); } catch (e) { toast(errText(e)); }
-        });
-      });
+      popup({ title: "Автоудаление", html: `<p class="pop-x">Новые сообщения в этом чате будут исчезать у всех через выбранное время.</p><div class="radios">${[[null, "Выключено"], [86400, "Через 1 день"], [3600, "Через 1 час"], [60, "Через 1 минуту"]].map(([v, t]) => `<label class="radio"><input type="radio" name="b" value="${v ?? ""}" ${(c.burn ?? null) === v ? "checked" : ""}><i></i><span>${t}</span></label>`).join("")}</div>`,
+        buttons: [{ t: "Отмена" }, { t: "Сохранить", main: true, click: async card => { const v = $("input:checked", card).value; const sec = v ? +v : null; try { await rpc("nv_set_burn", { p_chat: c.id, p_sec: sec }); c.burn = sec; this.head(); toast(sec ? "Автоудаление: " + burnName(sec) : "Автоудаление выключено"); } catch (e) { toast(errText(e)); } } }] });
     },
-    async info() {
+    // ---------- опросы ----------
+    pollHtml(m) {
+      const p = m.poll, n = p.n || [], tot = n.reduce((a, b) => a + b, 0), voted = (p.my || []).length > 0, show = voted || p.x;
+      return `<div class="poll${show ? " res" : ""}"><b class="pq">${esc(m.body)}</b><small class="pk">${p.x ? "Опрос завершён" : p.m ? "Можно выбрать несколько" : "Анонимный опрос"}</small>
+        ${p.o.map((o, i) => { const pc = tot ? Math.round(n[i] * 100 / tot) : 0, me = (p.my || []).includes(i);
+          return `<button class="po${me ? " me" : ""}" data-vo="${i}">${show ? `<span class="pp">${pc}%</span>` : `<span class="pr${p.m ? " sq" : ""}"></span>`}<span class="pt">${esc(o)}</span>${me ? I.check : ""}${show ? `<i style="width:${pc}%"></i>` : ""}</button>`; }).join("")}
+        <small class="pv">${p.t ? p.t + " " + plural(p.t, "голос", "голоса", "голосов") : "Пока нет голосов"}</small></div>`;
+    },
+    async vote(m, opts) { try { await this.swap(await rpc("nv_vote", { p_msg: m.id, p_opts: opts })); } catch (e) { toast(errText(e)); } },
+    pollNew() {
       const c = this.c;
-      const code = c.kind === "dm" ? await E2E.code(E2E.pub, c.peer && c.peer.pubkey) : "";
-      modal(`<h2>${chatName(c)}</h2>
-        ${c.kind === "dm" ? `<div class="kv"><span>Код безопасности</span><span class="code">${code}</span></div><p class="note">Сверь этот код с собеседником лично. Если совпадает, никто не подменил ключи и не читает вашу переписку.</p>` :
-          `<div class="kv"><span>Тип</span><span>${c.kind === "channel" ? "Канал" : "Группа"} · ${tl(ACC[c.access] || ACC.open)}</span></div>${c.handle ? `<div class="kv"><span>Юзернейм</span><span class="mono">@${esc(c.handle)}</span></div>` : ""}<div class="kv"><span>Участники</span><span>${c.members}</span></div>${c.about ? `<div class="kv"><span>Описание</span><span>${esc(c.about)}</span></div>` : ""}<div class="kv"><span>Анонимно</span><span>${c.anon_ok ? "можно" : "нельзя"}</span></div>`}
-        <div class="row2" style="flex-wrap:wrap">
-          ${c.kind !== "dm" && (c.owner || ME.is_admin) ? `<button class="btn ghost sm" data-ed>Изменить</button>` : ""}
-          ${c.kind !== "dm" && c.joined && !c.owner ? `<button class="btn ghost sm" data-lv>Выйти</button>` : ""}
-          ${c.kind === "dm" || c.owner || ME.is_admin ? `<button class="btn ghost sm" data-del>${c.kind === "dm" ? "Удалить переписку" : "Удалить"}</button>` : ""}
-          ${c.joined ? `<button class="btn ghost sm" data-pinc>${(Chats.list.find(x => x.id === c.id) || {}).pin ? "Открепить чат" : "📌 Закрепить чат"}</button>` : ""}
-          ${c.kind === "channel" ? `<button class="btn ghost sm" data-chp>Профиль канала</button>` : ""}
-          <button class="btn ghost sm" data-media>${tl("Медиа и файлы")}</button>
-          ${c.kind !== "dm" && (c.owner || ME.is_admin) ? `<button class="btn ghost sm" data-ppl>${c.kind === "channel" ? tl("Подписчики") : tl("Участники")}${+c.reqs ? ` · ${tl("заявки")}: ${c.reqs}` : ""}</button>` : ""}
-          <button class="btn sm" data-n>Закрыть</button></div>`, (m, closeM) => {
-        $("[data-n]", m).onclick = closeM;
-        $("[data-chp]", m) && ($("[data-chp]", m).onclick = () => { closeM(); Channel.open(c.id); });
-        $("[data-media]", m).onclick = () => { closeM(); Media.open(c); };
-        $("[data-ppl]", m) && ($("[data-ppl]", m).onclick = () => { closeM(); People.open(c); });
-        $("[data-pinc]", m) && ($("[data-pinc]", m).onclick = async () => { closeM(); const on = !(Chats.list.find(x => x.id === c.id) || {}).pin; try { await rpc("nv_pin_chat", { p_chat: c.id, p_on: on }); toast(on ? tl("Чат закреплён") : tl("Чат откреплён")); loadChats(); } catch (e) { toast(errText(e)); } });
-        $("[data-lv]", m) && ($("[data-lv]", m).onclick = () => { closeM(); this.leaveChat(); });
-        $("[data-del]", m) && ($("[data-del]", m).onclick = async () => { closeM(); if (!(await confirmBox(c.kind === "dm" ? "Удалить переписку у обоих? Её нельзя вернуть." : "Удалить навсегда? Все сообщения пропадут.", "Удалить"))) return; try { await rpc("nv_delete_chat", { p_chat: c.id }); close("chat"); if (L() !== "windows") open("chats"); this.leave(); loadChats(); toast("Удалено"); } catch (e) { toast(errText(e)); } });
-        $("[data-ed]", m) && ($("[data-ed]", m).onclick = () => { closeM(); this.edit(); });
+      popup({ title: "Новый опрос", html: `<div class="pop-f">${field("q", "Вопрос", 'maxlength="200"')}<div class="sec2">Варианты ответа</div><div class="pops"></div><button type="button" class="lnk left" data-add>${I.plus} Добавить вариант</button>
+          <label class="opt">Несколько ответов${sw(false, "data-mu")}</label><div class="err"></div></div>`,
+        buttons: [{ t: "Отмена" }, { t: "Создать", main: true, manual: true, click: async card => {
+          const q = $("[name=q]", card).value.trim(), o = $$(".pops input", card).map(x => x.value.trim()).filter(Boolean), er = $(".err", card);
+          if (!q) { er.textContent = "Напиши вопрос"; return false; } if (o.length < 2) { er.textContent = "Нужно минимум 2 варианта"; return false; }
+          try { const m = await rpc("nv_send_poll", { p_chat: c.id, p_q: q, p_opts: o, p_multi: $("[data-mu]", card).classList.contains("on") }); if (this.id === c.id) await this.add([m]); Chats.load(); return true; } catch (e) { er.textContent = errText(e); return false; }
+        } }],
+        onMount: card => {
+          const ops = $(".pops", card), add = () => { const n = $$("input", ops).length; if (n >= 10) return; ops.insertAdjacentHTML("beforeend", field("o" + n, "Вариант " + (n + 1), 'maxlength="100"')); if (n + 1 >= 10) $("[data-add]", card).remove(); };
+          add(); add(); $("[data-add]", card).onclick = () => { add(); $$("input", ops).pop().focus(); };
+          const mu = $("[data-mu]", card); mu.parentElement.onclick = () => mu.classList.toggle("on");
+        } });
+    },
+    // ---------- информация справа ----------
+    info(tab) {
+      const c = this.c; if (!c) return;
+      if (c.kind === "dm" && !c.saved && c.peer) return UserSide.open(c.peer.id, c, tab);
+      Side.open(c.saved ? "Избранное" : c.kind === "channel" ? "Информация о канале" : "Информация о группе", async (b, s) => {
+        if (c.kind !== "dm" && can(c, "edit")) { $(".lh-a", s).innerHTML = `<button class="ib" aria-label="Изменить">${I.pen}</button>`; $(".lh-a button", s).onclick = () => this.editChat(); }
+        b.innerHTML = `<div class="si-h">${chatAv(c, "xl")}<h3>${chatName(c)}</h3><small>${c.saved ? "Заметки для себя" : esc(members(c))}</small></div>
+          ${c.saved ? "" : `<div class="si-l">
+            ${c.about ? `<div class="si-r">${I.info}<div><span class="pre">${esc(c.about)}</span><small>Описание</small></div></div>` : ""}
+            ${c.handle ? `<div class="si-r click" data-cp="${esc(SITE + c.handle)}">${I.link}<div><span>${esc(SITE.replace(/^https?:\/\//, "") + c.handle)}</span><small>Ссылка</small></div></div>` : ""}
+            ${c.joined ? `<label class="si-r">${I.bell}<div><span>Уведомления</span><small>${(Chats.list.find(x => x.id === c.id) || {}).muted ? "Выключены" : "Включены"}</small></div>${sw(!(Chats.list.find(x => x.id === c.id) || {}).muted, "data-mute")}</label>` : ""}
+          </div>`}
+          ${c.kind !== "dm" && isAdm(c) ? `<div class="si-l"><button class="si-r click" data-ppl>${I.users}<div><span>${c.kind === "channel" ? "Подписчики" : "Участники"}</span><small>${members(c)}${+c.reqs ? ` · заявок: ${c.reqs}` : ""}</small></div></button></div>` : ""}
+          <div class="tabs2"><button class="on" data-t="m">Медиа</button><button data-t="f">Файлы</button></div><div class="mgal"><div class="spin"></div></div>`;
+        const cp = $("[data-cp]", b); if (cp) cp.onclick = () => copy(cp.dataset.cp, "Ссылка скопирована");
+        const mu = $("[data-mute]", b); if (mu) mu.parentElement.onclick = async e => { e.preventDefault(); const lc = Chats.list.find(x => x.id === c.id) || c; await Chats.act(lc, lc.muted ? "unmute" : "mute"); mu.classList.toggle("on"); };
+        const pp = $("[data-ppl]", b); if (pp) pp.onclick = () => People.open(c);
+        Media.into(c, b, tab === "media" ? "m" : "m");
       });
     },
-    edit() {
+    editChat() {
       const c = this.c;
-      modal(`<h2>Изменить</h2><div class="field"><label class="k">название</label><input class="in" name="t" maxlength="40" value="${esc(c.title)}"></div>
-        <div class="field"><label class="k">описание</label><input class="in" name="a" maxlength="200" value="${esc(c.about)}"></div>
-        <div class="field"><label class="k">юзернейм</label><div class="at"><span>@</span><input class="in" name="h" maxlength="20" autocomplete="off" placeholder="латиница, цифры, _ (можно пусто)" value="${esc(c.handle || "")}"></div></div>
-        <div class="field"><label class="k">${c.kind === "channel" ? "тип канала" : "тип группы"}</label><div class="seg" data-acc>${Object.keys(ACC).map(k => `<button type="button" data-v="${k}" class="${(c.access || "open") === k ? "on" : ""}">${tl(ACC[k])}</button>`).join("")}</div>
-          <p class="note" data-acch></p></div>
-        <div class="field"><label class="k">ссылка-приглашение</label><div class="invl"><span class="mono" data-inv>${c.invite ? esc(SITE + "+" + c.invite) : "—"}</span><button type="button" class="btn ghost sm" data-ic>${tl("Копировать")}</button><button type="button" class="btn ghost sm" data-ir>${c.invite ? tl("Новая") : tl("Создать")}</button></div></div>
-        ${c.kind === "group" ? `<div class="opt"><span>Анонимные сообщения</span><button class="sw${c.anon_ok ? " on" : ""}" type="button"></button></div>` : ""}
-        <div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (m, closeM) => {
-        let acc = c.access || "open"; const hint = () => $("[data-acch]", m).textContent = tl(ACCH[acc]); hint();
-        $$("[data-acc] button", m).forEach(x => x.onclick = () => { acc = x.dataset.v; $$("[data-acc] button", m).forEach(y => y.classList.toggle("on", y === x)); hint(); });
-        const inv = $("[data-inv]", m);
-        $("[data-ic]", m).onclick = async () => { if (!c.invite) return toast(tl("Сначала создай ссылку")); try { await navigator.clipboard.writeText(SITE + "+" + c.invite); toast(tl("Скопировано")); } catch {} };
-        $("[data-ir]", m).onclick = async () => { try { c.invite = await rpc("nv_chat_invite", { p_chat: c.id, p_reset: true }); inv.textContent = SITE + "+" + c.invite; $("[data-ir]", m).textContent = tl("Новая"); toast(tl("Старая ссылка больше не работает")); } catch (e) { toast(errText(e)); } };
-        const sw = $(".sw", m); sw && (sw.onclick = () => sw.classList.toggle("on"));
-        $("[data-n]", m).onclick = closeM;
-        $("[data-y]", m).onclick = async () => { try { const hd = $("[name=h]", m).value.trim().replace(/^@/, "").toLowerCase(); if (hd && !/^[a-z0-9_]{3,20}$/.test(hd)) throw new Error("bad username"); if (hd !== (c.handle || "")) await rpc("nv_chat_handle", { p_chat: c.id, p_handle: hd || null }); if (acc !== (c.access || "open")) await rpc("nv_chat_access", { p_chat: c.id, p_access: acc }); await rpc("nv_edit_chat", { p_chat: c.id, p_title: $("[name=t]", m).value, p_about: $("[name=a]", m).value, p_anon: !!(sw && sw.classList.contains("on")) }); closeM(); this.open(c.id); loadChats(); } catch (e) { $(".err", m).textContent = errText(e); } };
-      });
-    },
-    async leaveChat() { try { await rpc("nv_leave", { p_chat: this.c.id }); const id = this.c.id; this.c.joined = false; loadChats(); this.open(id); } catch (e) { toast(errText(e)); } },
-  };
-  const ACC = { open: "Открытый", request: "По заявке", closed: "Закрытый" };
-  const ACCH = { open: "Любой найдёт по @юзернейму и вступит сразу.", request: "Человек подаёт заявку, ты принимаешь или отклоняешь.", closed: "Не виден в поиске. Попасть можно только по ссылке-приглашению." };
-  const Media = {
-    open(c) {
-      modal(`<h2>${tl("Медиа и файлы")}</h2><div class="seg" data-mt><button class="on" data-v="m">${tl("Медиа")}</button><button data-v="f">${tl("Файлы")}</button></div><div class="mgal"><div class="spin"></div></div><div class="row2"><button class="btn sm" data-n>${tl("Закрыть")}</button></div>`, async (box, closeM) => {
-        $("[data-n]", box).onclick = closeM;
-        const g = $(".mgal", box); let items = [];
-        try {
-          const list = await rpc("nv_chat_media", { p_chat: c.id });
-          for (const m of list) { const d = await Chat.decode(m); const img = m.photo && PATH_RE.test(m.photo) ? pub("nova", m.photo) : null; if (img || d.f) items.push({ m, d, img, kind: img || (d.f && /^image\//.test(d.f.type)) ? "m" : "f" }); }
-        } catch (e) { g.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; return; }
-        const draw = k => {
-          const xs = items.filter(x => x.kind === k); g.className = "mgal " + k; g.innerHTML = xs.length ? "" : `<div class="empty">${tl(k === "m" ? "Фото пока нет" : "Файлов пока нет")}</div>`;
-          for (const x of xs) {
-            if (x.img) { const im = h(`<img src="${esc(x.img)}" alt="" loading="lazy">`); im.onclick = () => lightbox(x.img); g.append(im); continue; }
-            const fe = fileEl(x.d.f); if (fe) { if (k === "f") { const w = h(`<div class="mf"><small>${ago(x.m.created_at)}</small></div>`); w.prepend(fe); g.append(w); } else g.append(fe); }
-          }
+      const ACC = { open: "Открытый", request: "По заявке", closed: "Закрытый" };
+      const ACCH = { open: "Любой найдёт по @юзернейму и вступит сразу.", request: "Человек подаёт заявку, а админ принимает или отклоняет.", closed: "Не виден в поиске. Попасть можно только по ссылке-приглашению." };
+      Side.open(c.kind === "channel" ? "Изменить канал" : "Изменить группу", (b) => {
+        b.innerHTML = `<div class="pad">${field("t", "Название", 'maxlength="40"', c.title)}${areaField("a", "Описание", 'maxlength="200" rows="2"', c.about)}
+          <div class="at-f">${field("h", "Публичная ссылка (юзернейм)", 'maxlength="20" autocomplete="off" autocapitalize="off"', c.handle || "")}</div>
+          <div class="sec2">Тип</div><div class="radios" data-acc>${Object.keys(ACC).map(k => `<label class="radio"><input type="radio" name="acc" value="${k}" ${(c.access || "open") === k ? "checked" : ""}><i></i><span>${ACC[k]}<small>${ACCH[k]}</small></span></label>`).join("")}</div>
+          ${can(c, "invite") ? `<div class="sec2">Ссылка-приглашение</div><div class="inv"><span class="mono" data-inv>${c.invite ? esc(SITE + "+" + c.invite) : "нет"}</span><button type="button" class="lnk" data-ic>Копировать</button><button type="button" class="lnk" data-ir>${c.invite ? "Новая" : "Создать"}</button></div>` : ""}
+          ${c.kind === "group" ? `<div class="sec2">Медленный режим</div><div class="seg" data-slow>${SLOW.map(([v, t]) => `<button type="button" data-v="${v}" class="${(+c.slow || 0) === v ? "on" : ""}">${t}</button>`).join("")}</div><p class="hint">Участники смогут писать не чаще выбранного. На админов не действует.</p>` : ""}
+          ${c.kind === "channel" ? `<label class="opt">Комментарии к постам${sw(c.comments !== false, "data-cmsw")}</label>` : ""}
+          <div class="err"></div><button class="btn wide" data-y>Сохранить</button></div>`;
+        let slow = +c.slow || 0;
+        $$("[data-slow] button", b).forEach(x => x.onclick = () => { slow = +x.dataset.v; $$("[data-slow] button", b).forEach(y => y.classList.toggle("on", y === x)); });
+        const cms = $("[data-cmsw]", b); if (cms) cms.parentElement.onclick = e => { e.preventDefault(); cms.classList.toggle("on"); };
+        const inv = $("[data-inv]", b);
+        if (inv) { $("[data-ic]", b).onclick = () => c.invite ? copy(SITE + "+" + c.invite, "Ссылка скопирована") : toast("Сначала создай ссылку");
+          $("[data-ir]", b).onclick = async () => { try { c.invite = await rpc("nv_chat_invite", { p_chat: c.id, p_reset: true }); inv.textContent = SITE + "+" + c.invite; $("[data-ir]", b).textContent = "Новая"; toast("Старая ссылка больше не работает"); } catch (e) { toast(errText(e)); } }; }
+        $("[data-y]", b).onclick = async () => {
+          try {
+            const hd = $("[name=h]", b).value.trim().replace(/^@/, "").toLowerCase(), acc = $("[name=acc]:checked", b).value;
+            if (hd && !/^[a-z0-9_]{3,20}$/.test(hd)) throw new Error("bad username");
+            if (hd !== (c.handle || "")) await rpc("nv_chat_handle", { p_chat: c.id, p_handle: hd || null });
+            if (acc !== (c.access || "open")) await rpc("nv_chat_access", { p_chat: c.id, p_access: acc });
+            if (c.kind === "group" && slow !== (+c.slow || 0)) await rpc("nv_chat_slow", { p_chat: c.id, p_sec: slow });
+            if (cms && cms.classList.contains("on") !== (c.comments !== false)) await rpc("nv_chat_comments", { p_chat: c.id, p_on: cms.classList.contains("on") });
+            await rpc("nv_edit_chat", { p_chat: c.id, p_title: $("[name=t]", b).value, p_about: $("[name=a]", b).value, p_anon: !!c.anon_ok });
+            toast("Сохранено"); const id = c.id; this.id = 0; Chats.load(); this.open(id);
+          } catch (e) { $(".err", b).textContent = errText(e); }
         };
-        draw("m");
-        $$("[data-mt] button", box).forEach(b => b.onclick = () => { $$("[data-mt] button", box).forEach(y => y.classList.toggle("on", y === b)); draw(b.dataset.v); });
       });
     },
   };
+  const SLOW = [[0, "Выкл"], [10, "10с"], [30, "30с"], [60, "1м"], [300, "5м"], [900, "15м"], [3600, "1ч"]];
+  const slowName = v => v >= 3600 ? v / 3600 + " ч" : v >= 60 ? v / 60 + " мин" : v + " сек.";
+
+  // медиа и файлы чата
+  const Media = {
+    async into(c, b, k) {
+      const g = $(".mgal", b); let items = [];
+      try {
+        const list = await rpc("nv_chat_media", { p_chat: c.id });
+        for (const m of list) { const d = await Chat.decode(m); const img = m.photo && PATH_RE.test(m.photo) ? pub("nova", m.photo) : null; if (img || d.f) items.push({ m, d, img, kind: img || (d.f && /^image\//.test(d.f.type)) ? "m" : "f" }); }
+      } catch (e) { g.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; return; }
+      const draw = k => {
+        const xs = items.filter(x => x.kind === k); g.className = "mgal " + k; g.innerHTML = xs.length ? "" : `<div class="l-empty"><span>${k === "m" ? "Фото пока нет" : "Файлов пока нет"}</span></div>`;
+        for (const x of xs) {
+          if (x.img) { const im = h(`<img src="${esc(x.img)}" alt="" loading="lazy">`); im.onclick = () => lightbox(x.img); g.append(im); continue; }
+          const fe = fileEl(x.d.f); if (fe) g.append(fe);
+        }
+      };
+      draw(k);
+      $$(".tabs2 button", b).forEach(x => x.onclick = () => { $$(".tabs2 button", b).forEach(y => y.classList.toggle("on", y === x)); draw(x.dataset.t); });
+    },
+  };
+
+  // участники, заявки, баны, админы
   const People = {
-    async open(c) {
-      modal(`<h2>${c.kind === "channel" ? tl("Подписчики") : tl("Участники")}</h2><div class="ppl"><div class="spin"></div></div><div class="row2"><button class="btn sm" data-n>${tl("Закрыть")}</button></div>`, async (m, closeM) => {
-        $("[data-n]", m).onclick = closeM;
-        const box = $(".ppl", m);
+    open(c) {
+      Side.open(c.kind === "channel" ? "Подписчики" : "Участники", (b, s) => {
+        $("[data-x]", s).innerHTML = I.back; $("[data-x]", s).onclick = () => Chat.info();
         const draw = async () => {
           try {
-            const r = await rpc("nv_chat_people", { p_chat: c.id }); const clan = c.title && /^\[[A-Z0-9]+\] /.test(c.title) && c.about === "Чат клана";
-            const row = (u, btns) => `<div class="row" data-u="${u.id}">${av(u)}<div class="c"><div class="n">${uname(u)}</div><div class="p">@${esc(u.username)}${u.role === "owner" ? " · " + tl("владелец") : ""}</div></div>${btns}</div>`;
-            box.innerHTML = (r.reqs.length ? `<h3 class="k">${tl("Заявки")} · ${r.reqs.length}</h3>` + r.reqs.map(u => row(u, `<button class="btn sm" data-ok="${u.id}">${tl("Принять")}</button><button class="btn ghost sm" data-no="${u.id}">✕</button>`)).join("") : "")
-              + `<h3 class="k">${c.kind === "channel" ? tl("Подписчики") : tl("Участники")} · ${c.members}</h3>`
-              + (r.list.map(u => row(u, u.role === "owner" || clan ? "" : `<button class="btn ghost sm" data-kick="${u.id}" title="${tl("Удалить")}">✕</button>`)).join("") || `<div class="empty">${tl("Пока никого")}</div>`);
-            $$("[data-u] .c", box).forEach(x => x.onclick = () => { closeM(); Profile.open(x.parentElement.dataset.u); });
-            const act = (sel, fn) => $$(sel, box).forEach(b => b.onclick = async () => { try { await fn(b); draw(); } catch (e) { toast(errText(e)); } });
-            act("[data-ok]", b => rpc("nv_chat_answer", { p_chat: c.id, p_user: b.dataset.ok, p_ok: true }).then(() => { c.members++; c.reqs = Math.max(0, (c.reqs || 1) - 1); }));
-            act("[data-no]", b => rpc("nv_chat_answer", { p_chat: c.id, p_user: b.dataset.no, p_ok: false }).then(() => { c.reqs = Math.max(0, (c.reqs || 1) - 1); }));
-            act("[data-kick]", async b => { if (!(await confirmBox(tl("Удалить из чата?"), tl("Удалить")))) throw new Error("cancel"); await rpc("nv_chat_kick", { p_chat: c.id, p_user: b.dataset.kick }); c.members--; });
-          } catch (e) { if (e.message !== "cancel") box.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
+            const r = await rpc("nv_chat_people", { p_chat: c.id });
+            const boss = ME.is_admin || c.owner, ban = can(c, "ban"), inv = can(c, "invite");
+            const role = u => u.role === "owner" ? "владелец" : u.role === "admin" ? "админ" : "";
+            const row = (u, extra = "") => `<div class="row sm" data-u="${u.id}">${av(u, "sm")}<div class="rc"><div class="r1"><span class="rn">${uname(u)}</span><span class="rt">${role(u)}</span></div><div class="r2"><span class="rp">@${esc(u.username)}</span></div></div>${extra}</div>`;
+            b.innerHTML = (r.reqs.length && inv ? `<div class="sec">Заявки · ${r.reqs.length}</div>` + r.reqs.map(u => row(u, `<button class="btn sm" data-ok="${u.id}">Принять</button><button class="ib" data-no="${u.id}" aria-label="Отклонить">${I.close}</button>`)).join("") : "")
+              + `<div class="sec">${c.kind === "channel" ? "Подписчики" : "Участники"} · ${c.members}</div>` + (r.list.map(u => row(u)).join("") || `<div class="l-empty"><span>Пока никого</span></div>`)
+              + ((r.bans || []).length ? `<div class="sec">Заблокированы · ${r.bans.length}</div>` + r.bans.map(u => row(u, ban ? `<button class="lnk" data-unban="${u.id}">Разбанить</button>` : "")).join("") : "");
+            const act = (sel, fn) => $$(sel, b).forEach(x => x.onclick = async e => { e.stopPropagation(); try { await fn(x); draw(); } catch (er) { if (er.message !== "cancel") toast(errText(er)); } });
+            act("[data-ok]", x => rpc("nv_chat_answer", { p_chat: c.id, p_user: x.dataset.ok, p_ok: true }).then(() => { c.members++; c.reqs = Math.max(0, (c.reqs || 1) - 1); }));
+            act("[data-no]", x => rpc("nv_chat_answer", { p_chat: c.id, p_user: x.dataset.no, p_ok: false }).then(() => { c.reqs = Math.max(0, (c.reqs || 1) - 1); }));
+            act("[data-unban]", x => rpc("nv_chat_ban", { p_chat: c.id, p_user: x.dataset.unban, p_on: false }));
+            $$(".row[data-u]", b).forEach(x => {
+              const u = r.list.find(y => y.id === x.dataset.u);
+              x.onclick = () => Profile.open(x.dataset.u);
+              if (!u || u.id === ME.id || u.role === "owner") return;
+              onHold(x, (px, py) => ctxMenu(px, py, [
+                { i: I.user, t: "Открыть профиль", f: () => Profile.open(u.id) },
+                boss ? { i: I.admin, t: u.role === "admin" ? "Права админа" : "Назначить админом", f: () => this.rights(c, u, draw) } : null,
+                ban && (u.role !== "admin" || boss) ? { i: I.logout, t: "Исключить", danger: true, f: async () => { if (!(await confirmBox("Исключить", `${u.name || u.username} сможет вернуться по ссылке.`, "Исключить"))) return; try { await rpc("nv_chat_kick", { p_chat: c.id, p_user: u.id }); c.members--; draw(); } catch (e) { toast(errText(e)); } } } : null,
+                ban && (u.role !== "admin" || boss) ? { i: I.block, t: "Заблокировать", danger: true, f: async () => { if (!(await confirmBox("Заблокировать", `${u.name || u.username} вылетит из чата и не сможет вернуться, пока не разбанишь.`, "Заблокировать"))) return; try { await rpc("nv_chat_ban", { p_chat: c.id, p_user: u.id, p_on: true }); c.members--; draw(); } catch (e) { toast(errText(e)); } } } : null,
+              ]));
+            });
+          } catch (e) { b.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; }
+        };
+        b.innerHTML = `<div class="spin"></div>`; draw();
+      });
+    },
+    rights(c, u, done) {
+      const RIGHTS = [["post", "Публиковать посты"], ["edit", "Менять информацию"], ["del", "Удалять сообщения"], ["ban", "Блокировать участников"], ["pin", "Закреплять сообщения"], ["invite", "Приглашения и заявки"]];
+      const has = u.role === "admin" ? u.rights || [] : ["del", "ban", "pin", "invite"].concat(c.kind === "channel" ? ["post"] : []);
+      const go = async rights => { try { await rpc("nv_chat_admin", { p_chat: c.id, p_user: u.id, p_rights: rights }); toast(rights ? "Админ назначен" : "Админ снят"); done(); } catch (e) { toast(errText(e)); return false; } };
+      popup({ title: "Права админа", html: `<div class="row sm">${av(u, "sm")}<div class="rc"><div class="r1"><span class="rn">${uname(u)}</span></div><div class="r2"><span class="rp">@${esc(u.username)}</span></div></div></div>
+          ${RIGHTS.filter(([k]) => k !== "post" || c.kind === "channel").map(([k, t]) => `<label class="opt">${t}${sw(has.includes(k), `data-r="${k}"`)}</label>`).join("")}`,
+        buttons: [u.role === "admin" ? { t: "Снять админа", danger: true, click: () => go(null) } : { t: "Отмена" }, { t: u.role === "admin" ? "Сохранить" : "Назначить", main: true, click: card => go($$("[data-r].on", card).map(x => x.dataset.r)) }],
+        onMount: card => $$("[data-r]", card).forEach(x => x.parentElement.onclick = e => { e.preventDefault(); x.classList.toggle("on"); }) });
+    },
+  };
+
+  // комментарии к постам канала
+  const Comments = {
+    open(c, m) {
+      Side.open("Комментарии", async (b) => {
+        b.innerHTML = `<div class="cml"><div class="spin"></div></div><form class="comp cmf"><div class="extra"></div><div class="comp-r"><textarea rows="1" maxlength="1000" placeholder="Комментарий"></textarea><button class="send" aria-label="Отправить">${I.send}</button></div></form>`;
+        b.classList.add("cm-side");
+        const list = $(".cml", b), f = $(".cmf", b), ta = $("textarea", f), ex = $(".extra", f); let rp = null, data = null;
+        const setRp = x => { rp = x; ex.innerHTML = x ? `<div class="ex">${I.reply}<div class="ex-t"><b>Ответ ${esc(x.a.name || x.a.username)}</b><span>${esc(x.body.slice(0, 80))}</span></div><button type="button" class="ib">${I.close}</button></div>` : ""; if (x) { $("button", ex).onclick = () => setRp(null); ta.focus(); } };
+        const draw = async () => {
+          try { data = await rpc("nv_post_comments", { p_msg: m.id }); } catch (e) { list.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; return; }
+          f.hidden = !data.on || !data.joined;
+          const by = new Map(data.list.map(x => [x.id, x]));
+          list.innerHTML = data.list.length ? data.list.map(x => { const q = x.reply_to && by.get(x.reply_to);
+            return `<div class="m in first last" data-id="${x.id}"><span class="m-av" data-p="${x.a.id}">${av(x.a, "sm")}</span><div class="bb"><div class="au"><span class="nm" data-p="${x.a.id}">${pname(x.a)}</span></div>${q ? `<div class="rq"><b>${esc(q.a.name || q.a.username)}</b><span>${esc(q.body.slice(0, 80))}</span></div>` : ""}<div class="tx">${esc(x.body)}<i class="msp" style="width:42px"></i><span class="meta">${hm(x.created_at)}</span></div></div></div>`; }).join("")
+            : `<div class="sys"><span>${data.on ? "Пока нет комментариев" : "Комментарии выключены"}</span></div>`;
+          if (data.on && !data.joined) list.insertAdjacentHTML("beforeend", `<div class="sys"><span>Подпишись на канал, чтобы комментировать</span></div>`);
+          list.scrollTop = list.scrollHeight;
+          $$("[data-p]", list).forEach(x => x.onclick = () => Profile.open(x.dataset.p));
+          $$(".m[data-id]", list).forEach(el => { const x = by.get(+el.dataset.id); onHold($(".bb", el), (px, py) => ctxMenu(px, py, [
+            data.on && data.joined ? { i: I.reply, t: "Ответить", f: () => setRp(x) } : null, { i: I.copy, t: "Копировать текст", f: () => copy(x.body) },
+            x.del ? { i: I.trash, t: "Удалить", danger: true, f: async () => { if (!(await confirmBox("Удалить комментарий", "Комментарий исчезнет у всех."))) return; try { await rpc("nv_post_comment_del", { p_id: x.id }); m.cm = Math.max(0, (+m.cm || 1) - 1); Chat.swap(m); draw(); } catch (e) { toast(errText(e)); } } } : null])); });
+        };
+        ta.oninput = () => { ta.style.height = "auto"; ta.style.height = Math.min(140, ta.scrollHeight) + "px"; f.classList.toggle("has", !!ta.value.trim()); };
+        ta.onkeydown = e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing && !isPhone()) { e.preventDefault(); f.requestSubmit(); } };
+        f.onsubmit = async e => { e.preventDefault(); const t = ta.value.trim(); if (!t) return; try { await rpc("nv_post_comment", { p_msg: m.id, p_body: t, p_reply: rp ? rp.id : null }); ta.value = ""; ta.oninput(); setRp(null); m.cm = (+m.cm || 0) + 1; Chat.swap(m); draw(); } catch (x) { toast(errText(x)); } };
+        draw();
+      });
+    },
+  };
+
+  // ================= профиль человека справа (из личного чата) =================
+  const UserSide = {
+    async open(uid, c, tab) {
+      Side.open("Информация", async (b) => {
+        b.innerHTML = `<div class="spin"></div>`;
+        try {
+          const p = await rpc("nv_profile", { p_user: uid }); if (!p) throw new Error("no user");
+          const st = seenText(p.seen_at);
+          const lc = Chats.list.find(x => x.id === c.id) || c;
+          b.innerHTML = `<div class="si-h">${av(p, "xl")}<h3>${uname(p)}</h3><small class="${st === "в сети" ? "on" : ""}">${esc(st)}</small></div>
+            <div class="si-l">
+              ${p.bio ? `<div class="si-r">${I.info}<div><span class="pre">${esc(p.bio)}</span><small>О себе</small></div></div>` : ""}
+              <div class="si-r click" data-cp>${I.at}<div><span>@${esc(p.username)}</span><small>Юзернейм</small></div></div>
+              ${p.birth ? `<div class="si-r">${I.calendar}<div><span>${dateRu(p.birth)}</span><small>День рождения</small></div></div>` : ""}
+              <label class="si-r">${I.bell}<div><span>Уведомления</span><small>${lc.muted ? "Выключены" : "Включены"}</small></div>${sw(!lc.muted, "data-mute")}</label>
+            </div>
+            <div class="si-l"><button class="si-r click" data-prof>${I.user}<div><span>Открыть профиль</span></div></button>
+              <button class="si-r click" data-key>${I.key}<div><span>Код шифрования</span><small>Сверить ключи с собеседником</small></div></button>
+              <button class="si-r click danger" data-block>${I.block}<div><span>${p.blocked ? "Разблокировать" : "Заблокировать"}</span></div></button></div>
+            <div class="tabs2"><button class="on" data-t="m">Медиа</button><button data-t="f">Файлы</button></div><div class="mgal"><div class="spin"></div></div>`;
+          $("[data-cp]", b).onclick = () => copy("@" + p.username, "Юзернейм скопирован");
+          $("[data-prof]", b).onclick = () => Profile.open(p.id);
+          $("[data-key]", b).onclick = () => Chat.keyCode();
+          $("[data-mute]", b).parentElement.onclick = async e => { e.preventDefault(); await Chats.act(lc, lc.muted ? "unmute" : "mute"); $("[data-mute]", b).classList.toggle("on"); };
+          $("[data-block]", b).onclick = () => blockUser(p, () => this.open(uid, c));
+          Media.into(c, b, "m");
+        } catch (e) { b.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; }
+      });
+    },
+  };
+  async function blockUser(p, done) {
+    if (!p.blocked && !(await confirmBox("Заблокировать", `${p.name || p.username} не сможет писать тебе в личку и не увидит, когда ты в сети.`, "Заблокировать"))) return;
+    try { await rpc("nv_block", { p_user: p.id, p_on: !p.blocked }); toast(p.blocked ? "Разблокирован(а)" : "Заблокирован(а)"); PREFS = Object.assign(PREFS, await rpc("nv_prefs_get")); done && done(); } catch (e) { toast(errText(e)); }
+  }
+
+  // ================= профиль как во ВКонтакте: обложка, аватарка, стена =================
+  const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+  const coverUrl = p => p && p.cover && PATH_RE.test(p.cover) ? pub("nova", p.cover) : "";
+  const Profile = {
+    async open(uid) {
+      const node = h(`<section class="page prof"><header class="ch">${backBtn()}<div class="ch-t"><div class="ch-n"><b>Профиль</b></div></div><div class="ch-a"></div></header><div class="page-b"><div class="spin"></div></div></section>`);
+      R.show("profile", node); wireBack(node); Drawer.close();
+      const b = $(".page-b", node), mine = uid === ME.id;
+      try {
+        const p = await rpc("nv_profile", { p_user: uid }); if (!p) throw new Error("no user");
+        if (mine) Object.assign(ME, { cover: p.cover });
+        const st = mine ? "в сети" : seenText(p.seen_at);
+        $(".ch-n b", node).innerHTML = uname(p);
+        const cu = coverUrl(p);
+        b.innerHTML = `<div class="pw-wrap">
+          <div class="vk-card"><div class="cover${cu ? "" : " none"}">${cu ? `<img src="${esc(cu)}" alt="">` : ""}${mine ? `<label class="cover-btn">${I.camera}<span>${cu ? "Изменить обложку" : "Добавить обложку"}</span><input type="file" accept="image/*" hidden data-cov></label>` : ""}</div>
+            <div class="vk-row"><div class="vk-av">${av(p, "xxl")}${mine ? `<label class="av-btn" title="Сменить фото">${I.camera}<input type="file" accept="image/*" hidden data-av></label>` : ""}</div>
+              <div class="vk-main"><h1>${uname(p)}</h1><div class="vk-st${st === "в сети" ? " on" : ""}">${esc(st)}</div>${p.bio ? `<div class="vk-bio">${esc(p.bio)}</div>` : ""}</div>
+              <div class="vk-btns">${mine ? `<button class="btn ghost" data-edit>Редактировать профиль</button>` : `${p.banned ? "" : `<button class="btn" data-dm>Написать сообщение</button>`}<button class="ib box" data-more aria-label="Ещё">${I.more}</button>`}</div></div>
+            <div class="vk-info"><span>${I.at}@${esc(p.username)}</span>${p.birth ? `<span>${I.calendar}${dateRu(p.birth).replace(/ г\.$/, "")}</span>` : ""}<span>${I.id}ID ${p.num}</span><span>${I.star}в Needle с ${MONTHS[new Date(p.created_at).getMonth()]} ${new Date(p.created_at).getFullYear()}</span></div>
+            ${p.banned ? `<div class="vk-ban">Аккаунт заблокирован</div>` : ""}
+          </div>
+          <div class="vk-card wall"><div class="tabs2"><button class="on" data-pt="posts">Записи</button><button data-pt="media">Фото</button></div>
+            ${mine ? `<div class="np-mini" data-np>${av(ME, "sm")}<span>Что у вас нового?</span>${I.photo}</div>` : ""}<div class="posts"><div class="spin"></div></div></div></div>`;
+        const on = (s, f) => { const x = $(s, b); if (x) x.onclick = f; };
+        on("[data-dm]", () => openDm(p.id));
+        on("[data-edit]", () => { L.clear(); Settings.open(); Settings.account(); });
+        on("[data-np]", () => Feed.compose(() => this.open(uid)));
+        on("[data-more]", e => menuAt(e.currentTarget, [
+          { i: I.link, t: "Скопировать ссылку", f: () => copy(SITE + p.username, "Ссылка скопирована") },
+          { i: I.block, t: p.blocked ? "Разблокировать" : "Заблокировать", danger: !p.blocked, f: () => blockUser(p, () => this.open(uid)) },
+          ME.is_admin && !p.is_admin ? { i: I.admin, t: p.banned ? "Разбанить в Needle" : "Забанить в Needle", danger: !p.banned, f: async () => { if (!(await confirmBox(p.banned ? "Разбанить" : "Забанить", `@${p.username}`, p.banned ? "Разбанить" : "Забанить"))) return; try { await rpc("sn_set_ban", { p_username: p.username, p_ban: !p.banned }); this.open(uid); } catch (x) { toast(errText(x)); } } } : null,
+        ]));
+        const cov = $("[data-cov]", b); if (cov) cov.onchange = async () => { const f = cov.files[0]; cov.value = ""; if (!f) return; try { toast("Загружаю обложку…"); const im = await makeImage(f, 1500); const path = await upload("nova", im.blob, im.ext, im.type); await rpc("nv_set_cover", { p_path: path }); ME.cover = path; this.open(uid); } catch (x) { toast(errText(x)); } };
+        const avi = $("[data-av]", b); if (avi) avi.onchange = async () => { const f = avi.files[0]; avi.value = ""; if (!f) return; try { await setAvatar(f); this.open(uid); } catch (x) { toast(errText(x)); } };
+        const posts = await rpc("nv_feed", { p_user: p.id }).catch(() => []);
+        const box = $(".posts", b);
+        const draw = k => {
+          $$(".wall .tabs2 button", b).forEach(x => x.classList.toggle("on", x.dataset.pt === k));
+          box.innerHTML = ""; box.className = "posts" + (k === "media" ? " pgrid" : "");
+          if (k === "media") { const ph = posts.flatMap(x => (x.photos || []).filter(u => PATH_RE.test(u))); box.innerHTML = ph.length ? ph.map(u => `<img src="${esc(pub("nova", u))}" alt="" loading="lazy">`).join("") : `<div class="l-empty"><span>Фото пока нет</span></div>`; $$("img", box).forEach(im => im.onclick = () => lightbox(im.src)); }
+          else { if (!posts.length) box.innerHTML = `<div class="l-empty"><span>${mine ? "Здесь будут твои записи" : "Записей пока нет"}</span></div>`; posts.forEach(x => box.append(Feed.post(x))); }
+        };
+        $$(".wall .tabs2 button", b).forEach(x => x.onclick = () => draw(x.dataset.pt));
+        draw("posts");
+      } catch (e) { b.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; }
+    },
+  };
+  async function setAvatar(f) {
+    const im = await makeImage(f, 320, true); const path = await upload("avatars", im.blob, im.ext, im.type); const old = ME.avatar;
+    await rpc("sn_set_avatar", { p_path: path }); if (old) sb.storage.from("avatars").remove([old]).catch(() => {}); ME.avatar = path; Drawer.draw(); toast("Фото обновлено");
+  }
+
+  // ================= лента =================
+  const Feed = {
+    oldest: null,
+    open() {
+      const node = h(`<section class="page feedp"><header class="ch">${backBtn()}<div class="ch-t"><div class="ch-n"><b>Лента</b><small>посты всех людей в Needle</small></div></div><div class="ch-a"><button class="ib" data-r aria-label="Обновить">${I.retry}</button></div></header>
+        <div class="page-b"><div class="pw-wrap narrow"><div class="vk-card np-mini" data-np>${av(ME, "sm")}<span>Что у вас нового?</span>${I.photo}</div><div class="posts"><div class="spin"></div></div></div></div></section>`);
+      R.show("feed", node); wireBack(node);
+      $("[data-np]", node).onclick = () => this.compose(() => this.load(node));
+      $("[data-r]", node).onclick = () => this.load(node);
+      this.load(node);
+    },
+    async load(node, more) {
+      const box = $(".posts", node); if (!box) return;
+      try {
+        const list = await rpc("nv_feed", { p_before: more ? this.oldest : null });
+        if (!more) box.innerHTML = ""; const mb = $(".morep", box); if (mb) mb.remove();
+        list.forEach(p => box.append(this.post(p)));
+        if (list.length) this.oldest = Math.min(...list.map(p => p.id), more && this.oldest ? this.oldest : Infinity);
+        if (!box.children.length) box.innerHTML = `<div class="l-empty"><b>Лента пустая</b><span>Напиши первый пост</span></div>`;
+        if (list.length >= 30) { const b = h(`<button class="btn ghost morep">Показать ещё</button>`); box.append(b); b.onclick = () => this.load(node, true); }
+      } catch (e) { box.innerHTML = `<div class="l-empty"><span>${esc(errText(e))}</span></div>`; }
+    },
+    compose(done) {
+      const photos = [];
+      popup({ title: "Новая запись", wide: true, html: `<div class="pop-f"><textarea class="np-ta" rows="4" maxlength="4000" placeholder="Что у вас нового?"></textarea><div class="thumbs"></div><div class="err"></div></div>`,
+        buttons: [{ t: "Фото", click: card => { $("[data-ph]", card).click(); return false; } }, { t: "Отмена" }, { t: "Опубликовать", main: true, manual: true, click: async card => {
+          const t = $("textarea", card).value.trim(); if (!t && !photos.length) return false;
+          try {
+            const paths = []; for (const p of photos) paths.push(await upload("nova", p.blob, p.ext, p.type));
+            const p = await rpc("nv_post", { p_text: t, p_photos: paths, p_video: null, p_anon: false });
+            if (p && p.junk) { $(".err", card).textContent = "Похоже на спам: пост не опубликован"; return false; }
+            toast(p && p.approved === false ? "Отправлено на проверку" : "Опубликовано"); done && done(); return true;
+          } catch (e) { $(".err", card).textContent = errText(e); return false; }
+        } }],
+        onMount: card => {
+          card.insertAdjacentHTML("beforeend", `<input type="file" accept="image/*" multiple hidden data-ph>`);
+          const th = $(".thumbs", card), fi = $("[data-ph]", card);
+          const draw = () => { th.innerHTML = photos.map((p, i) => `<div><img src="${p.url}" alt=""><button data-i="${i}" aria-label="Убрать">${I.close}</button></div>`).join(""); $$("[data-i]", th).forEach(b => b.onclick = () => { photos.splice(+b.dataset.i, 1); draw(); }); };
+          fi.onchange = async () => { for (const f of [...fi.files].slice(0, 4 - photos.length)) { try { const im = await makeImage(f, 1600); photos.push(Object.assign(im, { url: await dataUrl(im.blob) })); } catch (x) { toast(errText(x)); } } fi.value = ""; draw(); };
+        } });
+    },
+    post(p) {
+      const ph = (p.photos || []).filter(x => PATH_RE.test(x));
+      const who = p.anon ? `<span class="av s0">?</span><div><b>${anonName(p)}</b><small>${ago(p.created_at)}</small></div>` : `<span data-p="${p.a && p.a.id}">${av(p.a)}</span><div><b data-p="${p.a && p.a.id}">${uname(p.a)}</b><small>${ago(p.created_at)}</small></div>`;
+      const el = h(`<article class="vk-card post${p.approved === false ? " wait" : ""}"><div class="post-h">${who}${p.approved === false ? `<span class="pend">на проверке</span>` : ""}${p.mine || ME.is_admin ? `<button class="ib" data-m aria-label="Ещё">${I.more}</button>` : ""}</div>
+        ${p.text ? `<div class="post-t">${esc(p.text)}</div>` : ""}${ph.length ? `<div class="gal n${Math.min(ph.length, 4)}">${ph.map(x => `<img src="${esc(pub("nova", x))}" alt="" loading="lazy">`).join("")}</div>` : ""}
+        <div class="post-a"><button data-like class="${p.liked ? "on" : ""}">${I.heart}<span>${p.likes || ""}</span></button><button data-cm>${I.comment}<span>${p.comments || ""}</span></button>
+        ${!p.approved && ME.is_admin && p.approved === false ? `<span class="sp"></span><button data-ok>${I.check}<span>Одобрить</span></button>` : ""}</div></article>`);
+      $$("[data-p]", el).forEach(x => x.dataset.p && x.dataset.p !== "undefined" && (x.onclick = () => Profile.open(x.dataset.p)));
+      $$(".gal img", el).forEach(i => i.onclick = () => lightbox(i.src));
+      const lk = $("[data-like]", el);
+      lk.onclick = async () => { try { const on = await rpc("nv_like", { p_post: p.id }); p.liked = on; p.likes = (+p.likes || 0) + (on ? 1 : -1); lk.classList.toggle("on", on); $("span", lk).textContent = p.likes || ""; } catch (e) { toast(errText(e)); } };
+      $("[data-cm]", el).onclick = () => this.comments(el, p);
+      const m = $("[data-m]", el); if (m) m.onclick = e => menuAt(e.currentTarget, [{ i: I.trash, t: "Удалить запись", danger: true, f: async () => { if (!(await confirmBox("Удалить запись", "Запись исчезнет из ленты и профиля."))) return; try { await rpc("nv_delete_post", { p_id: p.id }); el.remove(); } catch (x) { toast(errText(x)); } } }]);
+      const ok = $("[data-ok]", el); if (ok) ok.onclick = async () => { try { await rpc("nv_moderate", { p_id: p.id, p_ok: true }); el.classList.remove("wait"); ok.remove(); const pe = $(".pend", el); if (pe) pe.remove(); } catch (x) { toast(errText(x)); } };
+      return el;
+    },
+    async comments(el, p) {
+      let box = $(".cmts", el); if (box) return box.remove();
+      box = h(`<div class="cmts"><div class="spin"></div></div>`); el.append(box);
+      const draw = async () => {
+        try {
+          const list = await rpc("nv_comments", { p_post: p.id });
+          box.innerHTML = list.map(c => `<div class="cmt">${c.anon ? `<span class="av s0 sm">?</span>` : av(c.a, "sm")}<div class="cmt-b"><b>${c.anon ? anonName(c) : uname(c.a)}</b><div>${esc(c.text)}</div><small>${ago(c.created_at)}${c.mine || p.mine || ME.is_admin ? ` · <button class="lnk" data-d="${c.id}">Удалить</button>` : ""}</small></div></div>`).join("")
+            + `<form class="cmt-f">${av(ME, "sm")}<input maxlength="500" placeholder="Написать комментарий…"><button class="ib" aria-label="Отправить">${I.send}</button></form>`;
+          $$("[data-d]", box).forEach(b => b.onclick = async () => { try { await rpc("nv_delete_comment", { p_id: +b.dataset.d }); p.comments = Math.max(0, p.comments - 1); draw(); } catch (e) { toast(errText(e)); } });
+          const f = $("form", box); f.onsubmit = async e => { e.preventDefault(); const t = $("input", f).value.trim(); if (!t) return; try { const j = await rpc("nv_comment", { p_post: p.id, p_text: t, p_anon: false }); if (j) return toast("Похоже на спам: комментарий не опубликован"); p.comments = (+p.comments || 0) + 1; $("[data-cm] span", el).textContent = p.comments; draw(); } catch (x) { toast(errText(x)); } };
+          if (!isPhone()) $("input", f).focus();
+        } catch (e) { box.innerHTML = `<div class="err">${esc(errText(e))}</div>`; }
+      };
+      draw();
+    },
+  };
+
+  // ================= настройки: список, как в Telegram =================
+  const Settings = {
+    open() {
+      Drawer.close();
+      L.push("Настройки", b => {
+        b.innerHTML = `<div class="set-h">${av(ME, "xl")}<div><h3>${uname(ME)}</h3><small>@${esc(ME.username)}</small></div></div>
+          <div class="set-l">
+            ${[["account", I.user, "Мой аккаунт", "Имя, юзернейм, фото, о себе"], ["devices", I.devices, "Устройства", "Где ты вошёл, вход по QR"], ["privacy", I.lock, "Конфиденциальность", "Кто видит и кто пишет, пароль"],
+               ["notify", I.bell, "Уведомления и звуки", ""], ["look", I.sun, "Оформление", "Тема и размер текста"], ["folders", I.folder, "Папки с чатами", ""]]
+              .map(([k, i, t, s]) => `<button class="set-i" data-s="${k}">${i}<div><span>${t}</span>${s ? `<small>${s}</small>` : ""}</div></button>`).join("")}
+          </div>
+          <div class="set-l"><button class="set-i" data-prof>${I.user}<div><span>Мой профиль</span><small>Как тебя видят другие</small></div></button>
+            <button class="set-i danger" data-out>${I.logout}<div><span>Выйти</span></div></button></div>
+          <p class="set-f">Needle 2 · мессенджер без номера телефона</p>`;
+        $$("[data-s]", b).forEach(x => x.onclick = () => this[x.dataset.s]());
+        $("[data-prof]", b).onclick = () => Profile.open(ME.id);
+        $("[data-out]", b).onclick = () => signOut();
+      });
+    },
+    account() {
+      L.push("Мой аккаунт", b => {
+        b.innerHTML = `<div class="pad"><label class="acc-av">${av(ME, "xxl")}<span class="av-btn">${I.camera}</span><input type="file" accept="image/*" hidden></label>
+          ${field("n", "Имя", 'maxlength="40"', ME.name || "")}${areaField("bio", "О себе", 'maxlength="160" rows="2"', ME.bio || "")}
+          <p class="hint">Пара слов о себе, до 160 символов.</p>
+          <div class="at-f">${field("u", "Юзернейм", 'maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false"', ME.username)}</div>
+          <p class="hint">По нему тебя найдут: ${esc(SITE.replace(/^https?:\/\//, ""))}<i data-uh>${esc(ME.username)}</i></p>
+          ${field("d", "День рождения", `type="date" min="1900-01-01" max="${new Date(Date.now() - 5 * 365.25 * 864e5).toISOString().slice(0, 10)}"`, ME.birth || "")}
+          <div class="err"></div><button class="btn wide" data-save>Сохранить</button>
+          <button class="lnk" data-cov>${ME.cover ? "Изменить обложку профиля" : "Добавить обложку профиля"}</button><input type="file" accept="image/*" hidden data-covf></div>`;
+        const fi = $(".acc-av input", b); fi.onchange = async () => { const f = fi.files[0]; fi.value = ""; if (!f) return; try { await setAvatar(f); $(".acc-av .av", b).outerHTML = av(ME, "xxl"); } catch (e) { toast(errText(e)); } };
+        $("[name=u]", b).oninput = e => { $("[data-uh]", b).textContent = e.target.value.replace(/^@/, "").toLowerCase(); };
+        const cf = $("[data-covf]", b); $("[data-cov]", b).onclick = () => cf.click();
+        cf.onchange = async () => { const f = cf.files[0]; cf.value = ""; if (!f) return; try { toast("Загружаю обложку…"); const im = await makeImage(f, 1500); const path = await upload("nova", im.blob, im.ext, im.type); await rpc("nv_set_cover", { p_path: path }); ME.cover = path; toast("Обложка обновлена"); } catch (x) { toast(errText(x)); } };
+        $("[data-save]", b).onclick = async e => {
+          const btn = e.currentTarget, n = $("[name=n]", b).value.trim(), t = $("[name=bio]", b).value.trim(), u = $("[name=u]", b).value.trim().replace(/^@/, "").toLowerCase(), d = $("[name=d]", b).value || null;
+          btn.disabled = true; $(".err", b).textContent = "";
+          try {
+            if (!/^[a-z0-9_]{3,20}$/.test(u)) throw new Error("bad username");
+            await rpc("nv_set_profile", { p_name: n, p_username: u, p_birth: d });
+            if (t !== (ME.bio || "")) await rpc("sn_update_bio", { p_bio: t });
+            Object.assign(ME, { name: n, username: u, birth: d, bio: t }); Drawer.draw(); toast("Сохранено"); L.pop(); L.pop(); this.open();
+          } catch (x) { $(".err", b).textContent = errText(x); btn.disabled = false; }
+        };
+      });
+    },
+    // устройства: как «Активные сеансы» в Telegram
+    devices() {
+      L.push("Устройства", b => {
+        const draw = async () => {
+          b.innerHTML = `<div class="set-l"><button class="set-i strong" data-scan>${I.qr}<div><span>Подключить устройство</span><small>Отсканируй QR-код на экране входа</small></div></button></div><div class="devs"><div class="spin"></div></div>`;
+          $("[data-scan]", b).onclick = () => scanQr();
+          try {
+            const list = await rpc("nv_dev_list"); const cur = list.find(d => d.current), rest = list.filter(d => !d.current);
+            const ic = n => /iPhone|Android|iPad/.test(n) ? I.phone : I.laptop;
+            const row = d => `<div class="dev" data-d="${d.id}"><span class="dev-ic">${ic(d.name)}</span><div><b>${esc(d.name || "Устройство")}</b><small>${d.current ? "это устройство" : d.trusted ? "был(о) в сети " + fmtTime(d.last_seen) : "ждёт код для входа"}</small></div></div>`;
+            $(".devs", b).innerHTML = `<div class="sec">Это устройство</div>${cur ? row(cur) : ""}
+              ${rest.length ? `<div class="set-l"><button class="set-i danger" data-all>${I.block}<div><span>Завершить все другие сеансы</span></div></button></div><div class="sec">Другие устройства</div>${rest.map(row).join("")}<p class="hint pad-x">Нажми на устройство, чтобы отключить его. Чтобы войти с нового устройства, понадобится код из Needle, QR-код или ссылка на почту.</p>` : `<p class="hint pad-x">Других устройств нет.</p>`}`;
+            $$(".dev[data-d]", b).forEach(x => { const d = rest.find(y => y.id === +x.dataset.d); if (!d) return; x.classList.add("click"); x.onclick = async () => { if (!(await confirmBox("Отключить устройство", `«${d.name}» выйдет из аккаунта.`, "Отключить"))) return; try { await rpc("nv_dev_remove", { p_id: d.id }); draw(); } catch (e) { toast(errText(e)); } }; });
+            const all = $("[data-all]", b); if (all) all.onclick = async () => { if (!(await confirmBox("Завершить другие сеансы", "Все устройства, кроме этого, выйдут из аккаунта.", "Завершить"))) return; try { await rpc("nv_dev_remove", { p_id: null }); draw(); } catch (e) { toast(errText(e)); } };
+          } catch (e) { $(".devs", b).innerHTML = `<p class="hint pad-x">${esc(errText(e))}</p>`; }
+        };
+        draw();
+      });
+    },
+    privacy() {
+      L.push("Конфиденциальность", b => {
+        const seg = (k, v) => `<div class="radios">${[["all", "Все"], ["nobody", "Никто"]].map(([x, t]) => `<label class="radio"><input type="radio" name="${k}" value="${x}" ${v === x ? "checked" : ""}><i></i><span>${t}</span></label>`).join("")}</div>`;
+        b.innerHTML = `<div class="sec">Кто видит, когда я в сети</div>${seg("seen", PREFS.priv_seen)}<div class="sec">Кто может написать мне первым</div>${seg("dm", PREFS.priv_dm)}
+          <div class="sec">Безопасность</div><div class="set-l">
+            <button class="set-i" data-pw>${I.key}<div><span>Сменить пароль</span><small>Им же открывается зашифрованная переписка</small></div></button>
+            <button class="set-i" data-e2e>${I.lock}<div><span>Шифрование личных сообщений</span><small>${E2E.locked ? "Закрыто на этом устройстве, нажми чтобы открыть" : E2E.backed ? "Ключ сохранён под твоим паролем" : "Ключ только на этом устройстве"}</small></div></button>
+            <button class="set-i" data-dev>${I.devices}<div><span>Устройства</span><small>Новые входы подтверждаются кодом</small></div></button></div>
+          <div class="sec">Заблокированные · ${PREFS.blocked.length}</div>
+          ${PREFS.blocked.length ? PREFS.blocked.map(u => `<div class="row sm">${av(u, "sm")}<div class="rc"><div class="r1"><span class="rn">${uname(u)}</span></div><div class="r2"><span class="rp">@${esc(u.username)}</span></div></div><button class="lnk" data-unb="${u.id}">Разблокировать</button></div>`).join("") : `<p class="hint pad-x">Заблокировать можно в профиле человека.</p>`}`;
+        $$("input[type=radio]", b).forEach(x => x.onchange = async () => { const seen = x.name === "seen"; try { await rpc("nv_prefs_set", seen ? { p_seen: x.value } : { p_dm: x.value }); PREFS[seen ? "priv_seen" : "priv_dm"] = x.value; toast("Сохранено"); } catch (e) { toast(errText(e)); } });
+        $("[data-pw]", b).onclick = () => changePw();
+        $("[data-e2e]", b).onclick = () => keyPrompt(true);
+        $("[data-dev]", b).onclick = () => this.devices();
+        $$("[data-unb]", b).forEach(x => x.onclick = async () => { try { await rpc("nv_block", { p_user: x.dataset.unb, p_on: false }); PREFS.blocked = PREFS.blocked.filter(u => u.id !== x.dataset.unb); x.closest(".row").remove(); } catch (e) { toast(errText(e)); } });
+      });
+    },
+    notify() {
+      L.push("Уведомления и звуки", b => {
+        b.innerHTML = `<div class="set-l"><label class="opt">Звук новых сообщений${sw(CFG.sound, 'data-k="sound"')}</label><label class="opt">Показывать текст в списке чатов${sw(CFG.preview, 'data-k="preview"')}</label></div>
+          <p class="hint pad-x">Отдельный чат можно заглушить: правый клик или долгое нажатие на чат → «Без звука».</p>`;
+        $$("[data-k]", b).forEach(x => x.parentElement.onclick = e => { e.preventDefault(); CFG[x.dataset.k] = !CFG[x.dataset.k]; x.classList.toggle("on", CFG[x.dataset.k]); saveCfg(); Chats.draw(); });
+      });
+    },
+    look() {
+      L.push("Оформление", b => {
+        b.innerHTML = `<div class="sec">Тема</div><div class="radios">${[["system", "Как в системе"], ["light", "Светлая"], ["dark", "Тёмная"]].map(([k, t]) => `<label class="radio"><input type="radio" name="th" value="${k}" ${CFG.theme === k ? "checked" : ""}><i></i><span>${t}</span></label>`).join("")}</div>
+          <div class="sec">Размер текста</div><div class="pad"><div class="range"><span>A</span><input type="range" min="13" max="20" step="1" value="${CFG.size}"><span class="big">A</span></div>
+          <div class="demo"><div class="m in first last"><div class="bb"><div class="tx">Привет! Так будут выглядеть сообщения.<i class="msp" style="width:42px"></i><span class="meta">12:00</span></div></div></div><div class="m out first last"><div class="bb"><div class="tx">Выглядит отлично 👍<i class="msp" style="width:62px"></i><span class="meta">12:01<span class="tk rd">${I.check2}</span></span></div></div></div></div></div>
+          <div class="set-l"><label class="opt">Отправлять по Enter<small>Иначе по Ctrl+Enter</small>${sw(CFG.enter, "data-en")}</label></div>`;
+        $$("[name=th]", b).forEach(x => x.onchange = () => { CFG.theme = x.value; saveCfg(); });
+        $("input[type=range]", b).oninput = e => { CFG.size = +e.target.value; saveCfg(); };
+        $("[data-en]", b).parentElement.onclick = e => { e.preventDefault(); CFG.enter = !CFG.enter; $("[data-en]", b).classList.toggle("on", CFG.enter); saveCfg(); };
+      });
+    },
+    folders() {
+      L.push("Папки с чатами", b => {
+        const draw = () => {
+          b.innerHTML = `<div class="fold-ic">${I.folder}</div><p class="hint pad-x center">Разложи чаты по папкам: они появятся вкладками над списком чатов.</p>
+            <div class="sec">Мои папки</div><div class="set-l">${PREFS.folders.map((f, i) => `<button class="set-i" data-f="${i}">${I.folder}<div><span>${esc(f.n)}</span><small>${(f.c || []).length} ${plural((f.c || []).length, "чат", "чата", "чатов")}</small></div></button>`).join("")}
+            ${PREFS.folders.length < 10 ? `<button class="set-i strong" data-new>${I.plus}<div><span>Создать папку</span></div></button>` : ""}</div>
+            <p class="hint pad-x">Чат в папку добавляется правым кликом или долгим нажатием на чат. Нажми на папку, чтобы изменить её.</p>`;
+          $$("[data-f]", b).forEach(x => x.onclick = e => { const i = +x.dataset.f; const r = x.getBoundingClientRect(); ctxMenu(r.right - 220, r.bottom, [{ i: I.pen, t: "Переименовать", f: () => Folders.rename(i).then(draw) }, { i: I.trash, t: "Удалить", danger: true, f: () => Folders.remove(i).then(draw) }]); });
+          const n = $("[data-new]", b); if (n) n.onclick = () => Folders.create().then(draw);
         };
         draw();
       });
     },
   };
-  // ссылки needle-net.github.io/имя и /+приглашение
-  async function goLink(name) {
-    try {
-      const r = await rpc("nv_resolve", { p_name: name }); if (!r) throw new Error("no chat");
-      if (r.user) return Profile.open(r.user);
-      loadChats();
-      if (r.kind === "channel" && name[0] !== "+") return Channel.open(r.chat);
-      Chat.open(r.chat);
-    } catch (e) { toast(errText(e)); }
-  }
-  const RX = ["👍", "❤️", "🔥", "😂", "😮", "😢", "👎", "🎉", "🤡", "💯"];
-  const seenAt = t => seenText({ seen_at: t }) || tl("в сети");
-  const burnName = s => ({ 60: "1 минуту", 3600: "1 час", 86400: "1 день" }[s] || s + " " + tl("с"));
-  const plural = (n, a, b, c) => { n = Math.abs(n) % 100; const d = n % 10; return n > 10 && n < 20 ? c : d > 1 && d < 5 ? b : d === 1 ? a : c; };
-  RENDER.chat = () => {};
-
-  // ================= лента =================
-  const Feed = { oldest: null, photos: [], video: null, anon: false };
-  RENDER.feed = w => {
-    $(".wa", w).innerHTML = `<button class="ib" data-r title="Обновить">${svg('<path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/>')}</button>`;
-    $("[data-r]", w).onclick = () => loadFeed(w);
-    $(".wb", w).innerHTML = `<div class="feedwrap"><aside class="who"><h3 class="k">Кого почитать</h3><div class="wl"><div class="spin"></div></div></aside><div class="feed"><div class="newpost">
-        <textarea class="box" rows="2" maxlength="4000" placeholder="Что нового?"></textarea><div class="thumbs"></div>
-        <div class="bar"><label class="ib" title="Фото (до 4)">${I.img}<input type="file" accept="image/*" multiple hidden data-ph></label>
-          ${ME.is_admin ? `<label class="ib" title="Видео">${I.vid}<input type="file" accept="video/mp4,video/webm" hidden data-vd></label>` : ""}
-          <button class="ib" data-an title="Анонимно">${I.mask}</button><span class="sp"></span><span class="muted mono" style="font-size:11px" data-hint></span><button class="btn sm" data-post>Опубликовать</button></div></div>
-      <div class="posts insta"><div class="spin"></div></div></div></div>`;
-    rpc("nv_top", { p_limit: 8 }).then(list => { const wl = $(".who .wl", w); if (!wl) return; wl.innerHTML = list.length ? list.map(u => `<div class="row" data-u="${u.id}">${av(u)}<div class="c"><div class="n">${uname(u)}</div><div class="p">@${esc(u.username)} · ${lvl(u.xp).name}</div></div></div>`).join("") : `<div class="empty">Пока никого</div>`; $$("[data-u]", wl).forEach(r => r.onclick = () => Profile.open(r.dataset.u)); }).catch(() => { const wl = $(".who .wl", w); if (wl) wl.innerHTML = ""; });
-    const np = $(".newpost", w), ta = $("textarea", np), th = $(".thumbs", np), hint = $("[data-hint]", np);
-    const drawThumbs = () => { th.innerHTML = Feed.photos.map((p, i) => `<div><img src="${p.url}" alt=""><button data-i="${i}">×</button></div>`).join("") + (Feed.video ? `<div style="width:auto;padding:0 10px;display:grid;place-items:center;font:11px var(--mono)">🎬 ${esc(Feed.video.name.slice(0, 20))}<button data-v>×</button></div>` : "");
-      $$("[data-i]", th).forEach(b => b.onclick = () => { Feed.photos.splice(+b.dataset.i, 1); drawThumbs(); }); $("[data-v]", th) && ($("[data-v]", th).onclick = () => { Feed.video = null; drawThumbs(); });
-      hint.textContent = Feed.photos.length && !ME.is_admin ? "фото проверит модератор" : ""; };
-    $("[data-ph]", np).onchange = async e => { for (const f of [...e.target.files].slice(0, 4 - Feed.photos.length)) { try { const im = await makeImage(f, 1600); Feed.photos.push(Object.assign(im, { url: await dataUrl(im.blob) })); } catch (x) { toast(errText(x)); } } e.target.value = ""; drawThumbs(); };
-    $("[data-vd]", np) && ($("[data-vd]", np).onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (!f) return; if (f.size > 50e6) return toast("Видео больше 50 МБ"); Feed.video = f; drawThumbs(); });
-    const an = $("[data-an]", np); an.onclick = () => { Feed.anon = !Feed.anon; an.classList.toggle("on", Feed.anon); ta.placeholder = Feed.anon ? "Анонимный пост…" : "Что нового?"; };
-    $("[data-post]", np).onclick = async e => {
-      const btn = e.currentTarget, t = ta.value.trim(); if (!t && !Feed.photos.length && !Feed.video) return ta.focus();
-      btn.disabled = true;
-      try {
-        const paths = []; for (const p of Feed.photos) paths.push(await upload("nova", p.blob, p.ext, p.type));
-        let vp = null; if (Feed.video) vp = await upload("nova-video", Feed.video, Feed.video.type === "video/webm" ? "webm" : "mp4", Feed.video.type || "video/mp4");
-        const p = await rpc("nv_post", { p_text: t, p_photos: paths, p_video: vp, p_anon: Feed.anon });
-        if (p && p.junk) { btn.disabled = false; return junkToast(p.junk, "Пост"); }
-        ta.value = ""; Feed.photos = []; Feed.video = null; drawThumbs();
-        $(".posts", w).prepend(postEl(p)); $(".posts .empty", w) && $(".posts .empty", w).remove();
-        toast(p.approved ? "Опубликовано" : "Отправлено на проверку");
-      } catch (x) { toast(errText(x)); }
-      btn.disabled = false;
-    };
-    loadFeed(w);
-  };
-  async function loadFeed(w, more) {
-    const box = $(".posts", w);
-    try {
-      const raw = await rpc("nv_feed", { p_before: more ? Feed.oldest : null });
-      const list = [...raw]; for (let i = list.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [list[i], list[j]] = [list[j], list[i]]; }   // как в Instagram: каждый раз вперемешку
-      if (!more) box.innerHTML = "";
-      $(".morep", box) && $(".morep", box).remove();
-      list.forEach(p => { box.append(postEl(p)); Feed.oldest = Feed.oldest && more ? Math.min(Feed.oldest, p.id) : p.id; });
-      if (!more) Feed.oldest = list.length ? Math.min(...list.map(p => p.id)) : null;
-      if (!box.children.length) box.innerHTML = `<div class="empty"><b>Лента пустая</b>Напиши первый пост!</div>`;
-      if (raw.length >= 30) { const b = h(`<button class="btn ghost sm morep" style="align-self:center">Ещё</button>`); box.append(b); b.onclick = () => loadFeed(w, true); }
-    } catch (e) { box.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
-  }
-  function postEl(p) {
-    const who = p.anon ? `<span class="av an">?</span><div><div class="n">${anonName(p, ME.is_admin)}</div><div class="s">${ago(p.created_at)}</div></div>` : `<span data-p="${p.a && p.a.id}" style="cursor:pointer">${av(p.a)}</span><div><div class="n" data-p="${p.a && p.a.id}">${uname(p.a)}</div><div class="s">ID ${p.a ? p.a.num : "?"} · ${ago(p.created_at)}</div></div>`;
-    const ph = (p.photos || []).filter(x => PATH_RE.test(x));
-    const el = h(`<article class="post${p.approved ? "" : " wait"}">
-      <div class="hd">${who}${p.approved ? "" : `<span class="sp" style="flex:1"></span><span class="pend">на проверке</span>`}</div>
-      ${p.text ? `<div class="tx">${esc(p.text)}</div>` : ""}
-      ${ph.length ? `<div class="gal">${ph.map(x => `<img src="${esc(pub("nova", x))}" alt="" loading="lazy">`).join("")}</div>` : ""}
-      ${p.video && VPATH_RE.test(p.video) ? `<video src="${esc(pub("nova-video", p.video))}" controls preload="metadata" playsinline></video>` : ""}
-      <div class="acts">
-        <button data-like class="${p.liked ? "on" : ""}">${I.heart}<span>${p.likes || ""}</span></button>
-        <button data-cm>${I.cmt}<span>${p.comments || ""}</span></button><span class="sp"></span>
-        ${!p.approved && ME.is_admin ? `<button data-ok>✓ одобрить</button><button data-no>✕ отклонить</button>` : ""}
-        ${p.mine || ME.is_admin ? `<button data-del title="Удалить">${I.trash}</button>` : ""}
-      </div></article>`);
-    $$("[data-p]", el).forEach(x => x.dataset.p && x.dataset.p !== "null" && (x.onclick = () => Profile.open(x.dataset.p)));
-    $$(".gal img", el).forEach(i => i.onclick = () => lightbox(i.src));
-    const lk = $("[data-like]", el);
-    lk.onclick = async () => { try { const on = await rpc("nv_like", { p_post: p.id }); p.liked = on; p.likes = (+p.likes || 0) + (on ? 1 : -1); lk.classList.toggle("on", on); $("span", lk).textContent = p.likes || ""; } catch (e) { toast(errText(e)); } };
-    $("[data-cm]", el).onclick = () => comments(el, p);
-    $("[data-del]", el) && ($("[data-del]", el).onclick = async () => { if (!(await confirmBox("Удалить пост?", "Удалить"))) return; try { await rpc("nv_delete_post", { p_id: p.id }); el.style.transition = "opacity .3s,transform .3s"; el.style.opacity = 0; el.style.transform = "scale(.97)"; setTimeout(() => el.remove(), 300); } catch (e) { toast(errText(e)); } });
-    $("[data-ok]", el) && ($("[data-ok]", el).onclick = async () => { try { await rpc("nv_moderate", { p_id: p.id, p_ok: true }); el.classList.remove("wait"); $(".pend", el).remove(); $("[data-ok]", el).remove(); $("[data-no]", el).remove(); toast("Одобрено"); } catch (e) { toast(errText(e)); } });
-    $("[data-no]", el) && ($("[data-no]", el).onclick = async () => { try { await rpc("nv_moderate", { p_id: p.id, p_ok: false }); el.remove(); toast("Отклонено"); } catch (e) { toast(errText(e)); } });
-    return el;
-  }
-  const JUNK = { link: "ссылки писать нельзя", mat: "без мата, пожалуйста", repeat: "ты уже это писал(а)", nonsense: "похоже на набор букв", flood: "слишком много подряд, передохни" };
-  const junkToast = (j, what) => toast(`${tl("Похоже на спам")}: ${tl(JUNK[j] || j)}. ${tl(what)} ${tl("не опубликован")}.`);
-  async function comments(el, p) {
-    let box = $(".cmts", el); if (box) return box.remove();
-    box = h(`<div class="cmts"><div class="spin" style="margin:6px auto"></div></div>`); el.append(box);
-    const draw = async () => {
-      try {
-        const list = await rpc("nv_comments", { p_post: p.id });
-        box.innerHTML = list.map(c => `<div class="cmt">${c.anon ? `<span class="av an xs">?</span>` : av(c.a, "xs")}<div class="c"><b>${c.anon ? anonName(c, ME.is_admin) : uname(c.a)}</b> <span class="x">${ago(c.created_at)}</span><div>${esc(c.text)}</div></div>${c.mine || p.mine || ME.is_admin ? `<button class="ib" data-d="${c.id}" style="width:26px;height:26px">×</button>` : ""}</div>`).join("") +
-          (p.approved ? `<form class="ask" style="padding:0"><input class="box" maxlength="500" placeholder="Комментарий…"><button class="btn sm">→</button></form>` : "");
-        $$("[data-d]", box).forEach(b => b.onclick = async () => { try { await rpc("nv_delete_comment", { p_id: +b.dataset.d }); draw(); } catch (e) { toast(errText(e)); } });
-        const f = $("form", box); if (f) f.onsubmit = async e => { e.preventDefault(); const t = $("input", f).value.trim(); if (!t) return; try { const j = await rpc("nv_comment", { p_post: p.id, p_text: t, p_anon: Feed.anon }); if (j) return junkToast(j, "Комментарий"); p.comments++; $("[data-cm] span", el).textContent = p.comments; draw(); } catch (x) { toast(errText(x)); } };
-      } catch (e) { box.innerHTML = `<div class="err">${esc(errText(e))}</div>`; }
-    };
-    draw();
-  }
-
-  // ================= поиск =================
-  RENDER.find = w => {
-    $(".wb", w).innerHTML = `<div class="srch"><input class="box" placeholder="Ник, ID или название канала" maxlength="40"></div><div class="res"></div>`;
-    const inp = $("input", w), res = $(".res", w); let t = 0;
-    const go = async () => {
-      res.innerHTML = `<div class="spin"></div>`;
-      try {
-        const r = await rpc("nv_find", { p_q: inp.value.trim() });
-        res.innerHTML = (r.people.length ? `<div class="sec k">Люди</div>` + r.people.map(p => `<div class="row" data-u="${p.id}">${av(p)}<div class="c"><div class="n">${uname(p)}</div><div class="p">@${esc(p.username)} · ID ${p.num}</div></div></div>`).join("") : "") +
-          `<div class="sec k">${inp.value.trim() ? "Каналы и группы" : "Популярное"}</div>` +
-          (r.chats.map(c => `<div class="row" data-c="${c.id}">${chatAv(c)}<div class="c"><div class="n">${esc(c.title)}</div><div class="p">${c.handle ? "@" + esc(c.handle) + " · " : ""}${c.kind === "channel" ? "канал" : "группа"} · ${c.members} ${c.kind === "channel" ? plural(c.members, "подписчик", "подписчика", "подписчиков") : plural(c.members, "участник", "участника", "участников")}${c.about ? " · " + esc(c.about) : ""}</div></div><div class="m">${c.joined ? "✓" : ""}</div></div>`).join("") || `<div class="empty">Ничего не найдено</div>`) +
-          `<div class="fab"><button class="btn sm ghost" data-n>${I.plus} Создать группу или канал</button></div>`;
-        $$("[data-u]", res).forEach(r2 => r2.onclick = () => Profile.open(r2.dataset.u));
-        $$("[data-c]", res).forEach(r2 => r2.onclick = () => { const c = r.chats.find(x => x.id === +r2.dataset.c); c && c.kind === "channel" ? Channel.open(c.id) : Chat.open(+r2.dataset.c); });
-        $("[data-n]", res).onclick = newChatDialog;
-      } catch (e) { res.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
-    };
-    inp.oninput = () => { clearTimeout(t); t = setTimeout(go, 300); };
-    go(); setTimeout(() => inp.focus(), 80);
-  };
-
-  // ================= профиль =================
-  const Profile = {
-    async open(uid) {
-      if (uid === ME.id) return open("me");
-      const w = open("user"); const b = $(".wb", w); b.innerHTML = `<div class="spin"></div>`; setTitle(w, "Профиль");
-      try {
-        const p = await rpc("nv_profile", { p_user: uid });
-        if (!p) throw new Error("no user");
-        setTitle(w, uname(p), handle(p));
-        b.innerHTML = `${profileHead(p, false)}${p.banned ? `<p class="err" style="text-align:center">Аккаунт заблокирован</p>` : ""}<div class="feed" style="padding-top:0"><div class="posts"><div class="spin"></div></div></div>`;
-        $("[data-dm]", b) && ($("[data-dm]", b).onclick = async () => { try { const id = await rpc("nv_open_dm", { p_user: p.id }); if (L() === "windows") close("user"); Chat.open(id); loadChats(); } catch (e) { toast(errText(e)); } });
-        $("[data-block]", b) && ($("[data-block]", b).onclick = async () => { if (!p.blocked && !(await confirmBox(tl("Заблокировать") + " " + p.username + "? " + tl("Он не сможет писать тебе в личку и не увидит, когда ты в сети."), tl("Заблокировать")))) return; try { await rpc("nv_block", { p_user: p.id, p_on: !p.blocked }); toast(p.blocked ? tl("Разблокирован") : tl("Заблокирован")); PREFS = await rpc("nv_prefs_get"); this.open(uid); } catch (e) { toast(errText(e)); } });
-        $("[data-ban]", b) && ($("[data-ban]", b).onclick = async () => { if (!(await confirmBox((p.banned ? "Разбанить " : "Забанить ") + p.username + "?"))) return; try { await rpc("sn_set_ban", { p_username: p.username, p_ban: !p.banned }); this.open(uid); } catch (e) { toast(errText(e)); } });
-        wireProfile(b, p, await rpc("nv_feed", { p_user: p.id }));
-      } catch (e) { b.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
-    },
-  };
-  RENDER.user = () => {};
-  const Channel = {
-    async open(id) {
-      const w = open("user"); const b = $(".wb", w); b.innerHTML = `<div class="spin"></div>`; setTitle(w, "Канал");
-      try {
-        const c = await rpc("nv_chat", { p_chat: id }), msgs = await rpc("nv_messages", { p_chat: id }).catch(() => []);
-        setTitle(w, chatName(c), c.handle ? "@" + esc(c.handle) : tl("канал"));
-        const tile = (attr, icon, label) => `<button class="pa" ${attr}>${icon}<span>${label}</span></button>`;
-        b.innerHTML = `<div class="pv pv2 chp"><div class="ban b${+c.banner || 0}"></div>
-          <div class="pvc"><span class="av big ch">✦</span><h2>${chatName(c)}</h2><div class="st">${c.official ? `<span class="own">${tl("официальный канал")}</span> · ` : ""}${c.members} ${tl(plural(c.members, "подписчик", "подписчика", "подписчиков"))}</div></div>
-          <div class="pacts">${c.joined ? tile("data-go", I.chats, "Открыть") : c.requested ? tile("data-unreq", I.plus, "Заявка отправлена") : tile("data-join", I.plus, c.access === "request" ? "Подать заявку" : "Подписаться")}${tile("data-share", I.at, "Поделиться")}${c.owner || ME.is_admin ? tile("data-style", I.palette, "Оформление") : ""}${ME.is_admin ? tile("data-off", I.crown, c.official ? "Обычный" : "Официальный") : ""}</div>
-          <div class="pcard">${c.about ? `<div class="ci"><div><small>о канале</small><p class="bio">${esc(c.about)}</p></div></div>` : ""}
-            ${c.author ? `<div class="ci" data-p="${c.author.id}" style="cursor:pointer"><div><small>автор</small><b>${uname(c.author)}</b></div></div>` : ""}
-            <div class="ci"><div><small>постов</small><b>${msgs.length >= 60 ? "60+" : msgs.length}</b></div></div></div></div>
-          <div class="feed insta" style="padding-top:0"><div class="posts">${msgs.length ? "" : `<div class="empty">${tl("Постов пока нет")}</div>`}</div></div>`;
-        const box = $(".posts", b);
-        for (const m of [...msgs].reverse()) {
-          const d = { t: (m.body || "").trim(), f: m.file };
-          const el = h(`<article class="post"><div class="hd"><span class="av ch">✦</span><div><div class="n">${chatName(c)}</div><div class="s">${ago(m.created_at)}</div></div></div>
-            ${m.photo && PATH_RE.test(m.photo) ? `<div class="gal"><img src="${esc(pub("nova", m.photo))}" alt="" loading="lazy"></div>` : ""}<span class="fslot"></span>${d.t ? `<div class="tx">${esc(d.t)}</div>` : ""}</article>`);
-          const fe = fileEl(d.f); if (fe) $(".fslot", el).replaceWith(fe); else $(".fslot", el).remove();
-          $$(".gal img", el).forEach(i => i.onclick = () => lightbox(i.src));
-          box.append(el);
-        }
-        const on = (sel, f) => { const x = $(sel, b); if (x) x.onclick = f; };
-        on("[data-go]", () => { if (L() === "windows") close("user"); Chat.open(c.id); });
-        on("[data-join]", async () => { try { const r = await rpc("nv_join", { p_chat: c.id }); if (r === "requested") toast(tl("Заявка отправлена")); loadChats(); this.open(id); } catch (e) { toast(errText(e)); } });
-        on("[data-unreq]", async () => { try { await rpc("nv_unrequest", { p_chat: c.id }); this.open(id); } catch (e) { toast(errText(e)); } });
-        on("[data-share]", async () => { const t = c.handle ? SITE + c.handle : c.title; try { await navigator.clipboard.writeText(t); toast(tl("Скопировано") + ": " + t); } catch {} });
-        on("[data-p]", () => Profile.open(c.author.id));
-        on("[data-off]", async () => { try { await rpc("nv_admin_chat_official", { p_chat: c.id, p_on: !c.official }); this.open(id); } catch (e) { toast(errText(e)); } });
-        on("[data-style]", () => this.style(c, () => this.open(id)));
-      } catch (e) { b.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
-    },
-    style(c, done) {
-      let ban = +c.banner || 0, col = c.color ?? null; const rich = c.official || ME.is_admin;
-      const bans = Array.from({ length: rich ? 20 : 12 }, (_, i) => i);
-      modal(`<h2>${tl("Оформление канала")}</h2>
-        <div class="field"><label class="k">фон</label><div class="sw-grid" data-ban>${bans.map(i => `<button class="ban b${i}${i === ban ? " on" : ""}${i > 11 ? " ex" : ""}" data-v="${i}"></button>`).join("")}</div></div>
-        <div class="field"><label class="k">цвет названия</label>${c.official ? `<div class="cl-grid"><button type="button" data-c="" class="${col == null ? "on" : ""}" style="--cc:var(--fg)">Aa</button>${CLC.map((x, i) => `<button type="button" style="--cc:${x}" data-c="${i}" class="${col === i ? "on" : ""}"></button>`).join("")}</div>` : `<p class="note">${tl("Цвет названия есть только у официальных каналов.")}</p>`}</div>
-        <div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (m, closeM) => {
-        $$("[data-ban] button", m).forEach(x => x.onclick = () => { ban = +x.dataset.v; $$("[data-ban] button", m).forEach(y => y.classList.toggle("on", y === x)); });
-        $$("[data-c]", m).forEach(x => x.onclick = () => { col = x.dataset.c === "" ? null : +x.dataset.c; $$("[data-c]", m).forEach(y => y.classList.toggle("on", y === x)); });
-        $("[data-n]", m).onclick = closeM;
-        $("[data-y]", m).onclick = async () => { try { await rpc("nv_chat_style", { p_chat: c.id, p_banner: ban, p_color: c.official ? col : null }); closeM(); loadChats(); done(); } catch (e) { $(".err", m).textContent = errText(e); } };
-      });
-    },
-  };
-  const seenText = p => {
-    if (!p.seen_at) return tl("был(а) недавно");
-    const m = (Date.now() - new Date(p.seen_at)) / 60000;
-    if (m < 7) return "";
-    if (m < 60) return `${tl("был(а)")} ${Math.floor(m)} ${tl("мин")} ${tl("назад")}`;
-    if (m < 1440) return `${tl("был(а)")} ${Math.floor(m / 60)} ${tl("ч")} ${tl("назад")}`;
-    return `${tl("был(а)")} ${new Date(p.seen_at).toLocaleDateString(LOC(), { day: "numeric", month: "short" })}`;
-  };
-  const isBday = d => { if (!d) return false; const b = new Date(d), n = new Date(); return b.getMonth() === n.getMonth() && b.getDate() === n.getDate(); };
-  function profileHead(p, mine) {
-    const L1 = lvl(p.xp), st = mine ? "" : seenText(p), on = mine || !st;
-    const tile = (attr, icon, label) => `<button class="pa" ${attr}>${icon}<span>${label}</span></button>`;
-    const acts = mine
-      ? tile("data-edit", I.pen, "Изменить") + tile("data-share", I.at, "Поделиться") + (p.is_admin ? tile('data-open="admin"', I.crown, "Админка") : tile('data-open="cfg"', I.cfg, "Настройки"))
-      : (p.banned ? "" : tile("data-dm", I.lock, "Написать")) + tile("data-share", I.at, "Поделиться") + tile("data-block", I.x, p.blocked ? "Разблокировать" : "Заблокировать") + (ME.is_admin && !p.is_admin ? tile("data-ban", I.x, p.banned ? "Разбанить" : "Забанить") : "");
-    const by = p.birth ? age(p.birth) : 0;
-    const more = (p.usernames || []).filter(u => u !== p.username);
-    return `<div class="pv pv2"><div class="ban b${+p.banner || 0}">${banTx(p.ban_text)}</div>
-      <div class="pvc">${av(p, "big")}<h2>${uname(p, true)}</h2><div class="st${on ? " on" : ""}">${on ? "в сети" : st}${p.premium && !p.is_admin ? `<span class="own"> · ✦ премиум</span>` : ""}</div></div>
-      <div class="pacts">${acts}</div>
-      <div class="pcard">
-        ${p.bio ? `<div class="ci"><div><small>о себе</small><p class="bio">${esc(p.bio)}</p></div></div>` : ""}
-        <div class="ci"><div><small>юзернейм</small><b class="acc mono">${handle(p)}</b></div><button class="ib" data-share title="Скопировать">${I.at}</button></div>
-        ${more.length ? `<div class="ci"><div><small>ещё юзернеймы</small><b class="acc mono">${more.map(u => "@" + esc(u)).join(" ")}</b></div></div>` : ""}
-        ${(p.clans || (p.clan ? [p.clan] : [])).map(c => `<div class="ci cl" data-clan="${c.id}"><div><small>${c.official ? "официальный клан" : "клан"}</small><b>${clanChip(c)} ${esc(c.name || "")}</b></div><small class="muted">${c.role ? ROLE[c.role] : ""}</small></div>`).join("")}
-        ${p.birth ? `<div class="ci${isBday(p.birth) ? " bd" : ""}"><div><small>${isBday(p.birth) ? "день рождения сегодня" : "день рождения"}</small><b>🎂 ${dateRu(p.birth)} (${by} ${tl(plural(by, "год", "года", "лет"))})</b></div>${isBday(p.birth) ? `<span class="gift">🎁</span>` : ""}</div>` : ""}
-        <div class="ci"><div><small>ID</small><b class="mono">${p.num}</b></div><div style="text-align:right"><small>в Needle с</small><b>${dateRu(p.created_at)}</b></div></div>
-      </div>
-      <div class="pcard lvc"><div class="lvbar"><div class="lt">${p.is_admin ? `<b>${lvBadge(p, true)}</b><span>∞</span>` : `<b>${lvBadge(p)} Уровень ${L1.n} · ${L1.name}</b><span>${L1.next ? `${L1.xp} / ${L1.next} опыта` : `${L1.xp} опыта · максимум`}</span>`}</div><div class="lp${p.is_admin ? " gold" : ""}"><i style="width:${p.is_admin ? 100 : L1.pct}%"></i></div></div></div>
-      <div class="ptabs"><button class="on" data-pt="posts">Посты</button><button data-pt="media">Фото</button></div></div>`;
-  }
-  // общие кнопки профиля + вкладки Посты / Фото
-  function wireProfile(b, p, posts) {
-    $$("[data-share]", b).forEach(x => x.onclick = async () => { try { await navigator.clipboard.writeText("@" + p.username); toast(tl("Скопировано") + ": @" + p.username); } catch { toast("@" + p.username); } });
-    $$(".pacts [data-open]", b).forEach(x => x.onclick = () => open(x.dataset.open));
-    $$("[data-clan]", b).forEach(x => x.onclick = () => Clans.show(+x.dataset.clan));
-    const box = $(".posts", b);
-    const draw = k => {
-      $$(".ptabs button", b).forEach(x => x.classList.toggle("on", x.dataset.pt === k));
-      box.innerHTML = ""; box.classList.toggle("pgrid", k === "media");
-      if (k === "media") {
-        const ph = posts.flatMap(x => (x.photos || []).filter(u => PATH_RE.test(u)));
-        box.innerHTML = ph.length ? ph.map(u => `<img src="${esc(pub("nova", u))}" alt="" loading="lazy">`).join("") : `<div class="empty">${tl("Фото пока нет")}</div>`;
-        $$("img", box).forEach(im => im.onclick = () => window.open(im.src, "_blank", "noopener"));
-      } else { if (!posts.length) box.innerHTML = `<div class="empty">Постов пока нет</div>`; posts.forEach(x => box.append(postEl(x))); }
-    };
-    $$(".ptabs button", b).forEach(x => x.onclick = () => draw(x.dataset.pt));
-    draw("posts");
-  }
-  const BANNERS = 12, NICKS = 12, EXB = [12, 13, 14, 15, 16, 17, 18, 19], EXN = [13, 14, 15, 16, 17, 18, 19, 20];
-  const TXP = ["(◕‿◕)", "¯\\_(ツ)_/¯", "ʕ•ᴥ•ʔ", "(ง •̀_•́)ง", "★彡", "♡ ♡ ♡", "~(˘▾˘~)", "(╯°□°)╯︵ ┻━┻", "ᕕ( ᐛ )ᕗ", "⚡ ⚡ ⚡", "[ o_o ]", "🪡"];
-  const refreshMe = async () => { try { const r = await rpc("nv_profile", { p_user: ME.id }); if (r) Object.assign(ME, { main_clan: r.main_clan, clan: r.clan, clans: r.clans || (r.clan ? [r.clan] : []), usernames: r.usernames || [], premium: r.premium, ban_text: r.ban_text || "" }); } catch {} };
-  RENDER.me = async w => {
-    const b = $(".wb", w); setTitle(w, "Профиль");
-    b.innerHTML = `${profileHead(ME, true)}<div class="feed" style="padding-top:0"><div class="posts"><div class="spin"></div></div></div>`;
-    $("[data-edit]", b).onclick = () => editMe(w);
-    try { const posts = await rpc("nv_feed", { p_user: ME.id }); if ($(".posts", b)) wireProfile(b, ME, posts); } catch (e) { const box = $(".posts", b); if (box) box.innerHTML = ""; }
-  };
-  async function editMe(w) {
-    const b = $(".wb", w); setTitle(w, "Редактирование");
-    let ban = +ME.banner || 0, nick = +ME.nick || 0, btxt = ME.ban_text || "";
-    const perks = ME.is_admin ? [] : await rpc("nv_my_perks").catch(() => []) || [];
-    const own = (k, v) => ME.is_admin || perks.some(x => x.kind === k && +x.v === v);
-    const banL = [...Array.from({ length: BANNERS }, (_, i) => i), ...EXB.filter(v => own("banner", v))], nickL = [...Array.from({ length: NICKS + 1 }, (_, i) => i), ...EXN.filter(v => own("nick", v))];
-    const multi = ME.is_admin || ME.premium;
-    b.innerHTML = `<div class="pad edit">
-      <button class="btn ghost sm" data-done>${I.back} Назад к профилю</button>
-      <div class="pv mini"><div class="ban b${ban}">${banTx(btxt)}</div><div class="pvh"><label class="avpick" title="Сменить аватарку">${av(ME, "big")}<input type="file" accept="image/*" hidden></label></div>
-        <h2><span class="nk${nick ? " n" + nick : ""}" data-prev>${esc(ME.name || ME.username)}</span></h2></div>
-      <div class="field"><label class="k">фон профиля</label><div class="sw-grid" data-ban>${banL.map(i => `<button class="ban b${i}${i === ban ? " on" : ""}${i > 11 ? " ex" : ""}" data-v="${i}"></button>`).join("")}</div></div>
-      <div class="field"><label class="k">цвет ника</label><div class="sw-grid nk-grid" data-nick>${nickL.map(i => `<button class="${i === nick ? "on" : ""}${i > 12 ? " ex" : ""}" data-v="${i}"><span class="nk${i ? " n" + i : ""}">Aa</span></button>`).join("")}</div></div>
-      <div class="field"><label class="k" for="p-t">надпись на фоне</label><input class="in mono" id="p-t" maxlength="24" autocomplete="off" placeholder="смайлики, ASCII или пара слов" value="${esc(btxt)}"><p class="note" style="margin:6px 0 0">Смайлики лягут мелким узором по всему фону, текст и ASCII будут крупно по центру.</p><div class="txp">${TXP.map(x => `<button type="button">${esc(x)}</button>`).join("")}</div></div>
-      ${(ME.clans || []).length ? `<div class="field"><label class="k">тег клана у ника</label><div class="seg" data-mc><button type="button" data-v="0" class="${ME.main_clan === 0 ? "on" : ""}">${tl("без тега")}</button>${ME.clans.map(c => `<button type="button" data-v="${c.id}" class="${ME.main_clan !== 0 && (ME.clan && ME.clan.id) === c.id ? "on" : ""}">[${esc(c.tag)}]</button>`).join("")}</div></div>` : ""}
-      <div class="field"><label class="k" for="p-n">имя</label><input class="in" id="p-n" maxlength="40" placeholder="Как тебя показывать" value="${esc(ME.name || "")}"></div>
-      <div class="field"><label class="k" for="p-u">юзернейм</label><div class="at"><span>@</span><input class="in" id="p-u" maxlength="20" autocomplete="off" placeholder="латиница, цифры, _" value="${esc(ME.username)}"></div></div>
-      <div class="field"><label class="k" for="p-b">дата рождения</label><input class="in" id="p-b" type="date" min="1900-01-01" max="${new Date(Date.now() - 5 * 365.25 * 864e5).toISOString().slice(0, 10)}" value="${ME.birth || ""}"></div>
-      <div class="field"><label class="k">о себе</label><textarea class="box" rows="3" maxlength="160" placeholder="Пара слов о тебе">${esc(ME.bio || "")}</textarea></div>
-      ${multi ? `<div class="field"><label class="k" for="p-u2">ещё юзернеймы</label><div class="unl"></div><div class="at"><span>@</span><input class="in" id="p-u2" maxlength="20" autocomplete="off" placeholder="ещё один юзернейм"><button class="btn ghost sm" data-u2>Добавить</button></div><p class="note">${ME.is_admin ? "Сколько угодно" : "До 5 штук"}. По любому из них тебя найдут в поиске.</p></div>` : ""}
-      <button class="btn" data-save>Сохранить</button>
-      <p class="note">Пароль, выход и шифрование теперь в ⚙ Настройки → Аккаунт и Конфиденциальность.</p></div>`;
-    $("[data-done]", b).onclick = () => RENDER.me(w);
-    const prevBan = $(".pv .ban", b), prev = $("[data-prev]", b);
-    const mc0 = ME.main_clan === 0 ? 0 : ME.clan ? ME.clan.id : null; let mclan = mc0;
-    $$("[data-mc] button", b).forEach(x => x.onclick = () => { mclan = +x.dataset.v; $$("[data-mc] button", b).forEach(y => y.classList.toggle("on", y === x)); });
-    $$("[data-ban] button", b).forEach(x => x.onclick = () => { ban = +x.dataset.v; $$("[data-ban] button", b).forEach(y => y.classList.toggle("on", y === x)); prevBan.className = "ban b" + ban; });
-    $$("[data-nick] button", b).forEach(x => x.onclick = () => { nick = +x.dataset.v; $$("[data-nick] button", b).forEach(y => y.classList.toggle("on", y === x)); prev.className = "nk" + (nick ? " n" + nick : ""); });
-    $("#p-n", b).oninput = e => prev.textContent = e.target.value.trim() || ME.username;
-    const pt = $("#p-t", b), drawTx = () => { btxt = pt.value.trim(); prevBan.innerHTML = banTx(btxt); };
-    pt.oninput = drawTx;
-    $$(".txp button", b).forEach(x => x.onclick = () => { pt.value = x.textContent; drawTx(); });
-    if (multi) {
-      const unl = $(".unl", b), u2 = $("#p-u2", b);
-      const drawU = () => { const l = (ME.usernames || []).filter(u => u !== ME.username); unl.innerHTML = l.map(u => `<span class="uchip">@${esc(u)}<button type="button" data-u="${esc(u)}" title="Убрать">×</button></span>`).join(""); $$("[data-u]", unl).forEach(x => x.onclick = async () => { try { await rpc("nv_del_username", { p_username: x.dataset.u }); ME.usernames = (ME.usernames || []).filter(u => u !== x.dataset.u); drawU(); } catch (e) { toast(errText(e)); } }); };
-      drawU();
-      $("[data-u2]", b).onclick = async () => { const u = u2.value.trim().replace(/^@/, "").toLowerCase(); try { if (!/^[a-z0-9_]{3,20}$/.test(u)) throw new Error("bad username"); await rpc("nv_add_username", { p_username: u }); ME.usernames = [...(ME.usernames || []), u]; u2.value = ""; drawU(); toast(tl("Добавлено") + ": @" + u); } catch (e) { toast(errText(e)); } };
-    }
-    const fi = $("input[type=file]", b);
-    fi.onchange = async () => {
-      const f = fi.files[0]; fi.value = ""; if (!f) return;
-      try { const im = await makeImage(f, 320, true); const path = await upload("avatars", im.blob, im.ext, im.type); const old = ME.avatar; await rpc("sn_set_avatar", { p_path: path }); if (old) sb.storage.from("avatars").remove([old]).catch(() => {}); ME.avatar = path; $(".avpick .av", b).outerHTML = av(ME, "big"); toast("Аватарка обновлена"); }
-      catch (e) { toast(errText(e)); }
-    };
-    $("[data-save]", b).onclick = async e => {
-      const btn = e.currentTarget, t = $("textarea", b).value.trim(), n = $("#p-n", b).value.trim(), u = $("#p-u", b).value.trim().replace(/^@/, "").toLowerCase(), d = $("#p-b", b).value || null;
-      btn.disabled = true;
-      try {
-        if (!/^[a-z0-9_]{3,20}$/.test(u)) throw new Error("bad username");
-        await rpc("nv_set_profile", { p_name: n, p_username: u, p_birth: d });
-        if (ban !== (+ME.banner || 0) || nick !== (+ME.nick || 0) || btxt !== (ME.ban_text || "")) await rpc("nv_set_style2", { p_banner: ban, p_nick: nick, p_text: btxt });
-        if (t !== (ME.bio || "")) await rpc("sn_update_bio", { p_bio: t });
-        if (mclan != null && mclan !== mc0) { await rpc("nv_set_main_clan", { p_clan: mclan }); await refreshMe(); }
-        Object.assign(ME, { name: n, username: u, birth: d, bio: t, banner: ban, nick, ban_text: btxt });
-        toast("Сохранено"); RENDER.me(w);
-      } catch (x) { toast(errText(x)); btn.disabled = false; }
-    };
-  };
-  const logout = async () => { if (!(await confirmBox("Выйти из аккаунта?", "Выйти"))) return; await sb.auth.signOut(); location.reload(); };
-  const changePw = () => modal(`<h2>Новый пароль</h2><div class="field"><input class="in" type="password" minlength="8" maxlength="72" autocomplete="new-password" placeholder="8+ символов, буквы и цифры"></div><div class="err"></div><div class="row2"><button class="btn ghost" data-n>Отмена</button><button class="btn" data-y>Сохранить</button></div>`, (m, closeM) => {
-    $("[data-n]", m).onclick = closeM;
-    $("[data-y]", m).onclick = async () => {
-      const p = $("input", m).value; if (p.length < 8 || !/[a-z]/i.test(p) || !/\d/.test(p)) return $(".err", m).textContent = "Минимум 8 символов, буквы и цифры";
-      const { error } = await sb.auth.updateUser({ password: p }); if (error) return $(".err", m).textContent = errText(error);
+  const changePw = () => popup({ title: "Сменить пароль", html: `<div class="pop-f">${field("p", "Новый пароль", 'type="password" maxlength="72" autocomplete="new-password"')}<p class="hint">Минимум 8 символов, латинские буквы и цифры.</p><div class="err"></div></div>`,
+    buttons: [{ t: "Отмена" }, { t: "Сохранить", main: true, click: async card => {
+      const p = $("[name=p]", card).value, er = $(".err", card);
+      if (p.length < 8 || !/[a-z]/i.test(p) || !/\d/.test(p)) { er.textContent = "Минимум 8 символов, латинские буквы и цифры"; return false; }
+      const { error } = await sb.auth.updateUser({ password: p }); if (error) { er.textContent = errText(error); return false; }
       try { await E2E.rewrap(p); } catch (e) { console.warn("e2e", e); }
-      closeM(); toast("Пароль изменён");
-    };
-  });
-
-  // ================= эффекты для всех (запускает создатель) =================
-  const FX = {
-    id: 0, raf: 0, cv: null, onr: null,
-    async poll() {
-      if (document.hidden || !ME) return;
-      try {
-        const f = await rpc("nv_fx_now");
-        if (f && f.left > 0) { if (f.id !== this.id) this.run(f.kind, f.left, f.id); }
-        else if (this.raf) this.stop();
-      } catch {}
-    },
-    stop() { cancelAnimationFrame(this.raf); this.raf = 0; if (this.cv) { removeEventListener("resize", this.onr); this.cv.remove(); this.cv = null; } },
-    run(kind, sec, id = -1) {
-      this.stop(); this.id = id;
-      const end = performance.now() + Math.min(sec, 120) * 1000;
-      const cv = this.cv = document.createElement("canvas"); cv.className = "fxc"; document.body.append(cv);
-      const ctx = cv.getContext("2d"), dpr = Math.min(2, devicePixelRatio || 1); let W = 0, H = 0;
-      const fit = () => { W = innerWidth; H = innerHeight; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
-      fit(); this.onr = fit; addEventListener("resize", fit);
-      const R = (a, b) => a + Math.random() * (b - a), pick = a => a[Math.random() * a.length | 0];
-      const k = (matchMedia("(prefers-reduced-motion: reduce)").matches ? .4 : 1) * Math.min(1.4, Math.max(.5, W / 1200));
-      const COL = ["#ff6b6b", "#ffd43b", "#69db7c", "#4dabf7", "#9775fa", "#f783ac", "#ffa94d", "#38d9a9"];
-      const P = []; let acc = 0, boom = 0;
-      const cols = Array.from({ length: Math.ceil(W / 18) }, () => ({ y: R(-H, 0), v: R(6, 14), on: Math.random() < .55 }));
-      const GL = "アイウエオカキクケコサシスセソ0123456789ABCDEF+*";
-      const make = {
-        snow: () => ({ x: R(0, W), y: -12, vx: R(-.3, .3), vy: R(.6, 1.7), r: R(1.2, 3.2), ch: Math.random() < .2 ? "❄" : "", c: "#fff", a: R(.55, 1) }),
-        hearts: () => ({ x: R(0, W), y: H + 24, vx: R(-.4, .4), vy: -R(.8, 2), r: R(14, 28), ch: pick(["♥", "❤", "♡"]), c: pick(["#ff6b9a", "#ff8fab", "#f783ac", "#ff4d6d"]), a: 1 }),
-        confetti: () => ({ x: R(0, W), y: -12, vx: R(-1.5, 1.5), vy: R(2, 4.5), w: R(5, 10), h: R(3, 6), rot: R(0, 6), vr: R(-.2, .2), c: pick(COL), a: 1 }),
-        stars: () => ({ x: R(0, W), y: R(0, H), t: 0, max: R(60, 150), r: R(10, 20), ch: pick(["✦", "✧", "⋆", "*"]), c: pick(["#fff", "#ffe08a", "#a5d8ff"]), a: 0 }),
-      };
-      const rate = { snow: 2.2, hearts: .5, confetti: 3.5, stars: .7 }[kind] || 0;
-      const fr = now => {
-        if (now > end || !this.cv) return this.stop();
-        ctx.clearRect(0, 0, W, H); ctx.globalAlpha = 1;
-        const fade = Math.min(1, (end - now) / 1500);
-        if (kind === "matrix") {
-          ctx.font = "15px ui-monospace,monospace"; ctx.textAlign = "center";
-          cols.forEach((c, i) => {
-            if (!c.on) return; c.y += c.v * .35;
-            if (c.y > H + 300) { c.y = R(-200, 0); c.v = R(6, 14); }
-            for (let j = 0; j < 16; j++) { const y = c.y - j * 18; if (y < -18 || y > H + 18) continue; ctx.globalAlpha = fade * (j ? (1 - j / 16) * .55 : .95); ctx.fillStyle = j ? "#00ff88" : "#d6ffe9"; ctx.fillText(GL[(i * 7 + j * 13 + (now / 120 | 0)) % GL.length], i * 18 + 9, y); }
-          });
-        } else if (kind === "fireworks") {
-          if (now > boom) {
-            boom = now + R(350, 900); const x = R(W * .15, W * .85), y = R(H * .12, H * .5), c = pick(COL), ch = pick(["*", "+", "·", "o", "•", "x", "✦"]);
-            for (let i = 0; i < 46 * k; i++) { const an = Math.PI * 2 * i / (46 * k) + R(-.05, .05), sp = R(1.5, 4.2); P.push({ x, y, vx: Math.cos(an) * sp, vy: Math.sin(an) * sp, life: R(55, 90), t: 0, ch, c }); }
-          }
-          ctx.font = "bold 15px ui-monospace,monospace"; ctx.textAlign = "center";
-          for (let i = P.length - 1; i >= 0; i--) { const p = P[i]; p.t++; p.x += p.vx; p.y += p.vy; p.vx *= .985; p.vy = p.vy * .985 + .045; if (p.t > p.life) { P.splice(i, 1); continue; } ctx.globalAlpha = fade * (1 - p.t / p.life); ctx.fillStyle = p.c; ctx.fillText(p.ch, p.x, p.y); }
-        } else {
-          acc += rate * k; while (acc >= 1 && P.length < 400) { P.push(make[kind]()); acc--; }
-          ctx.textAlign = "center";
-          for (let i = P.length - 1; i >= 0; i--) {
-            const p = P[i];
-            if (kind === "stars") {
-              p.t++; if (p.t > p.max) { P.splice(i, 1); continue; }
-              const a = Math.sin(Math.PI * p.t / p.max); ctx.globalAlpha = fade * a; ctx.fillStyle = p.c; ctx.font = `${p.r}px sans-serif`; ctx.fillText(p.ch, p.x, p.y); continue;
-            }
-            p.x += p.vx; p.y += p.vy;
-            if (p.y > H + 30 || p.y < -40) { P.splice(i, 1); continue; }
-            ctx.globalAlpha = fade * p.a; ctx.fillStyle = p.c;
-            if (kind === "confetti") { p.rot += p.vr; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); ctx.restore(); }
-            else if (p.ch) { p.x += Math.sin((p.y + i) / 40) * .4; ctx.font = `${kind === "snow" ? 14 : p.r}px sans-serif`; ctx.fillText(p.ch, p.x, p.y); }
-            else { ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill(); }
-          }
-        }
-        this.raf = requestAnimationFrame(fr);
-      };
-      this.raf = requestAnimationFrame(fr);
-    },
-  };
-
-  // ================= кланы =================
-  const ROLE = { owner: "лидер", officer: "офицер", member: "участник" };
-  const CLV = [0, 300, 1000, 2500, 5000, 9000, 15000, 25000, 40000, 60000];
-  const clanLv = xp => { xp = +xp || 0; let n = 1; while (n < 10 && xp >= CLV[n]) n++; return n; };
-  const Clans = {
-    seq: 0,
-    show(id) { const w = open("clans"); this.page(w, id); },
-    async home(w) {
-      const b = $(".wb", w), my = ++this.seq; setTitle(w, "Кланы"); b.innerHTML = `<div class="spin"></div>`;
-      try {
-        const all = await rpc("nv_clan_top") || []; if (my !== this.seq) return;
-        const top = all.filter(c => !c.official), off = all.filter(c => c.official);
-        const mine = ME.clans || (ME.clan ? [ME.clan] : []), mc = mine.find(c => !c.official), canMake = ME.is_admin || (+ME.xp || 0) >= 150;
-        b.innerHTML = `<div class="pad clans">
-          ${mine.map(c => `<button class="crow mine" data-c="${c.id}">${clanChip(c, true)}<div class="cn"><small>${c.official ? "официальный клан" : "твой клан"}</small><b>${esc(c.name || c.tag)}</b><small>${ROLE[c.role] || ""}</small></div><span class="go">›</span></button>`).join("")}
-          ${mc ? "" : `<div class="clnew"><div><b>Свой клан</b><p class="note">Тег клана видно рядом с ником у всех участников. У клана свой чат, уровень и место в топе недели.</p></div>
-               <button class="btn" data-new${canMake ? "" : " disabled"}>Создать клан</button>${canMake ? "" : `<p class="note">Создать клан можно с 3 уровня. Вступить можно сразу: выбери клан ниже и подай заявку.</p>`}</div>`}
-          ${off.length ? `<h3 class="k">Официальные</h3><div class="ctop">${off.map(c => `<button class="crow" data-c="${c.id}">${clanChip(c)}<div class="cn"><b>${esc(c.name)}</b><small>${c.members} ${tl(plural(c.members, "участник", "участника", "участников"))} · ${tl("доступ выдаёт создатель")}</small></div><span class="go">›</span></button>`).join("")}</div>` : ""}
-          ${ME.is_admin ? `<button class="btn ghost sm" data-newoff style="margin:4px 0 8px">${I.plus} Официальный клан</button>` : ""}
-          <h3 class="k">Топ недели</h3>
-          <div class="ctop">${top.length ? top.map((c, i) => `<button class="crow" data-c="${c.id}"><span class="rk">${i + 1}</span>${clanChip(c)}<div class="cn"><b>${esc(c.name)}</b><small>${c.members}/50 · ${tl("ур.")} ${clanLv(c.xp)}</small></div><span class="wk" title="Опыт за неделю">+${c.week}</span></button>`).join("") : `<div class="empty">Кланов пока нет. Будь первым!</div>`}</div>
-          <p class="note">Опыт клана складывается из опыта участников. Топ обновляется каждую неделю.</p></div>`;
-        $$("[data-c]", b).forEach(x => x.onclick = () => this.page(w, +x.dataset.c));
-        $("[data-new]", b) && ($("[data-new]", b).onclick = () => this.form(w));
-        $("[data-newoff]", b) && ($("[data-newoff]", b).onclick = () => this.form(w, null, true));
-      } catch (e) { if (my === this.seq) b.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
-    },
-    async page(w, id) {
-      const b = $(".wb", w), my = ++this.seq; b.innerHTML = `<div class="spin"></div>`;
-      try {
-        const c = await rpc("nv_clan", { p_clan: id }); if (my !== this.seq) return;
-        const me = c.my_role, staff = me === "owner" || me === "officer", lv = clanLv(c.xp), nx = CLV[lv] ?? null;
-        const pct = nx ? Math.round((c.xp - CLV[lv - 1]) / (nx - CLV[lv - 1]) * 100) : 100;
-        setTitle(w, esc(c.name), "[" + esc(c.tag) + "]");
-        const mrow = (u, extra) => `<div class="mrow">${av(u, "xs")}<span class="mn" data-p="${u.id}">${uname(u)}</span>${extra}</div>`;
-        b.innerHTML = `<div class="pad clp">
-          <button class="btn ghost sm" data-back>${I.back} Все кланы</button>
-          <div class="chd">${clanChip(c, true)}<h2>${esc(c.name)}</h2>${c.about ? `<p class="bio">${esc(c.about)}</p>` : ""}
-            <div class="cst"><div><b>${c.members}</b><small>из 50</small></div><div><b>${lv}</b><small>уровень</small></div><div><b>+${c.week}</b><small>за неделю</small></div></div>
-            <div class="lvbar"><div class="lt"><b>Уровень клана ${lv}</b><span>${nx ? `${c.xp} / ${nx}` : c.xp}</span></div><div class="lp"><i style="width:${pct}%;background:${CLC[+c.color] || CLC[0]}"></i></div></div></div>
-          ${c.official ? `<p class="note offn">✓ Официальный клан Needle. Вступить по заявке нельзя: доступ выдаёт создатель.</p>` : ""}
-          <div class="cbtn">${me ? `<button class="btn" data-chat>Чат клана</button>` : c.requested ? `<button class="btn ghost" data-cancel>Отменить заявку</button>` : c.official || (ME.clans || []).some(x => !x.official) ? "" : `<button class="btn" data-join>Подать заявку</button>`}
-            ${me === "owner" ? `<button class="btn ghost" data-ed>Изменить</button><button class="btn ghost" data-delc>Удалить клан</button>` : me ? `<button class="btn ghost" data-leave>Выйти из клана</button>` : ""}</div>
-          ${ME.is_admin ? `<h3 class="k">Выдать доступ</h3><div class="at"><span>@</span><input class="in" data-gu maxlength="20" autocomplete="off" placeholder="юзернейм"><button class="btn sm" data-give>Добавить</button></div>
-            <button class="btn ghost sm" data-offi style="margin:8px 0 4px">${c.official ? "Сделать обычным" : "Сделать официальным"}</button>
-            <button class="btn ghost sm" data-ver style="margin:8px 0 4px">${c.verified ? "Забрать галочку" : "✔ Дать галочку"}</button>` : ""}
-          ${staff && (c.requests || []).length ? `<h3 class="k">Заявки</h3>${c.requests.map(u => mrow(u, `<button class="btn sm" data-ok="${u.id}">Принять</button><button class="ib" data-no="${u.id}" title="Отклонить">${I.x}</button>`)).join("")}` : ""}
-          <h3 class="k">Участники</h3>
-          ${(c.list || []).map(u => mrow(u, `<small class="rl ${u.role}">${ROLE[u.role]}</small><small class="wk">+${u.week}</small>${me === "owner" && u.role !== "owner" ? `<button class="ib" data-off="${u.id}" data-on="${u.role === "officer" ? 1 : 0}" title="${u.role === "officer" ? "Снять офицера" : "Сделать офицером"}">★</button>` : ""}${(me === "owner" || ME.is_admin) && u.role !== "owner" || (me === "officer" && u.role === "member") ? `<button class="ib" data-kick="${u.id}" title="Исключить">${I.x}</button>` : ""}`)).join("")}</div>`;
-        const act = async (fn, args, msg, after) => { try { await rpc(fn, args); if (msg) toast(msg); if (after) await after(); else this.page(w, id); } catch (e) { toast(errText(e)); } };
-        const mine = async () => { await refreshMe(); this.page(w, id); };
-        $("[data-back]", b).onclick = () => this.home(w);
-        $$("[data-p]", b).forEach(x => x.onclick = () => Profile.open(x.dataset.p));
-        const on = (sel, f) => { const x = $(sel, b); if (x) x.onclick = f; };
-        on("[data-chat]", () => { if (L() === "windows") close("clans"); Chat.open(c.chat_id); loadChats(); });
-        on("[data-join]", () => act("nv_clan_request", { p_clan: id }, tl("Заявка отправлена")));
-        on("[data-cancel]", () => act("nv_clan_cancel", { p_clan: id }));
-        on("[data-leave]", async () => { if (await confirmBox(tl("Выйти из клана") + " " + c.name + "?", tl("Выйти"))) act("nv_clan_kick", { p_clan: id, p_user: ME.id }, "", mine); });
-        on("[data-delc]", async () => { if (await confirmBox(tl("Удалить клан") + " " + c.name + "? " + tl("Чат клана тоже удалится."), tl("Удалить"))) act("nv_clan_delete", { p_clan: id }, tl("Клан удалён"), async () => { await refreshMe(); loadChats(); this.home(w); }); });
-        on("[data-ed]", () => this.form(w, c));
-        on("[data-ver]", () => act("nv_admin_clan_verify", { p_clan: id, p_on: !c.verified }, c.verified ? tl("Галочка забрана") : tl("Галочка выдана")));
-        on("[data-offi]", () => act("nv_admin_clan_official", { p_clan: id, p_on: !c.official }, c.official ? tl("Клан теперь обычный") : tl("Клан теперь официальный")));
-        const give = async () => {
-          const n = $("[data-gu]", b).value.trim().replace(/^@/, "").toLowerCase(); if (!n) return;
-          try { const u = await rpc("nv_admin_user", { p_username: n }); await rpc("nv_admin_clan_member", { p_clan: id, p_user: u.id, p_on: true }); toast(tl("Доступ выдан") + ": @" + u.username); this.page(w, id); } catch (e) { toast(errText(e)); }
-        };
-        on("[data-give]", give); const gu = $("[data-gu]", b); if (gu) gu.onkeydown = e => { if (e.key === "Enter") give(); };
-        $$("[data-ok]", b).forEach(x => x.onclick = () => act("nv_clan_answer", { p_clan: id, p_user: x.dataset.ok, p_ok: true }));
-        $$("[data-no]", b).forEach(x => x.onclick = () => act("nv_clan_answer", { p_clan: id, p_user: x.dataset.no, p_ok: false }));
-        $$("[data-off]", b).forEach(x => x.onclick = () => act("nv_clan_set_role", { p_clan: id, p_user: x.dataset.off, p_officer: x.dataset.on !== "1" }));
-        $$("[data-kick]", b).forEach(x => x.onclick = async () => { if (await confirmBox(tl("Исключить из клана?"), tl("Исключить"))) act("nv_clan_kick", { p_clan: id, p_user: x.dataset.kick }); });
-      } catch (e) { if (my === this.seq) b.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; }
-    },
-    form(w, c, official) {
-      let col = c ? +c.color : official ? 3 : 6;
-      modal(`<h2>${c ? "Изменить клан" : official ? "Официальный клан" : "Новый клан"}</h2>
-        <div class="field"><label class="k">название</label><input class="in" data-n maxlength="24" placeholder="2–24 символа" value="${c ? esc(c.name) : ""}"></div>
-        ${c ? "" : `<div class="field"><label class="k">тег у ника</label><input class="in mono" data-t maxlength="4" autocomplete="off" placeholder="2–4 буквы или цифры" style="text-transform:uppercase"></div>`}
-        <div class="field"><label class="k">цвет</label><div class="cl-grid">${CLC.map((x, i) => `<button type="button" style="--cc:${x}" data-v="${i}" class="${i === col ? "on" : ""}"></button>`).join("")}</div></div>
-        <div class="field"><label class="k">о клане</label><textarea class="box" rows="3" maxlength="200" placeholder="Чем вы занимаетесь">${c ? esc(c.about || "") : ""}</textarea></div>
-        <div class="err"></div><div class="row2"><button class="btn ghost" data-x>Отмена</button><button class="btn" data-y>${c ? "Сохранить" : "Создать"}</button></div>`, (m, closeM) => {
-        $$(".cl-grid button", m).forEach(x => x.onclick = () => { col = +x.dataset.v; $$(".cl-grid button", m).forEach(y => y.classList.toggle("on", y === x)); });
-        $("[data-x]", m).onclick = closeM;
-        $("[data-y]", m).onclick = async e => {
-          const btn = e.currentTarget, n = $("[data-n]", m).value.trim(), a = $("textarea", m).value.trim(), t = c ? "" : $("[data-t]", m).value.trim().toUpperCase();
-          if (!c && !/^[A-Za-zА-Яа-яЁё0-9]{2,4}$/.test(t)) return $(".err", m).textContent = tl("Тег: 2–4 буквы или цифры");
-          btn.disabled = true;
-          try {
-            if (c) { await rpc("nv_clan_edit", { p_clan: c.id, p_name: n, p_color: col, p_about: a }); closeM(); await refreshMe(); this.page(w, c.id); }
-            else { const id = await rpc(official ? "nv_admin_clan_create" : "nv_clan_create", { p_name: n, p_tag: t, p_color: col, p_about: a }); closeM(); toast(tl("Клан создан")); await refreshMe(); loadChats(); this.page(w, id); }
-          } catch (x) { $(".err", m).textContent = errText(x); btn.disabled = false; }
-        };
-      });
-    },
-  };
-  RENDER.clans = w => Clans.home(w);
-
-  // ================= админка (только создатель) =================
-  const FXK = [["snow", "❄ Снег"], ["confetti", "🎉 Конфетти"], ["fireworks", "✺ Салют ASCII"], ["matrix", "▓ Матрица"], ["hearts", "♥ Сердечки"], ["stars", "✦ Звёзды"]];
-  RENDER.admin = w => {
-    const b = $(".wb", w); setTitle(w, "Админка");
-    if (!ME.is_admin) { b.innerHTML = `<div class="empty">Только для создателя</div>`; return; }
-    let sec = 20;
-    b.innerHTML = `<div class="pad adm">
-      <h3 class="k">Эффекты для всех</h3>
-      <div class="seg" data-sec>${[10, 20, 30, 60].map(s => `<button data-v="${s}" class="${s === sec ? "on" : ""}">${s} ${tl("сек")}</button>`).join("")}</div>
-      <div class="fxg">${FXK.map(([k, t]) => `<button class="btn ghost" data-fx="${k}">${t}</button>`).join("")}<button class="btn ghost" data-fx="stop">■ Остановить</button></div>
-      <p class="note">Эффект увидят все, кто сейчас на сайте, в течение 15 секунд.</p>
-      <h3 class="k" style="margin-top:24px">Автоочистка ленты</h3>
-      <div data-junk><div class="spin"></div></div>
-      <h3 class="k" style="margin-top:24px">Пользователь</h3>
-      <div class="at"><span>@</span><input class="in" id="a-u" maxlength="20" autocomplete="off" placeholder="юзернейм, можно свой"><button class="btn sm" data-find>Найти</button></div>
-      <div data-card></div></div>`;
-    $$("[data-sec] button", b).forEach(x => x.onclick = () => { sec = +x.dataset.v; $$("[data-sec] button", b).forEach(y => y.classList.toggle("on", y === x)); });
-    $$("[data-fx]", b).forEach(x => x.onclick = async () => {
-      const k = x.dataset.fx;
-      try { await rpc("nv_admin_fx", { p_kind: k, p_sec: sec }); if (k === "stop") { FX.stop(); toast(tl("Эффект остановлен")); } else { FX.poll(); toast(tl("Эффект запущен для всех")); } } catch (e) { toast(errText(e)); }
-    });
-    const junk = $("[data-junk]", b), RSN = { link: "ссылка", mat: "мат", repeat: "повтор", nonsense: "бессмыслица", flood: "флуд" };
-    rpc("nv_admin_junk").then(j => {
-      junk.innerHTML = `<div class="cst jst"><div><b>${j.today}</b><small>${tl("сегодня")}</small></div><div><b>${j.week}</b><small>${tl("за неделю")}</small></div><div><b>${j.month}</b><small>${tl("за 30 дней")}</small></div></div>
-        ${(j.last || []).length ? `<div class="jlist">${j.last.map(x => `<div class="jrow"><span class="jr">${tl(RSN[x.reason] || x.reason)}</span><span class="jt">${esc(x.text || "—")}</span><small class="muted">@${esc(x.username || "?")} · ${ago(x.created_at)}</small></div>`).join("")}</div>` : `<p class="note">${tl("Пока ничего не удалено")}</p>`}
-        <p class="note">${tl("Спам, повторы, бессмыслица, мат и ссылки в постах и комментариях не публикуются. Автор видит «похоже на спам».")}</p>`;
-    }).catch(e => { junk.innerHTML = `<p class="note">${esc(errText(e))}</p>`; });
-    let OFF = null; const offClans = async () => OFF || (OFF = (await rpc("nv_clan_top") || []).filter(c => c.official));
-    const card = $("[data-card]", b), inp = $("#a-u", b);
-    const load = async name => { try { draw(await rpc("nv_admin_user", { p_username: name })); } catch (e) { card.innerHTML = `<div class="empty">${esc(errText(e))}</div>`; } };
-    const draw = async u => {
-      const offs = u ? await offClans().catch(() => []) : [];
-      if (!u) { card.innerHTML = `<div class="empty">${tl("Пользователь не найден")}</div>`; return; }
-      const perks = u.perks || [], has = (k, v) => perks.some(x => x.kind === k && +x.v === v);
-      card.innerHTML = `<div class="acard"><div class="pv mini"><div class="ban b${+u.banner || 0}">${banTx(u.ban_text)}</div></div>
-        <div class="arow">${av(u)}<div><b>${uname(u, true)}</b><div class="muted mono">@${esc(u.username)} · ID ${u.num}</div></div></div>
-        <div class="kv"><span>Премиум ✦</span><button class="btn ghost sm" data-pm>${u.premium ? "Забрать" : "Выдать"}</button></div>
-        ${u.is_admin ? "" : `<div class="kv"><span>Бан</span><button class="btn ghost sm" data-bn>${u.banned ? "Разбанить" : "Забанить"}</button></div>`}
-        <label class="k" style="display:block;margin:14px 0 8px">эксклюзивные фоны</label>
-        <div class="sw-grid">${EXB.map(v => `<button class="ban b${v}${has("banner", v) ? " on" : ""}" data-pk="banner" data-v="${v}"></button>`).join("")}</div>
-        <label class="k" style="display:block;margin:14px 0 8px">эксклюзивные цвета ника</label>
-        <div class="sw-grid nk-grid">${EXN.map(v => `<button class="${has("nick", v) ? "on" : ""}" data-pk="nick" data-v="${v}"><span class="nk n${v}">Aa</span></button>`).join("")}</div>
-        <p class="note">${u.is_admin ? "У создателя все фоны и цвета открыты всегда." : "Нажми, чтобы выдать или забрать. Выделенные уже выданы."}</p>
-        ${offs.length ? `<label class="k" style="display:block;margin:14px 0 8px">доступ к официальным кланам</label>
-        <div class="clacc">${offs.map(c => { const on = (u.clans || []).some(x => x.id === c.id); return `<button class="${on ? "on" : ""}" data-cl="${c.id}" data-on="${on ? 1 : 0}">${clanChip(c)} ${esc(c.name)}<span>${on ? "✓" : "+"}</span></button>`; }).join("")}</div>` : ""}</div>`;
-      $$("[data-cl]", card).forEach(x => x.onclick = async () => { const on = x.dataset.on === "1"; try { await rpc("nv_admin_clan_member", { p_clan: +x.dataset.cl, p_user: u.id, p_on: !on }); toast(on ? tl("Доступ забран") : tl("Доступ выдан")); if (u.id === ME.id) refreshMe(); load(u.username); } catch (e) { toast(errText(e)); } });
-      $("[data-pm]", card).onclick = async () => { try { await rpc("nv_admin_premium", { p_user: u.id, p_on: !u.premium }); toast(u.premium ? tl("Премиум забран") : tl("Премиум выдан")); load(u.username); } catch (e) { toast(errText(e)); } };
-      $("[data-bn]", card) && ($("[data-bn]", card).onclick = async () => { if (!(await confirmBox((u.banned ? "Разбанить " : "Забанить ") + u.username + "?"))) return; try { await rpc("sn_set_ban", { p_username: u.username, p_ban: !u.banned }); load(u.username); } catch (e) { toast(errText(e)); } });
-      $$("[data-pk]", card).forEach(x => x.onclick = async () => { const k = x.dataset.pk, v = +x.dataset.v; try { await rpc("nv_admin_perk", { p_user: u.id, p_kind: k, p_v: v, p_give: !has(k, v) }); load(u.username); } catch (e) { toast(errText(e)); } });
-      $$("[data-p]", card).forEach(x => x.onclick = () => Profile.open(x.dataset.p));
-    };
-    const go = () => { const n = inp.value.trim().replace(/^@/, "").toLowerCase(); if (n) load(n); };
-    $("[data-find]", b).onclick = go; inp.onkeydown = e => { if (e.key === "Enter") go(); };
-  };
-
-  // ================= настройки: список пунктов, каждый открывает свою страницу =================
-  const CFGP = [
-    ["look", "Оформление", "palette", "Стиль, шрифт, фон, раскладка"],
-    ["lang", "Язык", "globe", ""],
-    ["notif", "Уведомления", "bell", "Звук сообщений"],
-    ["priv", "Конфиденциальность", "lock", "Шифрование и ключ"],
-    ["acc", "Аккаунт", "me", "Профиль, пароль, выход"],
-    ["about", "О приложении", "info", "Версия, клавиши, ~/.needlerc"],
-  ];
-  const LANGN = { ru: "Русский", uk: "Українська", en: "English" };
-  const LOOKP = [
-    ["look:style", "Стиль", "palette", "Тема одной кнопкой"],
-    ["look:text", "Текст", "pen", "Шрифт, размер, углы"],
-    ["look:bg", "Фон", "spark", "Анимация из символов"],
-    ["look:desk", "Рабочий стол", "chats", "Раскладка, док, анимации, Игла"],
-    ["look:css", "Свой CSS", "cfg", "Для тех, кто любит покопаться"],
-  ];
-  let cfgPage = "";
-  RENDER.cfg = (w, page) => {
-    if (page !== undefined) cfgPage = page;
-    const b = $(".wb", w), pg = CFGP.find(x => x[0] === cfgPage) || LOOKP.find(x => x[0] === cfgPage);
-    const list = arr => `<div class="cfgg">${arr.map(([k, t, ic, d]) => `<button class="cfgi" data-go="${k}"><span class="ci2">${I[ic]}</span><span class="ct"><b>${t}</b><small>${k === "lang" ? LANGN[CFG.lang] : d}</small></span><span class="go">›</span></button>`).join("")}</div>`;
-    const seg = (key, opts) => `<div class="seg" data-key="${key}">${opts.map(([v, t]) => `<button data-v="${v}" class="${String(CFG[key]) === String(v) ? "on" : ""}">${t}</button>`).join("")}</div>`;
-    const sw = key => `<button class="sw${CFG[key] ? " on" : ""}" data-sw="${key}"></button>`;
-    const rng = (key, min, max) => `<input type="range" min="${min}" max="${max}" value="${CFG[key]}" data-rng="${key}">`;
-    setTitle(w, pg ? pg[1] : "Настройки");
-    if (!pg) {
-      b.innerHTML = `<div class="cfg cfgl">
-        <div class="cfgme" data-go="acc">${av(ME)}<div><b>${uname(ME)}</b><small class="mono">${handle(ME)}</small></div><span class="go">›</span></div>
-        ${list(CFGP)}
-        <p class="note" style="text-align:center">Needle v10 · TAN — The Anonymous Network</p></div>`;
-      $$("[data-go]", b).forEach(x => x.onclick = () => RENDER.cfg(w, x.dataset.go));
-      return;
-    }
-    let body = "";
-    if (cfgPage === "look") body = list(LOOKP);
-    else if (cfgPage === "look:style") body = `<div class="opt"><span>Стиль<small>одна кнопка меняет всё; дальше можно докрутить в других пунктах</small></span>${seg("theme", [["tg", "Telegram"], ["tgl", "Telegram светлая"], ["black", "Чёрная"], ["light", "Белая"], ["blue", "Синяя"], ["linux", "Linux"], ["windows", "Windows"], ["minimal", "Минимал"], ["matrix", "Матрица"], ["dark", "Огонь"]])}</div>`;
-    else if (cfgPage === "look:text") body = `
-      <div class="opt"><span>Шрифт</span>${seg("font", [["grotesk", "Grotesk"], ["mono", "Mono"], ["system", "Системный"]])}</div>
-      <div class="opt"><span>Размер текста<small data-o="size">${CFG.size}px</small></span>${rng("size", 12, 20)}</div>
-      <div class="opt"><span>Скругление углов<small data-o="radius">${CFG.radius}px</small></span>${rng("radius", 0, 20)}</div>`;
-    else if (cfgPage === "look:bg") body = `
-      <div class="opt"><span>Анимация из символов</span>${seg("bg", [["needle", "Нитки"], ["fire", "Огонь"], ["stars", "Звёзды"], ["matrix", "Матрица"], ["none", "Нет"]])}</div>
-      <div class="opt"><span>Яркость фона<small data-o="bgLevel">${CFG.bgLevel}%</small></span>${rng("bgLevel", 5, 100)}</div>`;
-    else if (cfgPage === "look:desk") body = `
-      <div class="opt"><span>Раскладка<small>«Окна» можно таскать и растягивать; двойной клик по заголовку вернёт на место</small></span>${seg("layout", [["app", "Needle"], ["windows", "Окна"], ["tiles", "Классика"]])}</div>
-      <div class="opt"><span>Док</span>${seg("dock", [["bottom", "Снизу"], ["left", "Слева"], ["hidden", "Скрыт"]])}</div>
-      <div class="opt"><span>Анимации</span>${seg("motion", [["full", "Все"], ["off", "Выкл"]])}</div>
-      <div class="opt"><span>Игла-питомец<small>живёт на экране, её можно таскать куда угодно</small></span>${sw("helper")}</div>`;
-    else if (cfgPage === "look:css") body = `
-      <p class="note" style="margin-top:0">Как в Linux: меняй что хочешь. Например <span class="mono">.bb{border-radius:18px}</span></p>
-      <textarea class="box rc" data-css spellcheck="false" placeholder="/* твои стили */">${esc(CFG.css)}</textarea>`;
-    else if (cfgPage === "lang") body = `<div class="cfgg">${Object.entries(LANGN).map(([k, t]) => `<button class="cfgi" data-lang="${k}"><span class="ct"><b>${t}</b></span><span class="go">${CFG.lang === k ? "✓" : ""}</span></button>`).join("")}</div>
-      <p class="note">После выбора страница перезагрузится.</p>`;
-    else if (cfgPage === "notif") body = `
-      <div class="opt"><span>Звук сообщений<small>короткий сигнал, когда приходит новое сообщение</small></span>${sw("sound")}</div>
-      <div class="opt"><span>Счётчик во вкладке<small>число непрочитанных в названии вкладки браузера</small></span><span class="muted mono" style="font-size:12px">всегда</span></div>`;
-    else if (cfgPage === "priv") body = `
-      <h3>${tl("Конфиденциальность")}</h3>
-      <div class="opt"><span>${tl("Кто видит, когда я в сети")}</span><div class="seg" data-ps>${[["all", "Все"], ["nobody", "Никто"]].map(([k, t]) => `<button data-v="${k}" class="${PREFS.priv_seen === k ? "on" : ""}">${tl(t)}</button>`).join("")}</div></div>
-      <div class="opt"><span>${tl("Кто может написать мне первым")}</span><div class="seg" data-pd>${[["all", "Все"], ["nobody", "Никто"]].map(([k, t]) => `<button data-v="${k}" class="${PREFS.priv_dm === k ? "on" : ""}">${tl(t)}</button>`).join("")}</div></div>
-      <h3>${tl("Чёрный список")}</h3>
-      <div class="ppl blk">${PREFS.blocked.length ? PREFS.blocked.map(u => `<div class="row">${av(u, "xs")}<div class="c"><div class="n">${uname(u)}</div><div class="p">@${esc(u.username)}</div></div><button class="btn ghost sm" data-unb="${u.id}">${tl("Разблокировать")}</button></div>`).join("") : `<p class="note">${tl("Тут пусто. Заблокировать можно в профиле человека.")}</p>`}</div>
-      <div class="opt"><span>Текст в списке чатов<small>показывать расшифрованное начало личных сообщений</small></span>${sw("preview")}</div>
-      <h3>Шифрование личных сообщений</h3>
-      <div class="kv"><span>Отпечаток ключа</span><button class="spoil code" data-fp title="Нажми, чтобы показать">••••••••••</button></div>
-      <div class="kv"><span>Копия ключа</span><span>${E2E.backed ? "✓ на сервере, закрыта паролем" : E2E.locked ? "🔒 не открыта на этом устройстве" : "только на этом устройстве"}</span></div>
-      ${E2E.backed ? "" : `<button class="btn sm" data-kbox style="margin:10px 0">${E2E.locked ? "Открыть переписку паролем" : "Сохранить ключ на сервере"}</button>`}
-      <p class="note">Личка шифруется прямо в браузере, сервер видит только шифр. Копия ключа лежит на сервере, закрытая твоим паролем, поэтому переписка открывается на любом твоём устройстве. Сообщения, отправленные на старые ключи (до Needle v6), на новом устройстве не откроются. Если сбросишь пароль через почту, создастся новый ключ.</p>`;
-    else if (cfgPage === "acc") body = `
-      <div class="kv"><span>Юзернейм</span><span class="mono">${handle(ME)}</span></div>
-      <div class="kv"><span>ID</span><span class="mono">${ME.num}</span></div>
-      <div class="kv"><span>Почта<small class="muted" style="display:block;font-size:11px">видишь только ты</small></span><button class="spoil mono" data-spoil="${esc(session && session.user && session.user.email || "")}" title="Нажми, чтобы показать">••••••••••</button></div>
-      <div class="kv"><span>Профиль</span><button class="btn ghost sm" data-edit>Изменить</button></div>
-      <div class="kv"><span>Пароль</span><button class="btn ghost sm" data-pw>Сменить</button></div>
-      <div class="kv"><span>Выход</span><button class="btn ghost sm" data-out>Выйти</button></div>`;
-    else if (cfgPage === "about") body = `
-      <div class="cfgabout">${LOGO(false)}<p class="note">Версия 6 · мессенджер, где ничего не остаётся.<br>© 2026 Needle · TAN — The Anonymous Network</p></div>
-      <h3>Горячие клавиши</h3>
-      <div class="keys"><kbd>Ctrl</kbd>+<kbd>K</kbd> поиск · <kbd>Alt</kbd>+<kbd>1…6</kbd> панели · <kbd>Esc</kbd> закрыть окно · <kbd>Enter</kbd> отправить · <kbd>Shift</kbd>+<kbd>Enter</kbd> новая строка</div>
-      <h3>~/.needlerc</h3>
-      <p class="note" style="margin-top:0">Все настройки одним файлом. Можно править руками, сохранить себе или вставить чужой.</p>
-      <textarea class="box rc" data-rc spellcheck="false"></textarea>
-      <div class="fab" style="margin:10px 0;flex-wrap:wrap"><button class="btn sm" data-apply>Применить</button><button class="btn sm ghost" data-dl>Скачать</button><label class="btn sm ghost">Загрузить<input type="file" accept=".json,.needlerc,application/json,text/plain" hidden data-ul></label><button class="btn sm ghost" data-reset>Сбросить всё</button></div>`;
-    const up = cfgPage.startsWith("look:") ? "look" : "";
-    b.innerHTML = `<div class="cfg"><button class="btn ghost sm cfgback" data-back>${I.back} ${up ? tl("Оформление") : tl("Настройки")}</button>${body}</div>`;
-    $("[data-back]", b).onclick = () => RENDER.cfg(w, up);
-    $$("[data-go]", b).forEach(x => x.onclick = () => RENDER.cfg(w, x.dataset.go));
-    const rc = $("[data-rc]", b), on = (sel, f) => { const x = $(sel, b); if (x) x.onclick = f; };
-    const showRc = () => { if (!rc) return; const c = Object.assign({}, CFG); delete c.wins; rc.value = JSON.stringify(c, null, 2); };
-    const set = (k, v) => { CFG[k] = v; saveCfg(); applyCfg(); showRc(); };
-    $$("[data-key]", b).forEach(s => $$("button", s).forEach(x => x.onclick = () => { $$("button", s).forEach(y => y.classList.toggle("on", y === x)); if (s.dataset.key === "theme" && PRESET[x.dataset.v]) { Object.assign(CFG, PRESET[x.dataset.v]); set("theme", x.dataset.v); return RENDER.cfg(w); } set(s.dataset.key, x.dataset.v); }));
-    $$("[data-lang]", b).forEach(x => x.onclick = () => { if (CFG.lang === x.dataset.lang) return; CFG.lang = x.dataset.lang; saveCfg(); location.reload(); });
-    $$("[data-sw]", b).forEach(x => x.onclick = () => { x.classList.toggle("on"); set(x.dataset.sw, x.classList.contains("on")); if (x.dataset.sw === "preview") drawChats(); });
-    $$("[data-rng]", b).forEach(x => x.oninput = () => { const k = x.dataset.rng; $(`[data-o=${k}]`, b).textContent = x.value + (k === "bgLevel" ? "%" : "px"); set(k, +x.value); });
-    let ct = 0; const css = $("[data-css]", b); if (css) css.oninput = e => { clearTimeout(ct); ct = setTimeout(() => set("css", e.target.value.slice(0, 20000)), 300); };
-    const fp = $("[data-fp]", b); if (fp) (E2E.pub ? E2E.code(E2E.pub, E2E.pub) : Promise.resolve("нет")).then(c => fp.dataset.spoil = c.slice(0, 14));
-    $$("[data-spoil]", b).forEach(x => x.onclick = () => { const on = x.classList.toggle("open"); x.textContent = on ? x.dataset.spoil : "••••••••••"; });
-    on("[data-kbox]", () => keyPrompt(true));
-    $$("[data-ps] button, [data-pd] button", b).forEach(x => x.onclick = async () => { const seen = !!x.closest("[data-ps]"); try { await rpc("nv_prefs_set", seen ? { p_seen: x.dataset.v } : { p_dm: x.dataset.v }); PREFS[seen ? "priv_seen" : "priv_dm"] = x.dataset.v; $$("button", x.parentElement).forEach(y => y.classList.toggle("on", y === x)); } catch (e) { toast(errText(e)); } });
-    $$("[data-unb]", b).forEach(x => x.onclick = async () => { try { await rpc("nv_block", { p_user: x.dataset.unb, p_on: false }); PREFS.blocked = PREFS.blocked.filter(u => u.id !== x.dataset.unb); x.closest(".row").remove(); } catch (e) { toast(errText(e)); } });
-    on("[data-edit]", () => { const mw = open("me"); RENDER.me(mw).then(() => editMe(mw)); });
-    on("[data-pw]", changePw); on("[data-out]", logout);
-    if (rc) {
-      const importCfg = txt => { try { const o = JSON.parse(txt); if (!o || typeof o !== "object") throw 0; const clean = {}; for (const k in DEF) if (k in o && k !== "wins" && typeof o[k] === typeof DEF[k]) clean[k] = o[k]; CFG = Object.assign({}, DEF, { wins: CFG.wins }, clean); saveCfg(); applyCfg(); RENDER.cfg(w); toast("Настройки применены"); } catch { toast("В файле ошибка: это должен быть JSON"); } };
-      on("[data-apply]", () => importCfg(rc.value));
-      on("[data-dl]", () => { const a = document.createElement("a"); a.href = "data:application/json;charset=utf-8," + encodeURIComponent(rc.value); a.download = "needlerc.json"; a.click(); });
-      $("[data-ul]", b).onchange = e => { const f = e.target.files[0]; e.target.value = ""; if (!f || f.size > 100e3) return; f.text().then(importCfg); };
-      on("[data-reset]", async () => { if (!(await confirmBox("Сбросить все настройки и положение окон?", "Сбросить"))) return; CFG = Object.assign({}, DEF, { wins: {} }); saveCfg(); applyCfg(); RENDER.cfg(w); });
-      showRc();
-    }
-  };
-
-  // ================= Игла: помощник =================
-  const Spark = (() => {
-    const P = " .:-=+*#%@"; let talking = 0, mx = -1;
-    addEventListener("pointermove", e => { mx = e.clientX / innerWidth; }, { passive: true });
-    function frame(t, look, talk) {
-      const W = 30, H = 22; let s = ""; const blink = (t % 3800) < 140;
-      const ax = 7, ay = 20.5, bx = 21.5, by = 1.6, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy;
-      const ang = -.36 + Math.sin(t * .0012) * .07, ca = Math.cos(ang), sa = Math.sin(ang), spin = t * (.003 + talk * .012);
-      const cx = 15 + look * .6, cy = 11.5, RX = 13, RY = 4.3;
-      for (let y = 0; y < H; y++) {
-        for (let x = 0; x < W; x++) {
-          let u = ((x - ax) * dx + (y - ay) * dy) / L2; const uc = Math.max(0, Math.min(1, u));
-          const dist = Math.hypot(x - (ax + uc * dx), (y - (ay + uc * dy)) * 1.6);
-          const th = .55 + uc * 1.7; let v = u > -0.02 && u < 1.04 && dist < th ? 1 - dist / th * .55 : 0;
-          if (v && !blink && u > .78 && u < .95 && dist < .9) v = 0;
-          const qx = (x - cx) * ca + (y - cy) * sa, qy = -(x - cx) * sa + (y - cy) * ca, e = Math.hypot(qx / RX, qy / RY);
-          let tv = Math.abs(e - 1) < .1 ? .5 + .5 * Math.sin(Math.atan2(qy / RY, qx / RX) * 2 - spin) : -1;
-          if (tv >= 0 && v > 0 && qy < 0) tv = -1;
-          if (tv >= 0) s += ".-~=+*"[Math.min(5, tv * 6 | 0)];
-          else s += v <= 0 ? " " : P[Math.min(P.length - 1, (v * .7 + .3) * P.length | 0)];
-        }
-        s += "\n";
-      }
-      return s;
-    }
-    let last = 0;
-    (function loop(t) {
-      requestAnimationFrame(loop);
-      if (document.hidden || t - last < 50) return; last = t;
-      const els = $$(".spirit"); if (!els.length) return;
-      const look = mx < 0 ? 0 : Math.max(-1.5, Math.min(1.5, (mx - .7) * 4));
-      const fr = frame(t, look, talking > 0 ? Math.sin(t * .03) * .5 + .5 : 0);
-      els.forEach(e => e.offsetParent && (e.textContent = fr));
-    })(0);
-    const QA = [
-      [/привет|здрав|хай|йо|ку\b|hello|hi\b|hey|вітаю/, "Привет! Я Игла. Сшиваю людей в одну сеть. Спрашивай, если что-то непонятно в Needle."],
-      [/канал|channel/, "Канал: «+» в чатах → «Канал» → придумай название. Писать в канал можешь только ты, остальные читают. Можно создать до 3 групп и каналов."],
-      [/групп|груп|group/, "Группа: «+» в чатах → «Группа». Можно включить анонимные сообщения, тогда участники пишут как «Аноним #N»."],
-      [/сгор|згор|таймер|исчез|зник|удал|видал|burn|timer|delete/, "Сгорание: открой чат и нажми 🔥 сверху. Выбери минуту, час или день, и новые сообщения исчезнут у всех. Совсем, даже с сервера."],
-      [/аноним|анонім|маск|скрыт|anon|mask/, "Анонимно можно писать в группах, где это разрешено (кнопка-маска), и в ленте. Вместо ника все увидят «Аноним #N». Номер у тебя всегда один и тот же в одном месте."],
-      [/шифр|безопас|безпе|прочит|взлом|ключ|слеж|подслуш|secur|safe|encrypt|key|privacy/, "Личные сообщения шифруются прямо в твоём браузере, а сервер видит кашу из символов. Ключ хранится закрытым твоим паролем, поэтому личка открывается на любом твоём устройстве. Сверить, что никто не подменил ключ, можно по «коду безопасности» в ⓘ чата."],
-      [/номер|телефон|phone|number/, "Номер телефона в Needle не нужен вообще: только ник, почта и пароль. Почту видишь только ты."],
-      [/фото|картин|photo|picture|image/, "Фото можно в группы, каналы и в ленту (до 4 штук). Фото в ленте сначала смотрит модератор, чтобы не было мусора."],
-      [/видео|відео|video/, "Видео пока может выкладывать только владелец Needle."],
-      [/настро|налашт|тема|линукс|linux|css|фон|цвет|колір|шрифт|setting|theme|color|font|style/, "Открой ⚙ Настройки → Стиль: Чёрная, Белая, Синяя, Linux, Windows, Минимал. Дальше шрифт, размер, фон из символов, раскладка («Игла», «Окна», «Классика») и даже свой CSS. А ещё файл ~/.needlerc: все настройки одним текстом."],
-      [/окн|вікн|таска|перетащ|window|drag/, "Окна таскаются за заголовок и растягиваются за правый нижний угол. Двойной клик по заголовку вернёт окно на место. Окна включаются в Настройки → Раскладка → Окна."],
-      [/найти|знайти|поиск|пошук|друг|человек|людин|айди|\bid\b|search|find|friend/, "Поиск (Ctrl+K): пиши ник, ID или название канала. В профиле человека есть кнопка «Написать»."],
-      [/ава|аватар|профил|профіл|ник|нік|avatar|profile|name/, "Профиль: нажми на свой ник сверху справа. Там аватарка, «о себе» и выход. Ник сменить нельзя."],
-      [/пароль|забыл|забув|войти|увійти|password|forgot|sign/, "Забыл пароль? На экране входа нажми «Забыл пароль?», и придёт ссылка на почту. Сменить пароль можно в профиле."],
-      [/телеграм|telegram|чем лучше|чим кращ|зачем|навіщо|why|better/, "Чем Needle лучше: личка всегда зашифрована, сообщения можно сжечь, не нужен номер, есть анонимный режим, а рабочий стол настраивается как Linux."],
-      [/бан|жалоб|скарг|спам|мат|лайк|ban|spam|report|swear/, "Мат превращается в звёздочки сам, ссылки и @ники запрещены от спама. Нарушителей банит владелец."],
-      [/кто ты|ты кто|хто ти|ти хто|игла|иголк|голк|who are you|needle/, "Я Игла, талисман Needle (TAN · The Anonymous Network). Помогаю разобраться. Пока я знаю готовые ответы, но скоро стану умнее."],
-    ];
-    function answer(q) { q = q.toLowerCase(); for (const [re, a] of QA) if (re.test(q)) return a; return "Пока не знаю ответа 🙈 Спроси про каналы, группы, сгорание, шифрование, анонимность, фото или настройки."; }
-    async function say(text) {
-      const el = $(".win[data-id=spark] .say span"); if (!el) return;
-      talking = 1; await scramble(el, tl(text), 1.4); setTimeout(() => talking = 0, 300);
-    }
-    RENDER.spark = w => {
-      $(".wb", w).innerHTML = `<div class="spirit" title="Погладить"></div><div class="say"><b>Игла ›</b> <span></span></div>
-        <div class="chips">${["Как создать канал?", "Что такое сгорание?", "Это безопасно?", "Как писать анонимно?", "Настройки как в Linux"].map(q => `<button>${q}</button>`).join("")}</div>
-        <form class="ask"><input class="box" maxlength="200" placeholder="Спроси Иглу…"><button class="btn sm">→</button></form>`;
-      $$(".chips button", w).forEach(b => b.onclick = () => say(answer(b.textContent)));
-      $(".spirit", w).onclick = () => say(["Ай, колется! 🪡", "Сшиваю чаты в одну сеть.", "Тут ничего не остаётся, кроме нитки ✦"][Math.random() * 3 | 0]);
-      $("form", w).onsubmit = e => { e.preventDefault(); const i = $("input", w); if (!i.value.trim()) return; say(answer(i.value)); i.value = ""; };
-      setTimeout(() => say(`${tl("Привет")}, ${ME.name || ME.username}! ${tl("Я Игла. Чем помочь?")}`), 300);
-    };
-    return { mount() {} };
-  })();
-
-  // ================= Игла-питомец: живёт на экране, её можно таскать =================
-  const Pet = {
-    mount() {
-      const el = $("#mini"); if (!el) return;
-      el.innerHTML = `<div class="spirit"></div><div class="pbub" hidden></div><span class="pz">z Z</span>`;
-      const bub = $(".pbub", el); let bt = 0, last = Date.now(), drag = null, moved = false;
-      const say = t => { if (el.hidden) return; bub.textContent = tl(t); bub.hidden = false; clearTimeout(bt); bt = setTimeout(() => bub.hidden = true, 5200); };
-      const place = (x, y) => { x = Math.max(0, Math.min(innerWidth - el.offsetWidth, x)); y = Math.max(50, Math.min(innerHeight - el.offsetHeight, y)); Object.assign(el.style, { left: x + "px", top: y + "px", right: "auto", bottom: "auto" }); };
-      const pos = store.get("needle-pet", null); if (pos) requestAnimationFrame(() => place(pos.x, pos.y));
-      addEventListener("resize", () => { if (el.style.left) place(el.offsetLeft, el.offsetTop); });
-      const wake = () => { last = Date.now(); if (el.classList.contains("sleep")) { el.classList.remove("sleep"); say("А? Я не сплю!"); } };
-      el.onpointerdown = e => { if (e.button) return; drag = { x: e.clientX, y: e.clientY, dx: e.clientX - el.offsetLeft, dy: e.clientY - el.offsetTop }; moved = false; el.setPointerCapture(e.pointerId); };
-      el.onpointermove = e => { if (!drag) return; if (!moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 5) { moved = true; el.classList.add("held"); wake(); } if (moved) place(e.clientX - drag.dx, e.clientY - drag.dy); };
-      el.onpointerup = () => { if (!drag) return; drag = null; el.classList.remove("held");
-        if (moved) { store.set("needle-pet", { x: el.offsetLeft, y: el.offsetTop }); say(["Тут уютно 🪡", "Оп, новое место!", "Уиии!", "Посижу тут"][Math.random() * 4 | 0]); }
-        else { wake(); open("spark"); } };
-      ["pointerdown", "keydown"].forEach(ev => addEventListener(ev, () => { last = Date.now(); el.classList.remove("sleep"); }, { passive: true }));
-      const TALK = () => { const hr = new Date().getHours(); return [hr < 6 ? "Ночь на дворе, а ты всё в Needle 🌙" : hr < 12 ? "Доброе утро! ☀️" : hr < 18 ? "Как день проходит?" : "Вечер, самое время поболтать",
-        "Перетащи меня куда хочешь", "Сообщения можно сжечь: кнопка 🔥 в чате", "Нажми на меня, и я подскажу", "Слышал про кланы? Загляни во вкладку «Кланы»",
-        "Сообщение можно закрепить: нажми ⋯ рядом с ним", "Можно отправить музыку: скрепка в чате 📎", "Я просто посижу тут…", "Шью-шью 🪡"]; };
-      setInterval(() => { if (el.hidden || document.hidden || drag) return; if (Date.now() - last > 120000) { el.classList.add("sleep"); return; } if (Math.random() < .3) { const l = TALK(); say(l[Math.random() * l.length | 0]); } }, 30000);
-      setTimeout(() => say(`${tl("Привет")}, ${ME.name || ME.username}!`), 2500);
-    },
-  };
-
-  // ================= горячие клавиши =================
-  document.addEventListener("keydown", e => {
-    if (!ME || $(".modal")) return;
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); open("find"); setTimeout(() => { const i = $(".win[data-id=find] .srch input"); i && i.focus(); }, 60); }
-    else if (e.altKey && /^[1-6]$/.test(e.key)) { e.preventDefault(); open(DOCK[+e.key - 1]); }
-    else if (e.key === "Escape" && !/INPUT|TEXTAREA/.test((document.activeElement || {}).tagName || "")) { const t = $(".win.shown.top"); if (t && L() === "windows") close(t.dataset.id); else if (L() !== "windows") open("chats"); }
-  });
-  document.addEventListener("visibilitychange", () => { if (!document.hidden && ME) { loadChats(); if (Chat.id) Chat.tick(); } });
+      toast("Пароль изменён");
+    } }] });
 
   // ================= запуск =================
-  try { const g = new URLSearchParams(location.search).get("go"); if (g && /^\+?[A-Za-z0-9_]{3,40}$/.test(g)) sessionStorage.setItem("needle-go", g); } catch {}
+  let goName = null, qrParam = null;
+  try {
+    const sp = new URLSearchParams(location.search);
+    const g = sp.get("go"); if (g && /^\+?[A-Za-z0-9_]{3,40}$/.test(g)) sessionStorage.setItem("needle-go", g);
+    const q = sp.get("qr"); if (q) sessionStorage.setItem("needle-qr", q);
+  } catch {}
   async function boot() {
-    applyCfg();
-    if (!sb) { $("#root").innerHTML = `<div class="empty" style="padding-top:30vh">Не загрузилась библиотека. Обнови страницу.</div>`; return; }
+    Auth.stop();
+    if (!sb) { $("#root").innerHTML = `<div class="boot-err">Не загрузилась библиотека. Обнови страницу.</div>`; return; }
     session = (await sb.auth.getSession()).data.session;
-    if (/[?&]reset=1/.test(location.search) && session) return authScreen("reset");
-    if (!session) return authScreen("in", /error_description=([^&]+)/.test(location.hash) ? "Ссылка устарела, войди заново" : "");
-    const { data, error } = await sb.from("profiles").select("id,num,username,name,birth,bio,avatar,verified,is_admin,banned,pubkey,created_at,xp,nick,banner").eq("id", session.user.id).maybeSingle();
-    if (error || !data) { if (error && /fetch|network/i.test(error.message || "")) { $("#root").innerHTML = `<div class="empty" style="padding-top:30vh">Нет связи с сервером. Обнови страницу чуть позже.</div>`; return; } await sb.auth.signOut(); return authScreen("in", "Профиль не найден, войди заново"); }
-    ME = data; await refreshMe();
+    if (/[?&]reset=1/.test(location.search) && session) return Auth.reset();
+    if (!session) return Auth.start(/error_description=([^&]+)/.test(location.hash + location.search) ? "Ссылка устарела, войди заново" : "");
+    // устройство: доверенное или нужен код
+    let hello = null;
+    try { hello = await rpc("nv_dev_hello", { p_name: devName() }); }
+    catch (e) {
+      const m = (e && (e.message || e.code)) || "";
+      if (/nv_dev_hello|PGRST202|does not exist|Could not find/.test(m + (e.code || ""))) hello = { trusted: true };   // база ещё без устройств
+      else if (/not signed in|JWT|jwt/.test(m)) { await sb.auth.signOut({ scope: "local" }).catch(() => {}); return Auth.start("Войди заново"); }
+      else { $("#root").innerHTML = `<div class="boot-err">Нет связи с сервером. Обнови страницу чуть позже.</div>`; return; }
+    }
+    if (!hello.trusted) return Auth.code(hello);
+    const { data, error } = await sb.from("profiles").select("id,num,username,name,birth,bio,avatar,verified,is_admin,banned,pubkey,created_at").eq("id", session.user.id).maybeSingle();
+    if (error || !data) { if (error && /fetch|network/i.test(error.message || "")) { $("#root").innerHTML = `<div class="boot-err">Нет связи с сервером. Обнови страницу чуть позже.</div>`; return; } await sb.auth.signOut({ scope: "local" }); return Auth.start("Профиль не найден, войди заново"); }
+    ME = data;
+    try { const p = await rpc("nv_profile", { p_user: ME.id }); if (p) ME.cover = p.cover || null; } catch {}
+    if (Auth.newName) { try { await rpc("nv_set_profile", { p_name: Auth.newName, p_username: ME.username, p_birth: null }); ME.name = Auth.newName; } catch {} Auth.newName = null; }
     if (location.search || location.hash) history.replaceState(null, "", SITE);
     await E2E.init(ME.id, PW); PW = null;
-    desk();
-    setTimeout(() => keyPrompt(E2E.locked), 900);
+    App.mount();
+    setTimeout(() => { if (!$(".pop-wrap")) keyPrompt(E2E.locked); }, 1200);
     setTimeout(cleanFiles, 5000);
-    try { const g = sessionStorage.getItem("needle-go"); if (g) { sessionStorage.removeItem("needle-go"); setTimeout(() => goLink(g), 600); } } catch {}
+    try { const g = sessionStorage.getItem("needle-go"); if (g) { sessionStorage.removeItem("needle-go"); setTimeout(() => goLink(g), 500); } } catch {}
+    try { const q = sessionStorage.getItem("needle-qr"); if (q) { sessionStorage.removeItem("needle-qr"); setTimeout(() => approveQr(q), 600); } } catch {}
     if (ME.banned) toast("Аккаунт заблокирован: писать нельзя");
   }
-  if (sb) sb.auth.onAuthStateChange((ev) => { if (ev === "PASSWORD_RECOVERY") authScreen("reset"); if (ev === "SIGNED_OUT" && ME) location.reload(); });
+  if (sb) sb.auth.onAuthStateChange(ev => { if (ev === "PASSWORD_RECOVERY") Auth.reset(); if (ev === "SIGNED_OUT" && ME) location.replace(SITE); });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && !$(".pop-wrap") && !menuEl) { if ($(".drawer-wrap.on")) return Drawer.close(); if (Side.on) return Side.close(); if (L.top()) return L.pop(); if (R.kind && !isPhone()) return R.close(); }
+  });
   boot();
 })();
