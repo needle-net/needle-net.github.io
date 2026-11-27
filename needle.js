@@ -88,6 +88,7 @@
     unread: svg('<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3" class="f"/>'),
     key: svg('<circle cx="8" cy="15" r="4"/><path d="M11 12l8.5-8.5M16 7l2.5 2.5M14 9l2 2"/>'),
     mail: svg('<rect x="3.5" y="5.5" width="17" height="13" rx="2"/><path d="M4 7l8 6 8-6"/>'),
+    palette: svg('<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7h2a4 4 0 0 0 4-4c0-4-3.8-7.2-8.5-7.2z"/><circle cx="7.5" cy="11" r="1.1"/><circle cx="10" cy="7.2" r="1.1"/><circle cx="14.5" cy="7.2" r="1.1"/>'),
     star: svg('<path d="M12 3.8l2.5 5.2 5.7.8-4.1 4 1 5.6-5.1-2.7-5.1 2.7 1-5.6-4.1-4 5.7-.8z"/>'),
     admin: svg('<path d="M12 3l7.5 3v5.5c0 4.5-3.2 8.2-7.5 9.5-4.3-1.3-7.5-5-7.5-9.5V6z"/>'),
     stop: svg('<rect x="6" y="6" width="12" height="12" rx="2"/>'),
@@ -107,7 +108,7 @@
     "blocked": "Этот человек ограничил тебе сообщения", "dm closed": "Этот человек не принимает новые личные сообщения", "banned here": "Тебя забанили в этом чате", "comments off": "Комментарии выключены", "poll closed": "Опрос завершён",
     "no access": "Это закрытый чат: войти можно только по ссылке-приглашению", "no chat": "Ничего не нашлось по этой ссылке",
     "too fast": "Слишком быстро, подожди пару секунд", "no links": "Ссылки и @ники писать нельзя", "limit 3": "Можно создать не больше 3 групп и каналов",
-    "bad length": "Слишком длинно или пусто", "join first": "Сначала вступи", "channel owner only": "Писать в канал может только его автор",
+    "bad length": "Слишком длинно или пусто", "wrong password": "Неверный пароль", "device too new": "С нового устройства это можно через 6 часов после входа", "premium only": "Это доступно в премиуме", "limit 5": "С премиумом можно до 5 юзернеймов", "bad style": "Такой цвет поставить нельзя", "join first": "Сначала вступи", "channel owner only": "Писать в канал может только его автор",
     "not signed in": "Нужно войти заново", "banned": "Аккаунт заблокирован", "no anon here": "Здесь нельзя писать анонимно",
     "Invalid login credentials": "Неверная почта или пароль", "User already registered": "Эта почта уже зарегистрирована",
     "Email not confirmed": "Подтверди почту: открой письмо и нажми ссылку", "bad photo": "Фото не загрузилось", "empty": "Пусто",
@@ -146,7 +147,10 @@
   let ME = null, session = null, PREFS = { folders: [], priv_seen: "all", priv_dm: "all", blocked: [] };
 
   // ================= оформление =================
-  const CFG = Object.assign({ theme: "system", size: 16, sound: true, preview: true, enter: true }, store.get("needle2-cfg", {}));
+  // программа для Windows: кнопка видна только в браузере на Windows (в самой программе её нет)
+  const WIN_APP = "/download/Needle-portable.exe";
+  const SHOW_WIN_APP = /Windows NT/.test(navigator.userAgent) && !/Electron\//.test(navigator.userAgent);
+  const CFG = Object.assign({ theme: "system", size: 16, sound: true, vol: 85, preview: true, enter: true }, store.get("needle2-cfg", {}));
   const saveCfg = () => { store.set("needle2-cfg", CFG); applyCfg(); };
   const darkNow = () => CFG.theme === "dark" || (CFG.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
   function applyCfg() {
@@ -183,7 +187,7 @@
   const confirmBox = (title, text, yes = "Удалить", danger = true) => popup({ title, text, buttons: [{ t: "Отмена", v: false }, { t: yes, v: true, danger, main: !danger }] }).then(v => v === true);
 
   // контекстное меню как в Telegram (правый клик / долгое нажатие)
-  let menuEl = null;
+  let menuEl = null, holdTouchAt = 0;
   function ctxMenu(x, y, items, head = "") {
     closeMenu();
     const list = items.filter(Boolean);
@@ -193,20 +197,26 @@
     m.style.left = Math.max(8, Math.min(x, W - r.width - 8)) + "px";
     m.style.top = Math.max(8, Math.min(y, H - r.height - 8)) + "px";
     m.style.transformOrigin = (x > W - r.width - 8 ? "right " : "left ") + (y > H - r.height - 8 ? "bottom" : "top");
-    menuEl.addEventListener("pointerdown", e => { if (e.target === menuEl) closeMenu(); });
-    menuEl.addEventListener("contextmenu", e => { e.preventDefault(); closeMenu(); });
-    $$("[data-i]", m).forEach(b => b.onclick = () => { const it = list[+b.dataset.i]; closeMenu(); it.f && it.f(); });
+    // Android после долгого нажатия сам шлёт contextmenu и «отпускание пальца» уже в открытое меню:
+    // первые 600 мс такие события не закрывают меню (раньше оно мигало и сразу пропадало)
+    const born = Date.now(), byTouch = born - holdTouchAt < 150, fresh = () => byTouch && Date.now() - born < 600;
+    menuEl.addEventListener("pointerdown", e => { if (e.target === menuEl && !fresh()) closeMenu(); });
+    menuEl.addEventListener("click", e => { if (e.target === menuEl && !fresh()) closeMenu(); });
+    menuEl.addEventListener("contextmenu", e => { e.preventDefault(); if (!fresh()) closeMenu(); });
+    $$("[data-i]", m).forEach(b => b.onclick = () => { if (fresh()) return; const it = list[+b.dataset.i]; closeMenu(); it.f && it.f(); });
     return m;
   }
   function closeMenu() { if (menuEl) { const e = menuEl; menuEl = null; e.classList.add("out"); setTimeout(() => e.remove(), 120); } }
   document.addEventListener("keydown", e => { if (e.key === "Escape") closeMenu(); });
   // правый клик и долгое нажатие на телефоне
   function onHold(el, fn) {
-    el.addEventListener("contextmenu", e => { e.preventDefault(); fn(e.clientX, e.clientY); });
-    let t = 0, sx = 0, sy = 0;
-    el.addEventListener("touchstart", e => { const p = e.touches[0]; sx = p.clientX; sy = p.clientY; t = setTimeout(() => { el._held = true; navigator.vibrate && navigator.vibrate(10); fn(sx, sy); }, 480); }, { passive: true });
+    let t = 0, sx = 0, sy = 0, touchAt = 0;
+    const open = (x, y) => { el.classList.add("held"); fn(x, y); setTimeout(() => el.classList.toggle("held", false), 350); };
+    // на телефоне меню открывает только наш таймер; системный contextmenu после касания игнорируем
+    el.addEventListener("contextmenu", e => { e.preventDefault(); if (Date.now() - touchAt < 1500) return; open(e.clientX, e.clientY); });
+    el.addEventListener("touchstart", e => { const p = e.touches[0]; el._held = false; touchAt = Date.now(); sx = p.clientX; sy = p.clientY; clearTimeout(t); t = setTimeout(() => { el._held = true; holdTouchAt = Date.now(); navigator.vibrate && navigator.vibrate(12); open(sx, sy); }, 450); }, { passive: true });
     el.addEventListener("touchmove", e => { const p = e.touches[0]; if (Math.abs(p.clientX - sx) + Math.abs(p.clientY - sy) > 10) clearTimeout(t); }, { passive: true });
-    ["touchend", "touchcancel"].forEach(ev => el.addEventListener(ev, () => clearTimeout(t), { passive: true }));
+    ["touchend", "touchcancel"].forEach(ev => el.addEventListener(ev, e => { clearTimeout(t); if (el._held && e.cancelable) e.preventDefault(); }));
     el.addEventListener("click", e => { if (el._held) { el._held = false; e.stopPropagation(); e.preventDefault(); } }, true);
   }
   const menuAt = (btn, items) => { const r = btn.getBoundingClientRect(); return ctxMenu(r.right - 220, r.bottom + 4, items); };
@@ -251,10 +261,27 @@
 
   // ================= звук =================
   let AC = null;
-  function beep() {
-    if (!CFG.sound) return;
-    try { AC = AC || new AudioContext(); const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.value = 660; g.gain.setValueAtTime(.0001, AC.currentTime); g.gain.exponentialRampToValueAtTime(.06, AC.currentTime + .02); g.gain.exponentialRampToValueAtTime(.0001, AC.currentTime + .22); o.connect(g).connect(AC.destination); o.start(); o.stop(AC.currentTime + .25); } catch {}
+  // звук как в мессенджерах: короткий двойной «дзынь». Громкость в настройках (по умолчанию громко)
+  function beep(force) {
+    if (!CFG.sound && !force) return;
+    try {
+      AC = AC || new AudioContext(); if (AC.state === "suspended") AC.resume();
+      const vol = Math.max(0, Math.min(100, CFG.vol ?? 85)) / 100; if (!vol) return;
+      const out = AC.createDynamicsCompressor(); out.connect(AC.destination);
+      const t0 = AC.currentTime;
+      [[988, 0], [1319, .12]].forEach(([f, d]) => {
+        [1, 2].forEach(k => {
+          const o = AC.createOscillator(), g = AC.createGain(); o.type = k === 1 ? "triangle" : "sine"; o.frequency.value = f * k;
+          const peak = vol * (k === 1 ? .9 : .25);
+          g.gain.setValueAtTime(.0001, t0 + d); g.gain.exponentialRampToValueAtTime(peak, t0 + d + .012); g.gain.exponentialRampToValueAtTime(.0001, t0 + d + .45);
+          o.connect(g).connect(out); o.start(t0 + d); o.stop(t0 + d + .5);
+        });
+      });
+    } catch {}
   }
+  // браузер разрешает звук только после первого касания: заранее «будим» звук
+  addEventListener("pointerdown", () => { try { AC = AC || new AudioContext(); if (AC.state === "suspended") AC.resume(); } catch {} }, { once: true, capture: true });
+
   // ================= шифрование ЛС =================
   // Ключ создаётся в браузере. Копия лежит на сервере, зашифрованная паролем входа (PBKDF2 + AES-GCM),
   // поэтому переписка открывается на любом устройстве после входа. Сервер пароля не знает и ключ прочитать не может.
@@ -461,7 +488,8 @@
         <h1>Вход по QR-коду</h1>
         <ol class="qr-steps"><li><span>Открой Needle на телефоне, где ты уже вошёл</span></li><li><span>Зайди в <b>Настройки → Устройства → Подключить устройство</b></span></li><li><span>Наведи камеру телефона на этот код</span></li></ol>
         ${note ? `<div class="err">${esc(note)}</div>` : ""}
-        <button class="btn wide ghost" data-mail>Войти по почте</button><button class="lnk" data-up>Создать аккаунт</button>`);
+        <button class="btn wide ghost" data-mail>Войти по почте</button><button class="lnk" data-up>Создать аккаунт</button>
+        ${SHOW_WIN_APP ? `<a class="lnk dl-win" href="${WIN_APP}" rel="noopener">Скачать Needle для Windows</a>` : ""}`);
       $("[data-mail]", root).onclick = () => this.mail();
       $("[data-up]", root).onclick = () => this.signup();
       const box = $(".qr-img", root);
@@ -757,6 +785,7 @@
         <div class="dr-l">
           ${[["me", I.user, "Мой профиль"], ["feed", I.feed, "Лента"], ["saved", I.saved, "Избранное"], "-", ["group", I.users, "Создать группу"], ["channel", I.channel, "Создать канал"], ["people", I.search, "Найти людей и каналы"], "-", ["devices", I.devices, "Устройства"], ["settings", I.gear, "Настройки"]]
             .map(x => x === "-" ? `<div class="sep"></div>` : `<button class="dr-i" data-go="${x[0]}">${x[1]}<span>${x[2]}</span></button>`).join("")}
+          ${SHOW_WIN_APP ? `<a class="dr-i" href="${WIN_APP}" rel="noopener">${I.download || I.laptop}<span>Needle для Windows</span></a>` : ""}
           <div class="dr-i dr-night" data-night>${I.moon}<span>Ночной режим</span>${sw(darkNow())}</div>
         </div><div class="dr-f">Needle · версия 2</div>`;
       $("[data-theme]", d).onclick = $("[data-night]", d).onclick = () => { CFG.theme = darkNow() ? "light" : "dark"; saveCfg(); this.draw(); };
@@ -1131,8 +1160,9 @@
         this.msgs.set(m.id, m); this.last = Math.max(this.last, m.id); this.first = this.first ? Math.min(this.first, m.id) : m.id;
         box.append(await this.el(m));
       }
+      if (list.length) box.querySelector(".empty-note")?.remove();
       this.regroup();
-      if (initial && !list.length && this.c && !this.c.saved && this.c.kind !== "dm") box.insertAdjacentHTML("beforeend", `<div class="sys"><span>Сообщений пока нет</span></div>`);
+      if (initial && !list.length && this.c && !this.c.saved && this.c.kind !== "dm") box.insertAdjacentHTML("beforeend", `<div class="sys empty-note"><span>Сообщений пока нет</span></div>`);
       if (initial || near || list.some(m => m.mine)) box.scrollTop = box.scrollHeight;
       if (this.last) rpc("nv_read", { p_chat: this.id, p_id: this.last }).catch(() => {});
     },
@@ -1552,6 +1582,46 @@
   // ================= профиль как во ВКонтакте: обложка, аватарка, стена =================
   const MONTHS = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
   const coverUrl = p => p && p.cover && PATH_RE.test(p.cover) ? pub("nova", p.cover) : "";
+  // фон профиля: фото, цвет или градиент. Бесплатные цвета те же, что в базе (nv_cover_free)
+  const COVER_FREE = ["#3a3d42", "#5b6068", "#8a8f96", "#2f3a4a", "#4a5a6e", "#3f5246", "#5a4148", "#6b5d4f"];
+  const COLOR_RE = /^#[0-9a-f]{6}(,#[0-9a-f]{6})?$/;
+  const coverBg = c => { if (!c || !COLOR_RE.test(c)) return ""; const [a, b] = c.split(","); return b ? `linear-gradient(135deg,${a},${b})` : a; };
+  const vip = () => !!(ME.premium || ME.is_admin || ME.num === 1 || ME.num === 2);
+  const premBadge = p => p && p.premium ? `<span class="prem" title="Needle Premium">${I.star}Premium</span>` : "";
+  async function pickCover(after) {
+    const cur = ME.cover_color || "";
+    const v = await popup({ title: "Фон профиля", cls: "cov-pop", html: `<div class="cov-sw">${COVER_FREE.map(c => `<button class="sw-c${cur === c ? " on" : ""}" data-c="${c}" style="background:${c}" aria-label="Цвет"></button>`).join("")}</div>
+      <div class="cov-prem${vip() ? "" : " off"}"><div class="cov-h">${I.star}<span>Свои цвета${vip() ? "" : " · в премиуме"}</span></div>
+        <div class="cov-own"><label>Цвет<input type="color" data-a value="${cur ? cur.split(",")[0] : "#4a5a6e"}"${vip() ? "" : " disabled"}></label>
+        <label>Второй, для градиента<input type="color" data-b value="${cur.split(",")[1] || "#2f3a4a"}"${vip() ? "" : " disabled"}></label></div>
+        <div class="cov-prev" data-prev></div>
+        <div class="cov-btns"><button class="btn ghost sm" data-own${vip() ? "" : " disabled"}>Один цвет</button><button class="btn ghost sm" data-grad${vip() ? "" : " disabled"}>Градиент</button></div></div>`,
+      buttons: [{ t: "Отмена", v: null }],
+      onMount: (card, done) => {
+        const a = $("[data-a]", card), b = $("[data-b]", card), pr = $("[data-prev]", card);
+        const prev = () => { pr.style.background = `linear-gradient(135deg,${a.value},${b.value})`; }; prev(); a.oninput = b.oninput = prev;
+        $$("[data-c]", card).forEach(x => x.onclick = () => done(x.dataset.c));
+        $("[data-own]", card).onclick = () => done(a.value.toLowerCase());
+        $("[data-grad]", card).onclick = () => done(`${a.value},${b.value}`.toLowerCase());
+      } });
+    if (!v || typeof v !== "string") return;
+    try { await rpc("nv_set_cover_color", { p_color: v }); Object.assign(ME, { cover_color: v, cover: null }); toast("Фон обновлён"); after && after(); } catch (x) { toast(errText(x)); }
+  }
+  async function uploadCover(f, after) {
+    try { toast("Загружаю обложку…"); const im = await makeImage(f, 1500); const path = await upload("nova", im.blob, im.ext, im.type); await rpc("nv_set_cover", { p_path: path }); Object.assign(ME, { cover: path, cover_color: null }); toast("Обложка обновлена"); after && after(); } catch (x) { toast(errText(x)); }
+  }
+  async function removeCover(after) {
+    if (!(await confirmBox("Убрать фон", "Фон профиля станет пустым.", "Убрать"))) return;
+    try { await rpc("nv_set_cover_color", { p_color: null }); Object.assign(ME, { cover: null, cover_color: null }); toast("Фон убран"); after && after(); } catch (x) { toast(errText(x)); }
+  }
+  // меню «Фон профиля»: фото, цвет, убрать
+  function coverMenu(btn, fileInput, after) {
+    menuAt(btn, [
+      { i: I.photo, t: "Загрузить фото", f: () => fileInput.click() },
+      { i: I.palette || I.sun, t: "Выбрать цвет", f: () => pickCover(after) },
+      ME.cover || ME.cover_color ? { i: I.trash, t: "Убрать фон", danger: true, f: () => removeCover(after) } : null,
+    ]);
+  }
   const Profile = {
     async open(uid) {
       const node = h(`<section class="page prof"><header class="ch">${backBtn()}<div class="ch-t"><div class="ch-n"><b>Профиль</b></div></div><div class="ch-a"></div></header><div class="page-b"><div class="spin"></div></div></section>`);
@@ -1559,16 +1629,17 @@
       const b = $(".page-b", node), mine = uid === ME.id;
       try {
         const p = await rpc("nv_profile", { p_user: uid }); if (!p) throw new Error("no user");
-        if (mine) Object.assign(ME, { cover: p.cover });
+        if (mine) Object.assign(ME, { cover: p.cover, cover_color: p.cover_color, premium: p.premium, name_limit: p.name_limit, usernames: p.usernames });
         const st = mine ? "в сети" : seenText(p.seen_at);
         $(".ch-n b", node).innerHTML = uname(p);
-        const cu = coverUrl(p);
+        const cu = coverUrl(p), cb = cu ? "" : coverBg(p.cover_color);
+        const also = (p.usernames || []).filter(u => u !== p.username);
         b.innerHTML = `<div class="pw-wrap">
-          <div class="vk-card"><div class="cover${cu ? "" : " none"}">${cu ? `<img src="${esc(cu)}" alt="">` : ""}${mine ? `<label class="cover-btn">${I.camera}<span>${cu ? "Изменить обложку" : "Добавить обложку"}</span><input type="file" accept="image/*" hidden data-cov></label>` : ""}</div>
+          <div class="vk-card"><div class="cover${cu || cb ? "" : " none"}"${cb ? ` style="background:${cb}"` : ""}>${cu ? `<img src="${esc(cu)}" alt="">` : ""}${mine ? `<button class="cover-btn" data-covm>${I.camera}<span>${cu || cb ? "Изменить фон" : "Добавить фон"}</span></button><input type="file" accept="image/*" hidden data-cov>` : ""}</div>
             <div class="vk-row"><div class="vk-av">${av(p, "xxl")}${mine ? `<label class="av-btn" title="Сменить фото">${I.camera}<input type="file" accept="image/*" hidden data-av></label>` : ""}</div>
-              <div class="vk-main"><h1>${uname(p)}</h1><div class="vk-st${st === "в сети" ? " on" : ""}">${esc(st)}</div>${p.bio ? `<div class="vk-bio">${esc(p.bio)}</div>` : ""}</div>
+              <div class="vk-main"><h1>${uname(p)}${premBadge(p)}</h1><div class="vk-st${st === "в сети" ? " on" : ""}">${esc(st)}</div>${p.bio ? `<div class="vk-bio">${esc(p.bio)}</div>` : ""}</div>
               <div class="vk-btns">${mine ? `<button class="btn ghost" data-edit>Редактировать профиль</button>` : `${p.banned ? "" : `<button class="btn" data-dm>Написать сообщение</button>`}<button class="ib box" data-more aria-label="Ещё">${I.more}</button>`}</div></div>
-            <div class="vk-info"><span>${I.at}@${esc(p.username)}</span>${p.birth ? `<span>${I.calendar}${dateRu(p.birth).replace(/ г\.$/, "")}</span>` : ""}<span>${I.id}ID ${p.num}</span><span>${I.star}в Needle с ${MONTHS[new Date(p.created_at).getMonth()]} ${new Date(p.created_at).getFullYear()}</span></div>
+            <div class="vk-info"><span>${I.at}${esc(["@" + p.username, ...also.map(u => "@" + u)].join(", "))}</span>${p.birth ? `<span>${I.calendar}${dateRu(p.birth).replace(/ г\.$/, "")}</span>` : ""}<span>${I.id}ID ${p.num}</span><span>${I.star}в Needle с ${MONTHS[new Date(p.created_at).getMonth()]} ${new Date(p.created_at).getFullYear()}</span></div>
             ${p.banned ? `<div class="vk-ban">Аккаунт заблокирован</div>` : ""}
           </div>
           <div class="vk-card wall"><div class="tabs2"><button class="on" data-pt="posts">Записи</button><button data-pt="media">Фото</button></div>
@@ -1582,7 +1653,7 @@
           { i: I.block, t: p.blocked ? "Разблокировать" : "Заблокировать", danger: !p.blocked, f: () => blockUser(p, () => this.open(uid)) },
           ME.is_admin && !p.is_admin ? { i: I.admin, t: p.banned ? "Разбанить в Needle" : "Забанить в Needle", danger: !p.banned, f: async () => { if (!(await confirmBox(p.banned ? "Разбанить" : "Забанить", `@${p.username}`, p.banned ? "Разбанить" : "Забанить"))) return; try { await rpc("sn_set_ban", { p_username: p.username, p_ban: !p.banned }); this.open(uid); } catch (x) { toast(errText(x)); } } } : null,
         ]));
-        const cov = $("[data-cov]", b); if (cov) cov.onchange = async () => { const f = cov.files[0]; cov.value = ""; if (!f) return; try { toast("Загружаю обложку…"); const im = await makeImage(f, 1500); const path = await upload("nova", im.blob, im.ext, im.type); await rpc("nv_set_cover", { p_path: path }); ME.cover = path; this.open(uid); } catch (x) { toast(errText(x)); } };
+        const cov = $("[data-cov]", b); if (cov) { cov.onchange = () => { const f = cov.files[0]; cov.value = ""; if (f) uploadCover(f, () => this.open(uid)); }; $("[data-covm]", b).onclick = e => coverMenu(e.currentTarget, cov, () => this.open(uid)); }
         const avi = $("[data-av]", b); if (avi) avi.onchange = async () => { const f = avi.files[0]; avi.value = ""; if (!f) return; try { await setAvatar(f); this.open(uid); } catch (x) { toast(errText(x)); } };
         const posts = await rpc("nv_feed", { p_user: p.id }).catch(() => []);
         const box = $(".posts", b);
@@ -1606,7 +1677,7 @@
   const Feed = {
     oldest: null,
     open() {
-      const node = h(`<section class="page feedp"><header class="ch">${backBtn()}<div class="ch-t"><div class="ch-n"><b>Лента</b><small>посты всех людей в Needle</small></div></div><div class="ch-a"><button class="ib" data-r aria-label="Обновить">${I.retry}</button></div></header>
+      const node = h(`<section class="page feedp"><header class="ch">${backBtn()}<div class="ch-t"><div class="ch-n"><b>Лента</b><small>посты за последнюю неделю</small></div></div><div class="ch-a"><button class="ib" data-r aria-label="Обновить">${I.retry}</button></div></header>
         <div class="page-b"><div class="pw-wrap narrow"><div class="vk-card np-mini" data-np>${av(ME, "sm")}<span>Что у вас нового?</span>${I.photo}</div><div class="posts"><div class="spin"></div></div></div></div></section>`);
       R.show("feed", node); wireBack(node);
       $("[data-np]", node).onclick = () => this.compose(() => this.load(node));
@@ -1702,13 +1773,16 @@
           <p class="hint">Пара слов о себе, до 160 символов.</p>
           <div class="at-f">${field("u", "Юзернейм", 'maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false"', ME.username)}</div>
           <p class="hint">По нему тебя найдут: ${esc(SITE.replace(/^https?:\/\//, ""))}<i data-uh>${esc(ME.username)}</i></p>
+          <button class="lnk" data-more-u>Дополнительные юзернеймы${(ME.usernames || []).length ? ` (${ME.usernames.length})` : ""}</button>
           ${field("d", "День рождения", `type="date" min="1900-01-01" max="${new Date(Date.now() - 5 * 365.25 * 864e5).toISOString().slice(0, 10)}"`, ME.birth || "")}
           <div class="err"></div><button class="btn wide" data-save>Сохранить</button>
-          <button class="lnk" data-cov>${ME.cover ? "Изменить обложку профиля" : "Добавить обложку профиля"}</button><input type="file" accept="image/*" hidden data-covf></div>`;
+          <button class="lnk" data-cov>${ME.cover || ME.cover_color ? "Изменить фон профиля" : "Добавить фон профиля"}</button><input type="file" accept="image/*" hidden data-covf></div>`;
         const fi = $(".acc-av input", b); fi.onchange = async () => { const f = fi.files[0]; fi.value = ""; if (!f) return; try { await setAvatar(f); $(".acc-av .av", b).outerHTML = av(ME, "xxl"); } catch (e) { toast(errText(e)); } };
         $("[name=u]", b).oninput = e => { $("[data-uh]", b).textContent = e.target.value.replace(/^@/, "").toLowerCase(); };
-        const cf = $("[data-covf]", b); $("[data-cov]", b).onclick = () => cf.click();
-        cf.onchange = async () => { const f = cf.files[0]; cf.value = ""; if (!f) return; try { toast("Загружаю обложку…"); const im = await makeImage(f, 1500); const path = await upload("nova", im.blob, im.ext, im.type); await rpc("nv_set_cover", { p_path: path }); ME.cover = path; toast("Обложка обновлена"); } catch (x) { toast(errText(x)); } };
+        const cf = $("[data-covf]", b), cvb = $("[data-cov]", b), relabel = () => { cvb.textContent = ME.cover || ME.cover_color ? "Изменить фон профиля" : "Добавить фон профиля"; };
+        cvb.onclick = e => coverMenu(e.currentTarget, cf, relabel);
+        cf.onchange = () => { const f = cf.files[0]; cf.value = ""; if (f) uploadCover(f, relabel); };
+        $("[data-more-u]", b).onclick = () => this.usernames();
         $("[data-save]", b).onclick = async e => {
           const btn = e.currentTarget, n = $("[name=n]", b).value.trim(), t = $("[name=bio]", b).value.trim(), u = $("[name=u]", b).value.trim().replace(/^@/, "").toLowerCase(), d = $("[name=d]", b).value || null;
           btn.disabled = true; $(".err", b).textContent = "";
@@ -1721,6 +1795,26 @@
         };
       });
     },
+    // дополнительные юзернеймы: без премиума нельзя, с премиумом до 5 всего, у toner и uzbek без лимита
+    usernames() {
+      L.push("Юзернеймы", b => {
+        const draw = async () => {
+          b.innerHTML = `<div class="spin"></div>`;
+          try { const p = await rpc("nv_profile", { p_user: ME.id }); Object.assign(ME, { usernames: p.usernames || [], name_limit: p.name_limit, premium: p.premium }); } catch (x) { b.innerHTML = `<div class="l-empty"><span>${esc(errText(x))}</span></div>`; return; }
+          const list = ME.usernames, lim = ME.name_limit, can = vip() && (lim === null || lim === undefined || list.length < lim);
+          b.innerHTML = `<div class="set-l"><div class="set-i">${I.at}<div><span>@${esc(ME.username)}</span><small>Основной</small></div></div>
+            ${list.map(u => `<div class="set-i">${I.at}<div><span>@${esc(u)}</span><small>Дополнительный</small></div><button class="ib" data-del="${esc(u)}" aria-label="Удалить">${I.trash}</button></div>`).join("")}</div>
+            ${can ? `<div class="pad">${field("nu", "Новый юзернейм", 'maxlength="20" autocomplete="off" autocapitalize="off" spellcheck="false"')}<div class="err"></div><button class="btn wide" data-add>Добавить</button></div>` : ""}
+            <p class="hint pad-x">${!vip() ? `${I.star} Дополнительные юзернеймы доступны в премиуме: до 5 штук. По любому из них тебя найдут.` : lim === null || lim === undefined ? "У тебя без лимита." : `С премиумом можно до 5 юзернеймов вместе с основным. Занято ${list.length + 1} из 5.`}</p>`;
+          $$("[data-del]", b).forEach(x => x.onclick = async () => { if (!(await confirmBox("Удалить юзернейм", `@${x.dataset.del} освободится, и его сможет занять кто угодно.`))) return; try { await rpc("nv_del_username", { p_username: x.dataset.del }); draw(); } catch (e) { toast(errText(e)); } });
+          const add = $("[data-add]", b); if (add) add.onclick = async () => {
+            const u = $("[name=nu]", b).value.trim().replace(/^@/, "").toLowerCase(); $(".err", b).textContent = "";
+            try { if (!/^[a-z0-9_]{3,20}$/.test(u)) throw new Error("bad username"); add.disabled = true; await rpc("nv_add_username", { p_username: u }); toast("Юзернейм добавлен"); draw(); } catch (e) { $(".err", b).textContent = errText(e); add.disabled = false; }
+          };
+        };
+        draw();
+      });
+    },
     // устройства: как «Активные сеансы» в Telegram
     devices() {
       L.push("Устройства", b => {
@@ -1730,11 +1824,22 @@
           try {
             const list = await rpc("nv_dev_list"); const cur = list.find(d => d.current), rest = list.filter(d => !d.current);
             const ic = n => /iPhone|Android|iPad/.test(n) ? I.phone : I.laptop;
-            const row = d => `<div class="dev" data-d="${d.id}"><span class="dev-ic">${ic(d.name)}</span><div><b>${esc(d.name || "Устройство")}</b><small>${d.current ? "это устройство" : d.trusted ? "был(о) в сети " + fmtTime(d.last_seen) : "ждёт код для входа"}</small></div></div>`;
+            // как в Telegram: с нового устройства нельзя выкидывать другие первые 6 часов
+            const wait = cur && cur.kick_at ? new Date(cur.kick_at) - Date.now() : 0;
+            const waitTxt = () => { const m = Math.ceil(wait / 60000), hh = Math.floor(m / 60), mm = m % 60; return (hh ? hh + " ч " : "") + (mm ? mm + " мин" : ""); };
+            const row = d => `<${d.current ? "div" : "button"} class="dev" data-d="${d.id}"><span class="dev-ic">${ic(d.name)}</span><div><b>${esc(d.name || "Устройство")}</b><small>${d.current ? "это устройство" : d.trusted ? "был(о) в сети " + fmtTime(d.last_seen) : "ждёт код для входа"}</small></div></${d.current ? "div" : "button"}>`;
             $(".devs", b).innerHTML = `<div class="sec">Это устройство</div>${cur ? row(cur) : ""}
-              ${rest.length ? `<div class="set-l"><button class="set-i danger" data-all>${I.block}<div><span>Завершить все другие сеансы</span></div></button></div><div class="sec">Другие устройства</div>${rest.map(row).join("")}<p class="hint pad-x">Нажми на устройство, чтобы отключить его. Чтобы войти с нового устройства, понадобится код из Needle, QR-код или ссылка на почту.</p>` : `<p class="hint pad-x">Других устройств нет.</p>`}`;
-            $$(".dev[data-d]", b).forEach(x => { const d = rest.find(y => y.id === +x.dataset.d); if (!d) return; x.classList.add("click"); x.onclick = async () => { if (!(await confirmBox("Отключить устройство", `«${d.name}» выйдет из аккаунта.`, "Отключить"))) return; try { await rpc("nv_dev_remove", { p_id: d.id }); draw(); } catch (e) { toast(errText(e)); } }; });
-            const all = $("[data-all]", b); if (all) all.onclick = async () => { if (!(await confirmBox("Завершить другие сеансы", "Все устройства, кроме этого, выйдут из аккаунта.", "Завершить"))) return; try { await rpc("nv_dev_remove", { p_id: null }); draw(); } catch (e) { toast(errText(e)); } };
+              ${rest.length ? `<div class="set-l"><button class="set-i danger" data-all>${I.block}<div><span>Завершить все другие сеансы</span></div></button></div><div class="sec">Другие устройства</div>${rest.map(row).join("")}<p class="hint pad-x">${wait > 0 ? `С этого устройства ты вошёл недавно. Отключать другие можно будет через ${waitTxt()}: так угнанное устройство не выкинет тебя из аккаунта.` : "Нажми на устройство, чтобы отключить его. Понадобится пароль от аккаунта."} Чтобы войти с нового устройства, нужен код из Needle, QR-код или ссылка на почту.</p>` : `<p class="hint pad-x">Других устройств нет.</p>`}`;
+            const kick = async (id, title, text) => {
+              if (wait > 0) return popup({ title: "Пока нельзя", text: `Это устройство вошло в аккаунт меньше 6 часов назад. Отключать другие устройства с него можно будет через ${waitTxt()}.`, buttons: [{ t: "Понятно", main: true }] });
+              await popup({ title, text, html: `<div class="pad-t">${field("pw", "Пароль от аккаунта", 'type="password" autocomplete="current-password"')}<div class="err"></div></div>`,
+                buttons: [{ t: "Отмена", v: null }, { t: "Отключить", danger: true, click: async card => {
+                  const pw = $("[name=pw]", card).value; if (!pw) { $(".err", card).textContent = "Введи пароль"; return false; }
+                  try { await rpc("nv_dev_remove", { p_id: id, p_pw: pw }); toast("Готово"); draw(); return true; } catch (e) { $(".err", card).textContent = errText(e); return false; }
+                } }] });
+            };
+            $$("button.dev[data-d]", b).forEach(x => { const d = rest.find(y => y.id === +x.dataset.d); if (d) x.onclick = () => kick(d.id, "Отключить устройство", `«${d.name || "Устройство"}» выйдет из аккаунта.`); });
+            const all = $("[data-all]", b); if (all) all.onclick = () => kick(null, "Завершить другие сеансы", "Все устройства, кроме этого, выйдут из аккаунта.");
           } catch (e) { $(".devs", b).innerHTML = `<p class="hint pad-x">${esc(errText(e))}</p>`; }
         };
         draw();
@@ -1760,8 +1865,11 @@
     notify() {
       L.push("Уведомления и звуки", b => {
         b.innerHTML = `<div class="set-l"><label class="opt">Звук новых сообщений${sw(CFG.sound, 'data-k="sound"')}</label><label class="opt">Показывать текст в списке чатов${sw(CFG.preview, 'data-k="preview"')}</label></div>
+          <div class="sec">Громкость звука</div><div class="pad"><div class="range"><span>${I.bell}</span><input type="range" min="0" max="100" step="5" value="${CFG.vol ?? 85}" data-vol><span class="big">${I.bell}</span></div><button class="lnk" data-test>Проверить звук</button></div>
           <p class="hint pad-x">Отдельный чат можно заглушить: правый клик или долгое нажатие на чат → «Без звука».</p>`;
         $$("[data-k]", b).forEach(x => x.parentElement.onclick = e => { e.preventDefault(); CFG[x.dataset.k] = !CFG[x.dataset.k]; x.classList.toggle("on", CFG[x.dataset.k]); saveCfg(); Chats.draw(); });
+        const vr = $("[data-vol]", b); vr.onchange = () => { CFG.vol = +vr.value; saveCfg(); beep(true); };
+        $("[data-test]", b).onclick = () => beep(true);
       });
     },
     look() {
@@ -1824,7 +1932,7 @@
     const { data, error } = await sb.from("profiles").select("id,num,username,name,birth,bio,avatar,verified,is_admin,banned,pubkey,created_at").eq("id", session.user.id).maybeSingle();
     if (error || !data) { if (error && /fetch|network/i.test(error.message || "")) { $("#root").innerHTML = `<div class="boot-err">Нет связи с сервером. Обнови страницу чуть позже.</div>`; return; } await sb.auth.signOut({ scope: "local" }); return Auth.start("Профиль не найден, войди заново"); }
     ME = data;
-    try { const p = await rpc("nv_profile", { p_user: ME.id }); if (p) ME.cover = p.cover || null; } catch {}
+    try { const p = await rpc("nv_profile", { p_user: ME.id }); if (p) Object.assign(ME, { cover: p.cover || null, cover_color: p.cover_color || null, premium: !!p.premium, name_limit: p.name_limit, usernames: p.usernames || [] }); } catch {}
     if (Auth.newName) { try { await rpc("nv_set_profile", { p_name: Auth.newName, p_username: ME.username, p_birth: null }); ME.name = Auth.newName; } catch {} Auth.newName = null; }
     if (location.search || location.hash) history.replaceState(null, "", SITE);
     await E2E.init(ME.id, PW); PW = null;
