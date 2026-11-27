@@ -463,7 +463,7 @@ a{color:inherit}
 
 /* долгое нажатие на телефоне: без системного выделения текста, сообщение чуть сжимается как в Telegram */
 @media (hover:none){.m .bb,.row,.post{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}
-.m .bb{transition:transform .15s}.m .bb.held{transform:scale(.97)}.row.held{background:rgba(127,127,127,.12)}
+.m .bb.held{transform:scale(.97);transition:transform .15s}.row.held{background:rgba(127,127,127,.12)}
 
 button.dev{width:100%;text-align:left;font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 button.dev:hover{background:var(--hover,rgba(127,127,127,.08))}
@@ -484,3 +484,9 @@ button.dev:hover{background:var(--hover,rgba(127,127,127,.08))}
 .cov-btns{display:flex;gap:8px}.cov-btns .btn{flex:1}
 .hint .ic{width:14px;height:14px;vertical-align:-2px;margin-right:2px}
 a.dr-i,a.lnk{color:inherit;text-decoration:none}.dl-win{display:block;text-align:center;margin-top:6px;color:var(--sub)!important;font-size:.9em}
+
+/* свайп для ответа на телефоне */
+.chat .m{touch-action:pan-y;position:relative}
+.sw-arrow{position:absolute;right:10px;top:50%;transform:translateY(-50%) scale(.6);width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.28);color:#fff;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .15s}
+.sw-arrow .ic{width:18px;height:18px}
+@media (hover:none){.chat .msgs{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}}

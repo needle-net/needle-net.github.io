@@ -214,8 +214,10 @@
     const open = (x, y) => { el.classList.add("held"); fn(x, y); setTimeout(() => el.classList.toggle("held", false), 350); };
     // на телефоне меню открывает только наш таймер; системный contextmenu после касания игнорируем
     el.addEventListener("contextmenu", e => { e.preventDefault(); if (Date.now() - touchAt < 1500) return; open(e.clientX, e.clientY); });
-    el.addEventListener("touchstart", e => { const p = e.touches[0]; el._held = false; touchAt = Date.now(); sx = p.clientX; sy = p.clientY; clearTimeout(t); t = setTimeout(() => { el._held = true; holdTouchAt = Date.now(); navigator.vibrate && navigator.vibrate(12); open(sx, sy); }, 450); }, { passive: true });
+    el.addEventListener("touchstart", e => { const p = e.touches[0]; el._held = false; touchAt = Date.now(); sx = p.clientX; sy = p.clientY; clearTimeout(t); t = setTimeout(() => { el._held = true; holdTouchAt = Date.now(); try { getSelection().removeAllRanges(); } catch {} navigator.vibrate && navigator.vibrate(12); open(sx, sy); }, 450); }, { passive: true });
     el.addEventListener("touchmove", e => { const p = e.touches[0]; if (Math.abs(p.clientX - sx) + Math.abs(p.clientY - sy) > 10) clearTimeout(t); }, { passive: true });
+    // Android: долгое нажатие не должно выделять текст
+    el.addEventListener("selectstart", e => { if (Date.now() - touchAt < 2000) e.preventDefault(); });
     ["touchend", "touchcancel"].forEach(ev => el.addEventListener(ev, e => { clearTimeout(t); if (el._held && e.cancelable) e.preventDefault(); }));
     el.addEventListener("click", e => { if (el._held) { el._held = false; e.stopPropagation(); e.preventDefault(); } }, true);
   }
@@ -1130,11 +1132,22 @@
       const bb = $(".bb", el);
       onHold(bb, (x, y) => this.menu(m, el, x, y));
       if (this.canWrite() && !isPhone()) bb.addEventListener("dblclick", e => { if (e.target.closest("a,button,audio,video,img")) return; getSelection().removeAllRanges(); this.setReply(m, d); });
-      if (this.canWrite()) {   // свайп влево = ответить
-        let sx = null, sy = 0, dx = 0;
-        bb.addEventListener("touchstart", e => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; }, { passive: true });
-        bb.addEventListener("touchmove", e => { if (sx == null) return; if (Math.abs(e.touches[0].clientY - sy) > 20) { sx = null; bb.style.transform = ""; return; } dx = Math.min(0, e.touches[0].clientX - sx); if (dx < -8) bb.style.transform = `translateX(${Math.max(dx, -64)}px)`; }, { passive: true });
-        bb.addEventListener("touchend", () => { bb.style.transform = ""; if (dx < -50 && sx != null) this.setReply(m, d); sx = null; });
+      if (this.canWrite()) {   // свайп влево = ответить, как в Telegram: тянется вся строка, справа появляется стрелка
+        let sx = 0, sy = 0, dx = 0, lock = "", buzz = false, arrow = null;
+        const reset = () => { bb.style.transition = "transform .2s"; bb.style.transform = ""; if (arrow) { arrow.style.opacity = "0"; const a = arrow; setTimeout(() => a.remove(), 200); arrow = null; } };
+        el.addEventListener("touchstart", e => { if (e.touches.length > 1) { lock = "n"; return; } sx = e.touches[0].clientX; sy = e.touches[0].clientY; dx = 0; lock = ""; buzz = false; }, { passive: true });
+        el.addEventListener("touchmove", e => {
+          if (lock === "n" || lock === "y") return;
+          const mx = e.touches[0].clientX - sx, my = e.touches[0].clientY - sy;
+          if (!lock) { if (Math.abs(mx) < 8 && Math.abs(my) < 8) return; lock = Math.abs(mx) > Math.abs(my) * 1.2 && mx < 0 ? "x" : "y"; if (lock === "y") return;
+            bb.style.transition = "none"; arrow = h(`<span class="sw-arrow">${I.reply}</span>`); el.append(arrow); }
+          if (e.cancelable) e.preventDefault();
+          dx = Math.max(-90, Math.min(0, mx)); bb.style.transform = `translateX(${dx}px)`;
+          const p = Math.min(1, -dx / 60); arrow.style.opacity = String(p); arrow.style.transform = `translateY(-50%) scale(${.6 + .4 * p})`;
+          if (dx < -60 && !buzz) { buzz = true; navigator.vibrate && navigator.vibrate(8); } else if (dx > -60) buzz = false;
+        }, { passive: false });
+        const end = () => { if (lock === "x") { if (dx < -60) this.setReply(m, d); reset(); } lock = ""; dx = 0; };
+        el.addEventListener("touchend", end, { passive: true }); el.addEventListener("touchcancel", end, { passive: true });
       }
       if (m.expires_at) { const left = new Date(m.expires_at) - Date.now(); this.burnT.set(m.id, setTimeout(() => this.burn(el, m.id), Math.max(0, left))); }
       return el;
